@@ -2,9 +2,7 @@
 
 ## Démonstration
 
-<video controls width="100%" preload="none">
-  <source src="https://media.heiphaistos.org/videos/nitrite.mp4" type="video/mp4">
-</video>
+<video src="https://media.heiphaistos.org/videos/nitrite.mp4" controls width="100%" preload="none"></video>
 ## Table des matières
 
 1. [Présentation](#présentation)
