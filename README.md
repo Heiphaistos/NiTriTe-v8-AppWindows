@@ -2,7 +2,7 @@
 
 ## Démonstration
 
-https://github.com/heiphaistos44-crypto/NITriTe-2.0/releases/download/v6.1.0/nitrite.mp4
+https://github.com/heiphaistos44-crypto/NITriTe-2.0/raw/main/assets/demo.mp4
 
 
 > **Outil de diagnostic, maintenance et réparation Windows tout-en-un**
