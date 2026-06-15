@@ -1,4 +1,9 @@
-# NiTriTe 2.0 — Documentation Utilisateur
+﻿# NiTriTe 2.0 — Documentation Utilisateur
+
+## Démonstration
+
+https://github.com/heiphaistos44-crypto/NITriTe-2.0/releases/download/v6.1.0/nitrite.mp4
+
 
 > **Outil de diagnostic, maintenance et réparation Windows tout-en-un**
 > Version `6.0.0` · Tauri v2 · Windows 10/11 · 64-bit
