@@ -208,3 +208,56 @@ $conns | ConvertTo-Json -Compress
     ports.dedup_by_key(|p| (p.protocol.clone(), p.local_port));
     Ok(ports)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dns_presets_has_expected_count() {
+        let presets = get_dns_presets();
+        assert_eq!(presets.len(), 8, "Expected 8 DNS presets, got {}", presets.len());
+    }
+
+    #[test]
+    fn dns_presets_cloudflare_ips() {
+        let presets = get_dns_presets();
+        let cf = presets.iter().find(|p| p.id == "cloudflare").expect("cloudflare preset missing");
+        assert_eq!(cf.primary, "1.1.1.1");
+        assert_eq!(cf.secondary, "1.0.0.1");
+    }
+
+    #[test]
+    fn dns_presets_google_ips() {
+        let presets = get_dns_presets();
+        let g = presets.iter().find(|p| p.id == "google").expect("google preset missing");
+        assert_eq!(g.primary, "8.8.8.8");
+        assert_eq!(g.secondary, "8.8.4.4");
+    }
+
+    #[test]
+    fn dns_presets_auto_has_empty_ips() {
+        let presets = get_dns_presets();
+        let auto = presets.iter().find(|p| p.id == "auto").expect("auto preset missing");
+        assert_eq!(auto.primary, "");
+        assert_eq!(auto.secondary, "");
+    }
+
+    #[test]
+    fn dns_presets_all_have_ids_and_names() {
+        let presets = get_dns_presets();
+        for p in &presets {
+            assert!(!p.id.is_empty(), "Preset has empty id");
+            assert!(!p.name.is_empty(), "Preset '{}' has empty name", p.id);
+        }
+    }
+
+    #[test]
+    fn dns_presets_no_duplicate_ids() {
+        let presets = get_dns_presets();
+        let mut ids: Vec<&str> = presets.iter().map(|p| p.id.as_str()).collect();
+        ids.sort();
+        ids.dedup();
+        assert_eq!(ids.len(), presets.len(), "Duplicate DNS preset IDs found");
+    }
+}
