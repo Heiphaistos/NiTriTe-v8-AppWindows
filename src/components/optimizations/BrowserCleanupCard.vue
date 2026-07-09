@@ -10,6 +10,7 @@ import { Globe, RefreshCw, Trash2, CheckCircle, CheckSquare, Square } from "luci
 const notify = useNotificationStore();
 
 interface BrowserCache { id: string; name: string; detected: boolean; cache_size_mb: number; selected: boolean; }
+interface BrowserCleanResult { freed_mb: number; files_deleted: number; }
 const browsers = ref<BrowserCache[]>([]);
 const loading = ref(false);
 const cleaning = ref(false);
@@ -20,8 +21,8 @@ const total = computed(() => browsers.value.reduce((s, b) => s + b.cache_size_mb
 async function load() {
   loading.value = true; cleanResult.value = null;
   try {
-    const data = await invoke<any[]>("get_browser_cache_sizes");
-    browsers.value = data.filter((b: any) => b.detected).map((b: any) => ({ ...b, selected: true }));
+    const data = await invoke<BrowserCache[]>("get_browser_cache_sizes");
+    browsers.value = data.filter(b => b.detected).map(b => ({ ...b, selected: true }));
   } catch {
     browsers.value = [
       { id: "chrome", name: "Google Chrome", detected: true, cache_size_mb: 245.3, selected: true },
@@ -36,9 +37,9 @@ async function clean() {
   if (!selected.length) { notify.warning("Selectionnez au moins un navigateur"); return; }
   cleaning.value = true;
   try {
-    const results = await invoke<any[]>("clean_browser_cache", { browserIds: selected });
-    const freed = results.reduce((s: number, r: any) => s + r.freed_mb, 0);
-    const deleted = results.reduce((s: number, r: any) => s + r.files_deleted, 0);
+    const results = await invoke<BrowserCleanResult[]>("clean_browser_cache", { browserIds: selected });
+    const freed = results.reduce((s, r) => s + r.freed_mb, 0);
+    const deleted = results.reduce((s, r) => s + r.files_deleted, 0);
     cleanResult.value = { freed, deleted };
     notify.success("Nettoyage terminé", `${freed.toFixed(1)} MB libérés, ${deleted} fichiers`);
     await load();

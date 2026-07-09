@@ -7,12 +7,13 @@ import NButton from "@/components/ui/NButton.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
 import NCollapse from "@/components/ui/NCollapse.vue";
 import { useNotificationStore } from "@/stores/notifications";
+import type { SecurityStatus, WinLicense, InstalledUpdate } from "@/types/diagnostic";
 
 const props = defineProps<{
   tab: string;
-  securityInfo: any;
-  licenseInfo: any;
-  updatesHistory: any[];
+  securityInfo: SecurityStatus | null;
+  licenseInfo: WinLicense | null;
+  updatesHistory: InstalledUpdate[];
 }>();
 
 const emit = defineEmits<{ refresh: [] }>();

@@ -6,13 +6,14 @@ import NBadge from "@/components/ui/NBadge.vue";
 import NButton from "@/components/ui/NButton.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
 import { useNotificationStore } from "@/stores/notifications";
+import type { InstalledSoftware, EnvVar } from "@/types/diagnostic";
 
 const notify = useNotificationStore();
 
 const props = defineProps<{
   tab: string;
-  softwareList: any[];
-  envVars: any[];
+  softwareList: InstalledSoftware[];
+  envVars: EnvVar[];
 }>();
 
 const emit = defineEmits<{ refresh: [] }>();
@@ -48,7 +49,7 @@ async function addEnvVar() {
   } catch (e: any) { showEnvMsg(String(e), true); }
 }
 
-async function deleteEnvVar(e: any) {
+async function deleteEnvVar(e: EnvVar) {
   if (!confirm(`Supprimer la variable "${e.name}" (${e.var_type}) ?`)) return;
   try {
     const r = await invoke<string>("delete_environment_variable", { name: e.name, scope: e.var_type });

@@ -61,8 +61,8 @@ const currentPresetId = computed(() =>
     <div class="te-section-title">{{ group.label }}</div>
 
     <!-- Color vars -->
-    <div class="te-vars-list" v-if="group.vars.some((v: any) => v.type === 'color')">
-      <div v-for="v in group.vars.filter((v: any) => v.type === 'color')" :key="v.key" class="te-var-row">
+    <div class="te-vars-list" v-if="group.vars.some(v => v.type === 'color')">
+      <div v-for="v in group.vars.filter(v => v.type === 'color')" :key="v.key" class="te-var-row">
         <label class="te-var-label">{{ v.label }}</label>
         <div class="te-var-controls">
           <input type="color" class="te-color-input"
@@ -79,8 +79,8 @@ const currentPresetId = computed(() =>
     </div>
 
     <!-- Radius vars -->
-    <div class="te-vars-list" v-if="group.vars.some((v: any) => v.type === 'radius')">
-      <div v-for="v in group.vars.filter((v: any) => v.type === 'radius')" :key="v.key" class="te-var-row te-var-row--radius">
+    <div class="te-vars-list" v-if="group.vars.some(v => v.type === 'radius')">
+      <div v-for="v in group.vars.filter(v => v.type === 'radius')" :key="v.key" class="te-var-row te-var-row--radius">
         <label class="te-var-label">{{ v.label }}</label>
         <div class="te-var-controls">
           <input type="range" class="te-range-input"

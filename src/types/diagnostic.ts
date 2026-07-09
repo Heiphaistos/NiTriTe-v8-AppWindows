@@ -57,9 +57,10 @@ export interface NetworkAdapter {
 export interface CpuCache { l1_instruction_kb: number; l1_data_kb: number; l2_kb: number; l3_kb: number; l4_kb: number }
 export interface MonitorDetail {
   name: string; screen_width: number; screen_height: number
-  pixels_per_inch: number; manufacturer: string; availability: string
+  pixels_per_inch: number; manufacturer: string; availability: string;
+  refresh_rate_hz?: number;
 }
-export interface AudioDevice { name: string; manufacturer: string; status: string; device_id: string }
+export interface AudioDevice { name: string; manufacturer: string; status: string; device_id: string; audio_type?: string }
 export interface UsbDevice   { name: string; device_id: string; manufacturer: string; status: string; pnp_class: string }
 export interface BatteryDetailed {
   name: string; status: string; estimated_charge_remaining: number; estimated_run_time: string
@@ -83,6 +84,61 @@ export interface WinLicense {
   office_key: string; office_full_key: string
 }
 export interface InstalledUpdate { title: string; hotfix_id: string; description: string; installed_on: string; installed_by: string }
+
+export interface ProcessInfo {
+  pid: number; name: string; cpu_percent: number; memory_mb: number
+  status: string; path: string; parent_pid: number; user: string
+  start_time: number; virtual_memory_mb: number; gpu_percent?: number
+}
+export interface ServiceInfo {
+  name: string; display_name: string; state: string; start_mode: string
+  path_name: string; description: string; process_id: number
+  service_type: string; started: boolean; account: string
+}
+export interface ScheduledTask {
+  name: string; path: string; state: string; last_run_time: string
+  next_run_time: string; last_task_result: number; trigger: string
+  author: string; description: string; run_as_user: string
+}
+export interface VolumeInfo {
+  drive_letter: string; label: string; filesystem: string
+  total_gb: number; free_gb: number; used_gb: number; used_percent: number
+  drive_type: string; health_status: string; operational_status: string; serial_number: string
+}
+export interface SmartDiskInfo {
+  device_id: string; name: string; media_type: string
+  health_status: string; operational_status: string; size_gb: number
+  temperature: number; wear_level: number; read_errors_uncorrected: number
+  write_errors_uncorrected: number; power_on_hours: number
+  start_stop_cycles: number; reallocated_sectors: number
+}
+export interface ConnectionInfo {
+  protocol: string; local_addr: string; remote_addr: string
+  state: string; pid: number; process_name: string
+}
+export interface TcpConnection {
+  protocol: string; local_address: string; local_port: number
+  remote_address: string; remote_port: number; state: string
+  pid: number; process_name: string; owning_module: string
+}
+export interface WifiInfo {
+  ssid: string; bssid: string; signal_percent: number; band: string; channel: number
+  security: string; receive_rate_mbps: number; transmit_rate_mbps: number
+  state: string; adapter_name: string; authentication: string; protocol: string
+}
+export interface BitLockerDrive {
+  drive_letter: string; protection_status: string; encryption_method: string
+  conversion_status?: string; lock_status?: string
+}
+export interface SecurityStatus {
+  secure_boot: string; tpm_version: string; tpm_enabled: boolean; tpm_activated: boolean
+  uac_level: string; uac_enabled: boolean; bitlocker_drives: BitLockerDrive[]
+  windows_hello: boolean; smartscreen_enabled: boolean; credential_guard: boolean
+  hvci_enabled: boolean; vbs_enabled: boolean; lsa_protection: boolean
+  firewall_domain: boolean; firewall_private: boolean; firewall_public: boolean
+  antivirus_name: string; antivirus_state: string; windows_defender_realtime: boolean
+  defender_definitions_date: string; last_full_scan: string
+}
 
 export interface ScanResult {
   bios_ok: boolean; bios_info: string | null

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Cpu, MemoryStick, Monitor } from "lucide-vue-next";
 import NBadge from "@/components/ui/NBadge.vue";
+import type { ScanResult } from "@/types/diagnostic";
 
-defineProps<{ scanResult: any }>();
+defineProps<{ scanResult: ScanResult }>();
 </script>
 
 <template>
@@ -21,7 +22,7 @@ defineProps<{ scanResult: any }>();
         <span>{{ scanResult.cpu_frequency_ghz > 0 ? scanResult.cpu_frequency_ghz + ' GHz' : '—' }}</span>
       </div>
       <div v-if="scanResult.cpu_socket" class="info-row"><span>Socket</span><span>{{ scanResult.cpu_socket }}</span></div>
-      <div v-if="scanResult.cpu_l3_mb > 0" class="info-row"><span>Cache L3</span><span>{{ scanResult.cpu_l3_mb }} MB</span></div>
+      <div v-if="(scanResult.cpu_l3_mb ?? 0) > 0" class="info-row"><span>Cache L3</span><span>{{ scanResult.cpu_l3_mb }} MB</span></div>
       <div class="info-row"><span>Utilisation CPU</span>
         <NBadge :variant="scanResult.cpu_usage_percent > 80 ? 'danger' : scanResult.cpu_usage_percent > 50 ? 'warning' : 'success'">
           {{ scanResult.cpu_usage_percent.toFixed(1) }}%

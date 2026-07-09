@@ -8,6 +8,7 @@ import DiagBanner from "@/components/ui/DiagBanner.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NCollapse from "@/components/ui/NCollapse.vue";
 import { useExportData } from '@/composables/useExportData';
+import type { ProcessInfo, ServiceInfo, StartupProgram, ScheduledTask } from "@/types/diagnostic";
 const { exportCSV } = useExportData();
 
 // Actions enrichies processus
@@ -31,7 +32,7 @@ async function searchProcess(name: string) {
   } catch {}
 }
 
-function doExportProcesses(processList: any[]) {
+function doExportProcesses(processList: ProcessInfo[]) {
   exportCSV(processList.map(p => ({
     PID: p.pid, Nom: p.name, CPU: p.cpu_percent?.toFixed(1) + '%',
     RAM: p.memory_mb?.toFixed(0) + ' MB', Chemin: p.path || '',
@@ -41,10 +42,10 @@ function doExportProcesses(processList: any[]) {
 
 const props = defineProps<{
   tab: string;
-  processes: any[];
-  services: any[];
-  startupPrograms: any[];
-  tasks: any[];
+  processes: ProcessInfo[];
+  services: ServiceInfo[];
+  startupPrograms: StartupProgram[];
+  tasks: ScheduledTask[];
   onRefresh: () => void;
 }>();
 
@@ -88,7 +89,7 @@ async function ctrlService(name: string, action: string) {
   } finally { busySvc.value = null; }
 }
 
-async function toggleStartup(item: any, enable: boolean) {
+async function toggleStartup(item: StartupProgram, enable: boolean) {
   try {
     const r = await invoke<string>("toggle_startup_program", {
       name: item.name,
@@ -103,7 +104,7 @@ async function toggleStartup(item: any, enable: boolean) {
   }
 }
 
-async function removeStartup(item: any) {
+async function removeStartup(item: StartupProgram) {
   if (!confirm(`Supprimer "${item.name}" du démarrage ?`)) return;
   try {
     const r = await invoke<string>("remove_startup_program", { name: item.name, location: item.location });
@@ -114,7 +115,7 @@ async function removeStartup(item: any) {
   }
 }
 
-async function deleteTask(t: any) {
+async function deleteTask(t: ScheduledTask) {
   if (!confirm(`Supprimer la tâche "${t.name}" ?`)) return;
   busyTask.value = t.name;
   try {
@@ -126,7 +127,7 @@ async function deleteTask(t: any) {
   } finally { busyTask.value = null; }
 }
 
-async function runTaskNow(t: any) {
+async function runTaskNow(t: ScheduledTask) {
   busyTask.value = t.name + "run";
   try {
     const fullName = t.path && t.path !== "\\" ? t.path.replace(/\\$/, "") + "\\" + t.name : t.name;

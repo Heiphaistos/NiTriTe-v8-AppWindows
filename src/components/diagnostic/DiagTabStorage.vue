@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { CheckCircle, AlertTriangle, Thermometer, HardDrive, Layers } from "lucide-vue-next";
+import type { StoragePhysical, VolumeInfo, SmartDiskInfo } from "@/types/diagnostic";
 import NBadge from "@/components/ui/NBadge.vue";
 import NProgress from "@/components/ui/NProgress.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
@@ -7,9 +8,9 @@ import NCollapse from "@/components/ui/NCollapse.vue";
 
 const props = defineProps<{
   tab: string;
-  storageList: any[];
-  volumes: any[];
-  smartData: any[];
+  storageList: StoragePhysical[];
+  volumes: VolumeInfo[];
+  smartData: SmartDiskInfo[];
 }>();
 
 function smartForDisk(model: string) {

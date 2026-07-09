@@ -15,7 +15,7 @@ onMounted(async () => {
   try {
     const { listen } = await import("@tauri-apps/api/event");
     // Stocker le unlisten pour nettoyage propre
-    unlistenMonitor = await listen("system-monitor", (event: any) => {
+    unlistenMonitor = await listen<{ cpu_percent: number; ram_percent: number; disk_percent: number; network_down_kbs: number }>("system-monitor", (event) => {
       const data = event.payload;
       cpuUsage.value   = data.cpu_percent      ?? 0;
       ramUsage.value   = data.ram_percent       ?? 0;

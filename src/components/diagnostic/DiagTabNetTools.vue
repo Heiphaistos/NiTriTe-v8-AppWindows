@@ -75,7 +75,7 @@ onMounted(async () => {
   finally { ipLoading.value = false; }
 });
 
-async function inv<T>(cmd: string, args?: any): Promise<T|null> {
+async function inv<T>(cmd: string, args?: Record<string, unknown>): Promise<T|null> {
   try { return await invoke<T>(cmd, args); } catch { return null; }
 }
 

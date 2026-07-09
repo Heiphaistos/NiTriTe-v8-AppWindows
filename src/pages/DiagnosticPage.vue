@@ -15,7 +15,8 @@ import type {
   StoragePhysical, NetworkAdapter, MonitorDetail, AudioDevice, UsbDevice,
   BatteryDetailed, PowerPlan, PrinterDetail, InstalledSoftware,
   EnvVar, StartupProgram, InstalledUpdate, WinLicense,
-  CpuExtendedInfo, FolderEntry,
+  CpuExtendedInfo, FolderEntry, ProcessInfo, ServiceInfo, ScheduledTask,
+  VolumeInfo, SmartDiskInfo, TcpConnection, WifiInfo, SecurityStatus,
 } from "@/types/diagnostic";
 import {
   FileDown, FolderOpen, ScanLine, RefreshCw, Search,
@@ -105,10 +106,10 @@ const osExtended      = ref<Record<string, unknown> | null>(null);
 const gpuList         = ref<GpuDetailed[]>([]);
 const ramData         = ref<RamDetailed | null>(null);
 const storageList     = ref<StoragePhysical[]>([]);
-const volumes         = ref<unknown[]>([]);
+const volumes         = ref<VolumeInfo[]>([]);
 const networkAdapters = ref<NetworkAdapter[]>([]);
-const connections     = ref<unknown[]>([]);
-const wifiInfo        = ref<unknown | null>(null);
+const connections     = ref<TcpConnection[]>([]);
+const wifiInfo        = ref<WifiInfo | null>(null);
 const monitors        = ref<MonitorDetail[]>([]);
 const audioDevices    = ref<AudioDevice[]>([]);
 const usbDevices      = ref<UsbDevice[]>([]);
@@ -117,15 +118,15 @@ const powerPlans      = ref<PowerPlan[]>([]);
 const printers        = ref<PrinterDetail[]>([]);
 const softwareList    = ref<InstalledSoftware[]>([]);
 const envVars         = ref<EnvVar[]>([]);
-const processes       = ref<unknown[]>([]);
-const services        = ref<unknown[]>([]);
+const processes       = ref<ProcessInfo[]>([]);
+const services        = ref<ServiceInfo[]>([]);
 const startupPrograms = ref<StartupProgram[]>([]);
-const scheduledTasks  = ref<unknown[]>([]);
-const securityInfo    = ref<unknown | null>(null);
+const scheduledTasks  = ref<ScheduledTask[]>([]);
+const securityInfo    = ref<SecurityStatus | null>(null);
 const licenseInfo     = ref<WinLicense | null>(null);
 const updatesHistory  = ref<InstalledUpdate[]>([]);
 const folders         = ref<FolderEntry[]>([]);
-const smartData       = ref<unknown[]>([]);
+const smartData       = ref<SmartDiskInfo[]>([]);
 const scanResult      = ref(null as import("@/types/diagnostic").ScanResult | null);
 const scanProblems    = ref<string[]>([]);
 
@@ -189,18 +190,17 @@ async function loadTab(tab: string, force = false) {
       case "ram":         ramData.value        = await invokeCached("get_ram_detailed", undefined, force); break;
       case "disks":
         storageList.value = await invokeCached<StoragePhysical[]>("get_storage_physical_info", undefined, force).catch(() => []);
-        invokeCached<unknown[]>("get_smart_info", undefined, force).then(v => { smartData.value = v; }).catch(() => {});
-        invokeCached<unknown[]>("get_logical_volumes", undefined, force).then(v => { volumes.value = v; loadedTabs.value.add("volumes"); }).catch(() => {});
+        invokeCached<SmartDiskInfo[]>("get_smart_info", undefined, force).then(v => { smartData.value = v; }).catch(() => {});
+        invokeCached<VolumeInfo[]>("get_logical_volumes", undefined, force).then(v => { volumes.value = v; loadedTabs.value.add("volumes"); }).catch(() => {});
         break;
       case "network":
         networkAdapters.value = await invokeCached("get_network_adapters_detailed", undefined, force);
-        invokeCached<unknown>("get_wifi_status").then(v => { wifiInfo.value = v; }).catch(() => {});
+        invokeCached<WifiInfo>("get_wifi_status").then(v => { wifiInfo.value = v; }).catch(() => {});
         break;
       case "connections":
-        [connections.value, wifiInfo.value] = await Promise.all([
-          invokeCached<unknown[]>("get_active_connections", undefined, force),
-          invokeCached<unknown>("get_wifi_status", undefined, force).catch(() => null),
-        ]); break;
+        connections.value = await invokeCached<TcpConnection[]>("get_active_connections", undefined, force);
+        wifiInfo.value = await invokeCached<WifiInfo>("get_wifi_status", undefined, force).catch(() => null);
+        break;
       case "monitors": {
         monitors.value = await invokeCached("get_monitor_info", undefined, force);
         invokeCached<unknown>("get_monitor_refresh_rates", undefined, force).then(rateData => {
@@ -227,7 +227,7 @@ async function loadTab(tab: string, force = false) {
       case "services": services.value      = await invokeCached("get_windows_services", undefined, force); break;
       case "startup":  startupPrograms.value = await invokeCached("get_startup_programs_detailed", undefined, force); break;
       case "tasks":    scheduledTasks.value = await invokeCached("get_scheduled_tasks", undefined, force); break;
-      case "security": securityInfo.value  = await invokeCached("get_security_status", undefined, force).catch(() => null); break;
+      case "security": securityInfo.value  = await invokeCached<SecurityStatus>("get_security_status", undefined, force).catch(() => null); break;
       case "license":  licenseInfo.value   = await invokeCached("get_windows_license", undefined, force); break;
       case "updates":  updatesHistory.value = await invokeCached("get_installed_updates", undefined, force); break;
       case "folders":  folders.value       = await invoke<FolderEntry[]>("get_folder_sizes_detailed"); break;

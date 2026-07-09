@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { invoke } from "@/utils/invoke";
+import type { NetworkAdapter, TcpConnection, WifiInfo } from "@/types/diagnostic";
 import {
   Search, Wifi, WifiOff, Globe, Shield, ShieldOff, Router, Share2,
   Activity, Server, Database, RefreshCw, CheckCircle, XCircle, MapPin,
@@ -13,9 +14,9 @@ import NCollapse from "@/components/ui/NCollapse.vue";
 
 const props = defineProps<{
   tab: string;
-  networkAdapters: any[];
-  connections: any[];
-  wifiInfo: any;
+  networkAdapters: NetworkAdapter[];
+  connections: TcpConnection[];
+  wifiInfo: WifiInfo | null;
 }>();
 
 // === Connexions ===

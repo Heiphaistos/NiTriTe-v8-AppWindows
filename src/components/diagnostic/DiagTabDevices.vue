@@ -7,15 +7,16 @@ import NProgress from "@/components/ui/NProgress.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NCollapse from "@/components/ui/NCollapse.vue";
+import type { MonitorDetail, AudioDevice, UsbDevice, PrinterDetail, BatteryDetailed, PowerPlan } from "@/types/diagnostic";
 
 const props = defineProps<{
   tab: string;
-  monitors: any[];
-  audioDevices: any[];
-  usbDevices: any[]
-  printers: any[];
-  batteries: any[];
-  powerPlans: any[];
+  monitors: MonitorDetail[];
+  audioDevices: AudioDevice[];
+  usbDevices: UsbDevice[];
+  printers: PrinterDetail[];
+  batteries: BatteryDetailed[];
+  powerPlans: PowerPlan[];
 }>();
 
 const emit = defineEmits(["reload"]);
@@ -164,7 +165,7 @@ async function addUltimatePlan() {
               <div class="info-row"><span>Résolution</span><span style="font-weight:600">{{ m.screen_width }}×{{ m.screen_height }}</span></div>
               <div class="info-row"><span>Densité (PPI)</span><span>{{ m.pixels_per_inch > 0 ? m.pixels_per_inch + ' PPI' : 'N/A' }}</span></div>
               <div class="info-row"><span>Taux de rafraîchissement</span>
-                <NBadge variant="info">{{ m.refresh_rate_hz > 0 ? m.refresh_rate_hz + ' Hz' : (m.availability === 'Principal' ? 'Voir GPU' : 'N/A') }}</NBadge>
+                <NBadge variant="info">{{ (m.refresh_rate_hz ?? 0) > 0 ? m.refresh_rate_hz + ' Hz' : (m.availability === 'Principal' ? 'Voir GPU' : 'N/A') }}</NBadge>
               </div>
               <div class="info-row"><span>Fabricant</span><span>{{ m.manufacturer || "N/A" }}</span></div>
               <div class="info-row"><span>Disponibilité</span><NBadge :variant="m.availability === 'Principal' ? 'success' : 'default'">{{ m.availability || "N/A" }}</NBadge></div>
