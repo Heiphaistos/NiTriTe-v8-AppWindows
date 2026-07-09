@@ -421,3 +421,44 @@ async fn list_backups() -> Result<Vec<backup::collector::BackupEntryInfo>, NiTri
         .map_err(|e| NiTriTeError::System(e.to_string()))?
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn blocked_commands_are_rejected() {
+        assert!(validate_ui_command("format", &[]).is_err());
+        assert!(validate_ui_command("fdisk", &[]).is_err());
+        assert!(validate_ui_command("deltree", &[]).is_err());
+        assert!(validate_ui_command("sdelete", &[]).is_err());
+    }
+
+    #[test]
+    fn safe_commands_are_allowed() {
+        assert!(validate_ui_command("ipconfig", &[]).is_ok());
+        assert!(validate_ui_command("netstat", &["-an".to_string()]).is_ok());
+        assert!(validate_ui_command("sfc", &["/scannow".to_string()]).is_ok());
+    }
+
+    #[test]
+    fn cmd_with_destructive_arg_blocked() {
+        let args = vec!["/c".to_string(), "del /f /s C:\\important".to_string()];
+        assert!(validate_ui_command("cmd", &args).is_err());
+        let args2 = vec!["/c".to_string(), "rmdir /s /q C:\\data".to_string()];
+        assert!(validate_ui_command("cmd", &args2).is_err());
+        let args3 = vec!["/c".to_string(), "reg delete HKLM\\SOFTWARE".to_string()];
+        assert!(validate_ui_command("cmd", &args3).is_err());
+    }
+
+    #[test]
+    fn cmd_with_safe_arg_allowed() {
+        let args = vec!["/c".to_string(), "ipconfig /all".to_string()];
+        assert!(validate_ui_command("cmd", &args).is_ok());
+    }
+
+    #[test]
+    fn blocked_command_with_full_path_rejected() {
+        assert!(validate_ui_command("C:\\Windows\\format.exe", &[]).is_err());
+        assert!(validate_ui_command("C:\\bin\\fdisk.exe", &[]).is_err());
+    }
+}

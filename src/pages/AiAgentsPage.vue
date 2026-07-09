@@ -35,9 +35,10 @@ interface DownloadProgress { name: string; downloaded_mb: number; total_mb: numb
 const ggufModels     = ref<GgufModel[]>([]);
 const selectedGguf   = ref("");
 const serverBin      = ref("");
-const serverRunning  = ref(false);
-const serverChecking = ref(false);
-const startingServer = ref(false);
+const serverRunning       = ref(false);
+const serverChecking      = ref(false);
+const startingServer      = ref(false);
+const serverStartCancelled = ref(false);
 
 // Téléchargement
 const downloadProgress = ref<Record<string, DownloadProgress>>({});
@@ -114,17 +115,21 @@ async function browseModelFile() {
 // ─── Serveur ──────────────────────────────────────────────────────────────────
 async function startServer() {
   if (!selectedGguf.value) { notify.warning("Modèle requis", "Sélectionnez un fichier .gguf"); return; }
+  serverStartCancelled.value = false;
   startingServer.value = true;
   try {
     await invoke("ai_start_llamacpp", { modelPath: selectedGguf.value });
     notify.info("llama.cpp", "Démarrage en cours (chargement du modèle)...");
     for (let i = 0; i < 60; i++) {
+      if (serverStartCancelled.value) break;
       await new Promise(r => setTimeout(r, 1000));
+      if (serverStartCancelled.value) break;
       const ok = await invoke<boolean>("ai_llamacpp_status").catch(() => false);
       if (ok) { serverRunning.value = true; notify.success("llama.cpp", "Serveur prêt !"); break; }
     }
-    if (!serverRunning.value) notify.warning("llama.cpp", "Serveur démarré — attente du chargement du modèle.");
-  } catch (e: any) { notify.error("llama.cpp", String(e)); }
+    if (!serverRunning.value && !serverStartCancelled.value)
+      notify.warning("llama.cpp", "Serveur démarré — attente du chargement du modèle.");
+  } catch (e: any) { if (!serverStartCancelled.value) notify.error("llama.cpp", String(e)); }
   startingServer.value = false;
 }
 async function stopServer() {
@@ -364,7 +369,10 @@ onMounted(async () => {
   await Promise.all([scanGgufModels(), checkLlamacppStatus(), checkOllamaStatus(), loadOllamaModels()]);
   loadConversations();
 });
-onUnmounted(() => { if (unlistenDownload) unlistenDownload(); });
+onUnmounted(() => {
+  if (unlistenDownload) unlistenDownload();
+  serverStartCancelled.value = true;
+});
 </script>
 
 <template>
