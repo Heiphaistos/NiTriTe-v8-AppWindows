@@ -78,10 +78,13 @@ export function useProactiveAlerts(thresholds: AlertThresholds = DEFAULT_THRESHO
         }
         if (sysInfo.disks) {
           for (const d of sysInfo.disks) {
-            if (d.used_percent >= thresholds.diskUsageCritical) {
-              addAlert(`disk-${d.name}`, 'disk', 'critical', `Disque ${d.name}: ${d.used_percent.toFixed(0)}% plein!`);
-            } else if (d.used_percent >= thresholds.diskUsageWarn) {
-              addAlert(`disk-${d.name}`, 'disk', 'warning', `Disque ${d.name}: ${d.used_percent.toFixed(0)}% utilisé`);
+            for (const p of (d.partitions || [])) {
+              const label = p.mount_point || d.model || 'Disque';
+              if (p.usage_percent >= thresholds.diskUsageCritical) {
+                addAlert(`disk-${label}`, 'disk', 'critical', `Disque ${label}: ${p.usage_percent.toFixed(0)}% plein!`);
+              } else if (p.usage_percent >= thresholds.diskUsageWarn) {
+                addAlert(`disk-${label}`, 'disk', 'warning', `Disque ${label}: ${p.usage_percent.toFixed(0)}% utilisé`);
+              }
             }
           }
         }
