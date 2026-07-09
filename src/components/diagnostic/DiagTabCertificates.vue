@@ -36,6 +36,7 @@ const data = ref<CertsData | null>(null);
 const loading = ref(true);
 const error = ref("");
 const search = ref("");
+const CERT_FILTERS = [{k:'all' as const,l:'Tous'},{k:'expired' as const,l:'Expirés'},{k:'expiring' as const,l:'30 jours'},{k:'pk' as const,l:'Clé privée'}]
 const filter = ref<"all"|"expired"|"expiring"|"pk">("all");
 const { exportCSV } = useExportData();
 
@@ -177,8 +178,8 @@ const filtered = computed(() => {
           <Search :size="12" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-secondary)" />
           <input v-model="search" placeholder="Sujet, émetteur, store..." style="width:100%;padding:5px 8px 5px 26px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px" />
         </div>
-        <button v-for="f in [{k:'all',l:'Tous'},{k:'expired',l:'Expirés'},{k:'expiring',l:'30 jours'},{k:'pk',l:'Clé privée'}]" :key="f.k"
-          @click="filter = f.k as any"
+        <button v-for="f in CERT_FILTERS" :key="f.k"
+          @click="filter = f.k"
           :style="{padding:'4px 10px',borderRadius:'6px',border:'1px solid var(--border)',fontSize:'11px',cursor:'pointer',
                    background:filter===f.k?'var(--accent)':'var(--bg-secondary)',
                    color:filter===f.k?'white':'var(--text-secondary)'}">

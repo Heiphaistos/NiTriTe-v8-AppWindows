@@ -20,11 +20,13 @@ export interface CpuCacheInfo {
   l2_kb: number; l3_kb: number; l4_kb: number;
 }
 export interface FolderEntry { label: string; path: string; size_mb: number; size_gb?: number; file_count: number; }
-export interface RamInfo { total_gb: number; used_gb: number; usage_percent: number }
+export interface RamInfo { total_gb: number; used_gb: number; usage_percent: number; modules?: { memory_type?: string }[] }
+
+export interface SysGpu { name?: string; adapter_ram_mb?: number; driver_version?: string }
 
 export interface SysInfo {
   os: OsInfo; cpu: CpuInfo; ram: RamInfo
-  gpus: unknown[]; disks: SysDisk[]; motherboard: unknown
+  gpus: SysGpu[]; disks: SysDisk[]; motherboard: unknown
 }
 export interface BiosInfo {
   manufacturer: string; version: string; release_date: string
@@ -57,7 +59,7 @@ export interface NetworkAdapter {
 }
 export interface CpuCache { l1_instruction_kb: number; l1_data_kb: number; l2_kb: number; l3_kb: number; l4_kb: number }
 export interface SysDiskPartition { used_gb: number; total_gb: number; usage_percent: number }
-export interface SysDisk { partitions: SysDiskPartition[] }
+export interface SysDisk { partitions: SysDiskPartition[]; model?: string; name?: string }
 export interface OsExtended {
   install_date: string; last_boot_time: string; registered_user?: string; organization?: string
   os_language: string; timezone: string; product_type: string; pending_reboot: boolean

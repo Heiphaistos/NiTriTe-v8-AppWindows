@@ -33,6 +33,7 @@ const installResults = ref<Record<string, InstallResult>>({});
 const installing = ref<string | null>(null);
 const selectedMatches = ref<Set<string>>(new Set());
 const searchQuery = ref("");
+const DRIVER_FILTER_OPTS = [{k:'all' as const,l:'Tous'},{k:'problems' as const,l:'⚠ Problèmes'},{k:'matched' as const,l:'✓ Trouvés'}]
 const filterMode = ref<"all"|"problems"|"matched">("all");
 const problemDevices = ref<string[]>([]);
 const problemsLoading = ref(false);
@@ -246,8 +247,8 @@ function errLabel(code: number) {
             <Search :size="11" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-secondary)" />
             <input v-model="searchQuery" placeholder="Filtrer..." style="width:100%;padding:4px 8px 4px 24px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:11px" />
           </div>
-          <button v-for="f in [{k:'all',l:'Tous'},{k:'problems',l:'⚠ Problèmes'},{k:'matched',l:'✓ Trouvés'}]" :key="f.k"
-            @click="filterMode=(f.k as any)"
+          <button v-for="f in DRIVER_FILTER_OPTS" :key="f.k"
+            @click="filterMode = f.k"
             :style="{padding:'3px 10px',borderRadius:'6px',border:'1px solid var(--border)',fontSize:'10px',cursor:'pointer',background:filterMode===f.k?'var(--accent)':'var(--bg-secondary)',color:filterMode===f.k?'white':'var(--text-secondary)'}">
             {{ f.l }}
           </button>

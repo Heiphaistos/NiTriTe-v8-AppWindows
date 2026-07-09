@@ -94,7 +94,7 @@ function onDrop(e: DragEvent) {
   dragOver.value = false;
   const files = e.dataTransfer?.files;
   if (!files || files.length === 0) return;
-  const f = files[0] as any;
+  const f = files[0] as File & { path?: string };
   const path = f.path || f.name;
   if (path) hashPath(path);
 }

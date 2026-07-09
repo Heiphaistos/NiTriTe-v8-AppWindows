@@ -221,7 +221,7 @@ onMounted(async () => {
         net_upload_kbs: raw.network_up_kbs ?? raw.net_upload_kbs ?? 0,
         net_download_kbs: raw.network_down_kbs ?? raw.net_download_kbs ?? 0,
         gpu_data: raw.gpu_data ?? [],
-        top_processes: (raw.top_processes ?? []).map((p: any) => ({
+        top_processes: (raw.top_processes ?? []).map(p => ({
           name: p.name, pid: p.pid, cpu_percent: p.cpu_percent,
           ram_percent: p.ram_percent ?? 0,
         })),

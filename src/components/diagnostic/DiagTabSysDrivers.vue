@@ -52,7 +52,7 @@
           <div class="drv-filter-btns">
             <button v-for="f in LIST_FILTERS" :key="f.k"
               class="drv-filter-btn" :class="{ active: listFilter === f.k }"
-              @click="listFilter = f.k as any">
+              @click="listFilter = f.k">
               {{ f.l }}
               <span v-if="f.k === 'errors' && listData.error_count > 0" class="filter-count red">{{ listData.error_count }}</span>
               <span v-if="f.k === 'unsigned' && listData.unsigned_count > 0" class="filter-count orange">{{ listData.unsigned_count }}</span>
@@ -337,7 +337,7 @@ const SUBTABS = shallowRef([
   { id: 'updater',  label: 'Mise à jour auto (SDI)',      icon: Zap,            badge: null as number | null },
 ])
 
-const LIST_FILTERS = [{ k: 'all', l: 'Tous' }, { k: 'errors', l: 'Erreurs' }, { k: 'unsigned', l: 'Non signés' }]
+const LIST_FILTERS = [{ k: 'all' as const, l: 'Tous' }, { k: 'errors' as const, l: 'Erreurs' }, { k: 'unsigned' as const, l: 'Non signés' }]
 
 const subTab = ref<SubTab>('list')
 

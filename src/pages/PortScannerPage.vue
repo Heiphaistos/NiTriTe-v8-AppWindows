@@ -19,6 +19,7 @@ const loading     = ref(false);
 const autoRefresh = ref(false);
 const countdown   = ref(5);
 const searchQuery = ref("");
+const PROTO_OPTS = ['ALL','TCP','UDP'] as const
 const filterProto = ref<"ALL"|"TCP"|"UDP">("ALL");
 const filterState = ref("ALL");
 let   timer: ReturnType<typeof setInterval> | null = null;
@@ -156,7 +157,7 @@ onUnmounted(stopAuto);
           <NBadge v-if="ports.length" variant="neutral">{{ filtered.length }} / {{ ports.length }}</NBadge>
           <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
             <div class="filter-group">
-              <button v-for="p in ['ALL','TCP','UDP']" :key="p" class="filter-btn" :class="{active: filterProto===p}" @click="filterProto = p as any">{{ p }}</button>
+              <button v-for="p in PROTO_OPTS" :key="p" class="filter-btn" :class="{active: filterProto===p}" @click="filterProto = p">{{ p }}</button>
             </div>
             <select class="state-select" v-model="filterState">
               <option v-for="s in states" :key="s" :value="s">{{ s === 'ALL' ? 'Tous états' : s }}</option>

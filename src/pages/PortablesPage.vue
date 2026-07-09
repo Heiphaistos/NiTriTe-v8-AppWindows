@@ -17,7 +17,7 @@ import {
 
 const notify = useNotificationStore();
 
-const installedMap   = ref<Record<string, boolean>>({});
+const installedMap   = ref<Record<string, string | boolean>>({});
 const search         = ref("");
 const activeCategory = ref("Tous");
 const showPopular    = ref(false);
@@ -146,7 +146,7 @@ const recentApps = computed(() =>
 
 function hasVersionMismatch(app: PortableApp): boolean {
   if (!app.version || !installedMap.value[app.id]) return false;
-  const installed = (installedMap.value as any)[`${app.id}_version`];
+  const installed = installedMap.value[`${app.id}_version`];
   return installed ? installed !== app.version : false;
 }
 

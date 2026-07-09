@@ -64,6 +64,7 @@ interface FirewallInfo {
 const data = ref<FirewallInfo | null>(null);
 const loading = ref(true);
 const error = ref("");
+const FW_FILTER_OPTS = [['all','Tout'],['in','Entrant'],['out','Sortant'],['block','Bloqué']] as const
 const filter = ref<"all" | "in" | "out" | "block">("all");
 const { exportCSV } = useExportData();
 
@@ -175,8 +176,8 @@ function doExportRules() {
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
           <p class="diag-section-label" style="margin:0;flex:1">Règles personnalisées ({{ data.rules.length }})</p>
           <div style="display:flex;gap:4px">
-            <button v-for="[k, l] in [['all','Tout'],['in','Entrant'],['out','Sortant'],['block','Bloqué']]" :key="k"
-              @click="filter = k as any"
+            <button v-for="[k, l] in FW_FILTER_OPTS" :key="k"
+              @click="filter = k"
               :style="{
                 padding:'3px 10px', borderRadius:'4px', border:'1px solid var(--border)',
                 fontSize:'11px', cursor:'pointer',

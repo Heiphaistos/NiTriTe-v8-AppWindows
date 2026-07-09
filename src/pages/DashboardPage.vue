@@ -10,7 +10,7 @@ import NButton from "@/components/ui/NButton.vue";
 import NProgress from "@/components/ui/NProgress.vue";
 import NBadge from "@/components/ui/NBadge.vue";
 import AlertThresholdsModal, { type AlertThresholds } from "@/components/ui/AlertThresholdsModal.vue";
-import type { SystemMonitorPayload } from "@/types/diagnostic";
+import type { SystemMonitorPayload, SysInfo } from "@/types/diagnostic";
 import {
   Cpu, MemoryStick, HardDrive, Wifi,
   Stethoscope, Trash2, RefreshCw, Save, Shield,
@@ -173,7 +173,7 @@ function applyMonitorData(raw: SystemMonitorPayload) {
   if ((raw.process_count ?? 0) > 0) totalProcesses.value = raw.process_count!;
   networkDownKbs.value = raw.network_down_kbs ?? raw.net_download_kbs ?? 0;
   networkUpKbs.value = raw.network_up_kbs ?? raw.net_upload_kbs ?? 0;
-  topProcesses.value = (raw.top_processes ?? []).slice(0, 8).map((p: any) => ({
+  topProcesses.value = (raw.top_processes ?? []).slice(0, 8).map(p => ({
     pid: p.pid, name: p.name,
     cpu_percent: Math.round(p.cpu_percent * 10) / 10,
     memory_mb: Math.round(p.memory_mb ?? 0),
@@ -217,24 +217,24 @@ onMounted(async () => {
     const { listen } = await import("@tauri-apps/api/event");
     isLive.value = true;
     unlisten = await listen<SystemMonitorPayload>("system-monitor", (e) => { applyMonitorData(e.payload); });
-    const info = await diagStore.fetchSysInfo() as any;
-    cpuUsage.value = Math.round(info.cpu?.usage_percent ?? 0);
-    ramUsedGb.value = Math.round((info.ram?.used_gb ?? 0) * 10) / 10;
-    ramTotalGb.value = Math.round((info.ram?.total_gb ?? 0) * 10) / 10;
-    ramUsage.value = Math.round(info.ram?.usage_percent ?? 0);
-    if (info.disks?.length > 0 && info.disks[0].partitions?.length > 0)
-      diskUsage.value = Math.round(info.disks[0].partitions[0].usage_percent);
-    cpuName.value = info.cpu?.name ?? "";
-    diskModel.value = info.disks?.[0]?.model ?? info.disks?.[0]?.name ?? "";
-    if (info.gpus?.length > 0) gpuName.value = info.gpus[0].name ?? "";
-    cpuCoreCount.value = info.cpu?.cores ?? 0;
-    cpuThreadCount.value = info.cpu?.threads ?? 0;
-    cpuBaseGhz.value = (info.cpu?.base_speed_mhz ?? 0) / 1000;
-    hostname.value = info.os?.hostname ?? "";
-    osName.value = info.os?.name ?? "";
-    osVersion.value = info.os?.version ?? "";
-    osArch.value = info.os?.architecture ?? "";
-    if (info.ram?.modules?.length > 0) ramType.value = info.ram.modules[0]?.memory_type ?? "";
+    const info = await diagStore.fetchSysInfo() as SysInfo | null;
+    cpuUsage.value = Math.round(info?.cpu?.usage_percent ?? 0);
+    ramUsedGb.value = Math.round((info?.ram?.used_gb ?? 0) * 10) / 10;
+    ramTotalGb.value = Math.round((info?.ram?.total_gb ?? 0) * 10) / 10;
+    ramUsage.value = Math.round(info?.ram?.usage_percent ?? 0);
+    if ((info?.disks?.length ?? 0) > 0 && (info!.disks[0].partitions?.length ?? 0) > 0)
+      diskUsage.value = Math.round(info!.disks[0].partitions[0].usage_percent);
+    cpuName.value = info?.cpu?.name ?? "";
+    diskModel.value = info?.disks?.[0]?.model ?? info?.disks?.[0]?.name ?? "";
+    if ((info?.gpus?.length ?? 0) > 0) gpuName.value = info!.gpus[0].name ?? "";
+    cpuCoreCount.value = info?.cpu?.cores ?? 0;
+    cpuThreadCount.value = info?.cpu?.threads ?? 0;
+    cpuBaseGhz.value = (info?.cpu?.base_speed_mhz ?? 0) / 1000;
+    hostname.value = info?.os?.hostname ?? "";
+    osName.value = info?.os?.name ?? "";
+    osVersion.value = info?.os?.version ?? "";
+    osArch.value = info?.os?.architecture ?? "";
+    if ((info?.ram?.modules?.length ?? 0) > 0) ramType.value = info!.ram.modules![0]?.memory_type ?? "";
     computeHealthScore();
     try {
       const hist = await invoke<any>("get_system_history");

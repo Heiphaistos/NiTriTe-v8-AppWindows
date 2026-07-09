@@ -26,9 +26,9 @@ const dupeFiles   = computed(() => groups.value.reduce((s, g) => s + g.files.len
 const visibleGroups = computed(() => groups.value.slice(0, displayCount.value));
 
 const scanModes = [
-  { value: "hash",    label: "Hash",    icon: "🔑", desc: "Identique bit à bit (SHA256)" },
-  { value: "name",    label: "Nom",     icon: "📝", desc: "Même nom de fichier" },
-  { value: "content", label: "Contenu", icon: "📄", desc: "Même contenu (texte/binaire)" },
+  { value: "hash" as const,    label: "Hash",    icon: "🔑", desc: "Identique bit à bit (SHA256)" },
+  { value: "name" as const,    label: "Nom",     icon: "📝", desc: "Même nom de fichier" },
+  { value: "content" as const, label: "Contenu", icon: "📄", desc: "Même contenu (texte/binaire)" },
 ];
 
 function formatSize(bytes: number): string {
@@ -171,7 +171,7 @@ async function openFile(path: string) {
           <button
             v-for="m in scanModes" :key="m.value"
             class="mode-btn" :class="{ active: scanMode === m.value }"
-            @click="scanMode = m.value as any"
+            @click="scanMode = m.value"
             :title="m.desc"
           >
             {{ m.icon }} {{ m.label }}

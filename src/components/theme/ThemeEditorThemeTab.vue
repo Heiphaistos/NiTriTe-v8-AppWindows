@@ -27,6 +27,8 @@ function presetsMatch(presetVars: Record<string, string>, editingVars: Record<st
 const currentPresetId = computed(() =>
   PRESET_THEMES.find(p => presetsMatch(p.vars as Record<string, string>, store.editingVars))?.id ?? null
 );
+
+interface RadiusVar { key: string; label: string; type: 'radius'; min?: number; max?: number; }
 </script>
 
 <template>
@@ -80,12 +82,12 @@ const currentPresetId = computed(() =>
 
     <!-- Radius vars -->
     <div class="te-vars-list" v-if="group.vars.some(v => v.type === 'radius')">
-      <div v-for="v in group.vars.filter(v => v.type === 'radius')" :key="v.key" class="te-var-row te-var-row--radius">
+      <div v-for="v in (group.vars.filter(v => v.type === 'radius') as RadiusVar[])" :key="v.key" class="te-var-row te-var-row--radius">
         <label class="te-var-label">{{ v.label }}</label>
         <div class="te-var-controls">
           <input type="range" class="te-range-input"
-            :min="(v as any).min ?? 0"
-            :max="(v as any).max ?? 32"
+            :min="v.min ?? 0"
+            :max="v.max ?? 32"
             :value="radiusValue(store.editingVars[v.key] ?? '8px')"
             @input="handleRadiusChange(v.key, $event)"
           />

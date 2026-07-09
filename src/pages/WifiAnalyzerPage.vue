@@ -19,6 +19,9 @@ const networks    = ref<WifiNetwork[]>([]);
 const loading     = ref(false);
 const autoRefresh = ref(false);
 const countdown   = ref(30);
+const SORT_OPTS = ['signal','channel','ssid'] as const
+const BAND_OPTS = [{v:'all' as const,l:'Tous'},{v:'2.4' as const,l:'2.4G'},{v:'5' as const,l:'5G'}]
+const SEC_OPTS  = [{v:'all' as const,l:'Tous'},{v:'secured' as const,l:'Sécurisé'},{v:'open' as const,l:'Ouvert'}]
 const sortBy      = ref<"signal"|"channel"|"ssid">("signal");
 const filterBand  = ref<"all"|"2.4"|"5">("all");
 const filterSec   = ref<"all"|"open"|"secured">("all");
@@ -311,11 +314,11 @@ onUnmounted(() => {
             <span>Réseaux détectés ({{ sorted.length }}/{{ networks.length }})</span>
             <div style="margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;align-items:center">
               <Filter :size="12" style="color:var(--text-muted)" />
-              <button v-for="s in ['signal','channel','ssid']" :key="s" class="sort-btn" :class="{active:sortBy===s}" @click="sortBy=s as any">{{ s }}</button>
+              <button v-for="s in SORT_OPTS" :key="s" class="sort-btn" :class="{active:sortBy===s}" @click="sortBy=s">{{ s }}</button>
               <div class="sep-v"></div>
-              <button v-for="b in [{v:'all',l:'Tous'},{v:'2.4',l:'2.4G'},{v:'5',l:'5G'}]" :key="b.v" class="sort-btn" :class="{active:filterBand===b.v}" @click="filterBand=b.v as any">{{ b.l }}</button>
+              <button v-for="b in BAND_OPTS" :key="b.v" class="sort-btn" :class="{active:filterBand===b.v}" @click="filterBand=b.v">{{ b.l }}</button>
               <div class="sep-v"></div>
-              <button v-for="s in [{v:'all',l:'Tous'},{v:'secured',l:'Sécurisé'},{v:'open',l:'Ouvert'}]" :key="s.v" class="sort-btn" :class="{active:filterSec===s.v}" @click="filterSec=s.v as any">{{ s.l }}</button>
+              <button v-for="s in SEC_OPTS" :key="s.v" class="sort-btn" :class="{active:filterSec===s.v}" @click="filterSec=s.v">{{ s.l }}</button>
             </div>
           </div>
         </template>

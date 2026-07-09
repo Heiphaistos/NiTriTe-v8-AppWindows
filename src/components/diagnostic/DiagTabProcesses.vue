@@ -50,6 +50,7 @@ const props = defineProps<{
 }>();
 
 const procSearch = ref("");
+const PROC_SORT_OPTS = [['cpu','CPU'],['mem','RAM'],['name','Nom']] as const
 const procSort = ref<"cpu"|"mem"|"name">("cpu");
 const svcSearch = ref("");
 const svcFilter = ref("all");
@@ -197,8 +198,8 @@ const runningCount = computed(() => props.services.filter(s => s.state === "Runn
           <span class="muted">{{ filteredProcs.length }}/{{ processes.length }}</span>
         </div>
         <div style="display:flex;gap:4px">
-          <NBadge v-for="[k,v] in [['cpu','CPU'],['mem','RAM'],['name','Nom']]" :key="k"
-            :variant="procSort === k ? 'info' : 'default'" style="cursor:pointer" @click="procSort = k as any">{{ v }}</NBadge>
+          <NBadge v-for="[k,v] in PROC_SORT_OPTS" :key="k"
+            :variant="procSort === k ? 'info' : 'default'" style="cursor:pointer" @click="procSort = k">{{ v }}</NBadge>
         </div>
         <button class="diag-search" style="padding:6px 10px;cursor:pointer;border:none" @click="onRefresh">
           <RefreshCw :size="13" style="color:var(--text-secondary)" />

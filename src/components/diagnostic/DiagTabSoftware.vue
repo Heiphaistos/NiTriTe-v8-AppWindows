@@ -20,6 +20,8 @@ const emit = defineEmits<{ refresh: [] }>();
 
 const softwareSearch = ref("");
 const envSearch = ref("");
+const SW_SORT_OPTS = [['name','Nom'],['date','Date'],['size','Taille'],['publisher','Éditeur']] as const
+const VAR_SCOPE_OPTS = ['Utilisateur','Système'] as const
 const sortBy = ref<"name"|"date"|"size"|"publisher">("name");
 
 // Ajout de variable
@@ -142,9 +144,9 @@ const byPublisher = computed(() => {
           <span class="muted">{{ filteredSoftware.length }}/{{ softwareList.length }}</span>
         </div>
         <div style="display:flex;gap:4px">
-          <NBadge v-for="s in [['name','Nom'],['date','Date'],['size','Taille'],['publisher','Éditeur']]" :key="s[0]"
+          <NBadge v-for="s in SW_SORT_OPTS" :key="s[0]"
             :variant="sortBy === s[0] ? 'info' : 'default'"
-            style="cursor:pointer" @click="sortBy = s[0] as any">{{ s[1] }}</NBadge>
+            style="cursor:pointer" @click="sortBy = s[0]">{{ s[1] }}</NBadge>
         </div>
       </div>
 
@@ -252,9 +254,9 @@ const byPublisher = computed(() => {
         <div>
           <p class="diag-section-label" style="margin:0 0 4px 0;font-size:11px">Portée</p>
           <div style="display:flex;gap:4px">
-            <NBadge v-for="s in ['Utilisateur','Système']" :key="s"
+            <NBadge v-for="s in VAR_SCOPE_OPTS" :key="s"
               :variant="newVarScope === s ? 'info' : 'default'"
-              style="cursor:pointer" @click="newVarScope = s as any">{{ s }}</NBadge>
+              style="cursor:pointer" @click="newVarScope = s">{{ s }}</NBadge>
           </div>
         </div>
         <div style="display:flex;gap:6px">
