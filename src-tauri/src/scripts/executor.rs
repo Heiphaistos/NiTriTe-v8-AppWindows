@@ -780,3 +780,43 @@ fn script_interactive(name: &str, desc: &str, cat: &str, content: &str, admin: b
         is_builtin: true,
     }
 }
+
+#[cfg(test)]
+mod executor_tests {
+    use super::*;
+
+    #[test]
+    fn script_sets_fields_correctly() {
+        let s = script("Test", "Desc", "Cat", "powershell", "Get-Date", false);
+        assert_eq!(s.name, "Test");
+        assert_eq!(s.description, "Desc");
+        assert_eq!(s.category, "Cat");
+        assert_eq!(s.script_type, "powershell");
+        assert_eq!(s.content, "Get-Date");
+        assert!(!s.requires_admin);
+        assert!(!s.requires_interactive);
+        assert!(s.is_builtin);
+    }
+
+    #[test]
+    fn script_admin_flag_propagated() {
+        let s = script("Admin Script", "", "", "cmd", "ipconfig /all", true);
+        assert!(s.requires_admin);
+        assert!(!s.requires_interactive);
+    }
+
+    #[test]
+    fn script_interactive_sets_interactive_flag() {
+        let s = script_interactive("Interactive", "desc", "cat", "Read-Host", false);
+        assert!(s.requires_interactive);
+        assert!(s.is_builtin);
+        assert_eq!(s.script_type, "powershell");
+    }
+
+    #[test]
+    fn script_interactive_admin_true_propagated() {
+        let s = script_interactive("Admin Interactive", "", "", "", true);
+        assert!(s.requires_admin);
+        assert!(s.requires_interactive);
+    }
+}
