@@ -131,11 +131,11 @@ onMounted(async () => {
   loadTasks.value[0].status = "done";
 
   // ── Import Tauri ──
-  let inv: ((cmd: string, args?: any) => Promise<any>) | null = null;
+  let inv: ((cmd: string, args?: Record<string, unknown>) => Promise<unknown>) | null = null;
   try { const api = await import("@tauri-apps/api/core"); inv = api.invoke; } catch { /* dev */ }
 
   // ── Wrapper : marque la tâche, invoque, met en cache, marque done ──
-  const load = async (idx: number, cmd: string, args?: any) => {
+  const load = async (idx: number, cmd: string, args?: Record<string, unknown>) => {
     loadTasks.value[idx].status = "running";
     if (inv) {
       try {

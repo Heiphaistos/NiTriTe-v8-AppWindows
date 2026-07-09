@@ -93,7 +93,7 @@ async function loadChoco() {
 async function upgradeChoco() {
   chocoUpgrading.value = true; chocoMsg.value = "Mise à jour en cours...";
   try {
-    const r: any = await invokeRaw("upgrade_chocolatey_all");
+    const r = await invokeRaw<{ success?: boolean; upgraded_count?: number; error?: string }>("upgrade_chocolatey_all");
     chocoMsg.value = r?.success ? `${r.upgraded_count} paquet(s) mis à jour ✓` : `Erreur : ${r?.error || "inconnue"}`;
     await loadChoco();
   } catch (e: any) { chocoMsg.value = "Erreur : " + e; }

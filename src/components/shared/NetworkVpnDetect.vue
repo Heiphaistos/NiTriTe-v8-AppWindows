@@ -29,7 +29,7 @@ if ($found) {
 } else {
     @{ detected=$false; name=''; desc='Aucun adaptateur VPN detecte' } | ConvertTo-Json -Compress
 }`;
-    const res: any = await invoke("run_system_command", {
+    const res = await invoke<{ stdout?: string; output?: string }>("run_system_command", {
       cmd: "powershell",
       args: ["-NoProfile", "-NonInteractive", "-Command", ps],
     });

@@ -44,7 +44,7 @@ export async function exportScanMd(
     row("Config RAM",        sr.ram_detail||"N/A"),
     row("Mémoire virtuelle", `${sr.virtual_memory_total_mb||"?"} MB total / ${sr.virtual_memory_available_mb||"?"} MB libre`),
     ...(sr.all_gpus?.length
-      ? sr.all_gpus.map((g: any) => row(`GPU ${g.is_integrated?"(intégré)":"(dédié)"}`, `${g.name} — VRAM: ${g.vram_mb>=1024?(g.vram_mb/1024).toFixed(1)+"GB":g.vram_mb+"MB"}`))
+      ? sr.all_gpus.map(g => row(`GPU ${g.is_integrated?"(intégré)":"(dédié)"}`, `${g.name} — VRAM: ${g.vram_mb>=1024?(g.vram_mb/1024).toFixed(1)+"GB":g.vram_mb+"MB"}`))
       : [row("GPU", `${sr.gpu_name||"N/A"} — VRAM: ${sr.gpu_vram_mb>=1024?(sr.gpu_vram_mb/1024).toFixed(1)+"GB":sr.gpu_vram_mb+"MB"}`)]),
     row("Carte mère",        sr.motherboard||"N/A"),
     row("Écrans",            sr.monitors_detail||sr.screen_resolution||"N/A"),

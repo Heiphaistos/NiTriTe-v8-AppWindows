@@ -4,7 +4,7 @@
  */
 import { ref, onUnmounted } from "vue";
 
-const escHtml = (s: any): string =>
+const escHtml = (s: unknown): string =>
   String(s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

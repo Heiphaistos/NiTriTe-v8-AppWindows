@@ -54,7 +54,7 @@ export async function exportScanTxt(
     kv("RAM Detail",            sr.ram_detail || "N/A"),
     kv("Memoire virtuelle",     `${sr.virtual_memory_total_mb || "?"} MB total  /  ${sr.virtual_memory_available_mb || "?"} MB libre`),
     ...(sr.all_gpus?.length
-      ? sr.all_gpus.map((g: any) => kv(`GPU ${g.is_integrated ? "(intégré)" : "(dédié)"}`, `${g.name}  --  VRAM: ${g.vram_mb >= 1024 ? (g.vram_mb / 1024).toFixed(1) + " GB" : g.vram_mb + " MB"}`))
+      ? sr.all_gpus.map(g => kv(`GPU ${g.is_integrated ? "(intégré)" : "(dédié)"}`, `${g.name}  --  VRAM: ${g.vram_mb >= 1024 ? (g.vram_mb / 1024).toFixed(1) + " GB" : g.vram_mb + " MB"}`))
       : [kv("GPU", `${sr.gpu_name || "N/A"}  --  VRAM: ${sr.gpu_vram_mb >= 1024 ? (sr.gpu_vram_mb / 1024).toFixed(1) + " GB" : (sr.gpu_vram_mb || 0) + " MB"}`)]),
     kv("Carte mere",            sr.motherboard || "N/A"),
     kv("Ecrans",                sr.monitors_detail || sr.screen_resolution || "N/A"),

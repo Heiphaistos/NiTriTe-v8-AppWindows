@@ -91,7 +91,7 @@ ${tbl(["Composant","Détail"],[
   ...(sr.ram_slots?.length ? sr.ram_slots.map((sl: string) => { const [k,...v]=sl.split(":"); return [h(k.trim()), h(v.join(":").trim())]; }) : []),
   [h("Mémoire virtuelle"), h(`${sr.virtual_memory_total_mb||"?"} MB total / ${sr.virtual_memory_available_mb||"?"} MB libre`)],
   ...(sr.all_gpus?.length
-    ? sr.all_gpus.map((g: any) => [h(`GPU ${g.is_integrated?"(intégré)":"(dédié)"}`), h(`${g.name} — VRAM: ${g.vram_mb>=1024?(g.vram_mb/1024).toFixed(1)+"GB":g.vram_mb+"MB"}`)])
+    ? sr.all_gpus.map(g => [h(`GPU ${g.is_integrated?"(intégré)":"(dédié)"}`), h(`${g.name} — VRAM: ${g.vram_mb>=1024?(g.vram_mb/1024).toFixed(1)+"GB":g.vram_mb+"MB"}`)])
     : [[h("GPU"), h(`${sr.gpu_name||"N/A"} — VRAM: ${sr.gpu_vram_mb>=1024?(sr.gpu_vram_mb/1024).toFixed(1)+"GB":sr.gpu_vram_mb+"MB"}`)]] ),
   [h("Carte mère"), h(sr.motherboard||"N/A")],
   [h("Écrans"),  h(sr.monitors_detail||sr.screen_resolution||"N/A")],
@@ -114,7 +114,7 @@ ${tbl(["Indicateur","Valeur"],[
   [h("Adaptateurs actifs"),   h(sr.network_adapters_summary||"N/A")],
   [h("Ports en écoute"),      sr.open_ports?.length ? `<code>${h(sr.open_ports.slice(0,30).join(", "))}${sr.open_ports.length>30?" …":""}</code>` : "<span class='ok'>Aucun</span>"],
 ])}
-${batteries?.length ? sec("Batterie","🔋","s1-battery") + batteries.map((b: any) => tbl(["Propriété","Valeur"],[
+${batteries?.length ? sec("Batterie","🔋","s1-battery") + batteries.map(b => tbl(["Propriété","Valeur"],[
   [h("Nom"),               h(b.name||"N/A")],
   [h("Statut"),              h(b.status||"N/A")],
   [h("Charge"),              badge(b.estimated_charge_remaining!=null?b.estimated_charge_remaining+"%":"N/A", b.estimated_charge_remaining>50?"success":b.estimated_charge_remaining>20?"warning":"danger")],
