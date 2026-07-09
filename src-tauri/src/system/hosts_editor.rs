@@ -146,6 +146,9 @@ $new | Set-Content '{}' -Encoding UTF8
 
 #[tauri::command]
 pub fn toggle_hosts_entry(line_number: u32, enable: bool) -> Result<String, String> {
+    if line_number == 0 {
+        return Err("Numéro de ligne invalide".to_string());
+    }
     let ps = format!(r#"
 $lines = @(Get-Content '{}')
 $idx = {}
