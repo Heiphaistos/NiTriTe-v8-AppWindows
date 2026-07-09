@@ -191,7 +191,7 @@ async function applyDns() {
   try {
     await invoke("switch_dns", { adapter: selectedAdapter.value, primary, secondary });
     notify.success("DNS change", `Adaptateur : ${selectedAdapter.value}`);
-    adapters.value = await invoke("get_network_adapters_for_dns");
+    adapters.value = await invoke<AdapterInfo[]>("get_network_adapters_for_dns");
 
     // Save to history
     const dnsLabel = showCustom.value
