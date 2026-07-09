@@ -193,3 +193,68 @@ fn to_display_name(folder_name: &str) -> String {
         clean
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn to_id_alphanumeric_lowercased() {
+        assert_eq!(to_id("VLC"), "vlc");
+        assert_eq!(to_id("Firefox123"), "firefox123");
+    }
+
+    #[test]
+    fn to_id_spaces_become_hyphens() {
+        assert_eq!(to_id("VLC Media Player"), "vlc-media-player");
+    }
+
+    #[test]
+    fn to_id_consecutive_hyphens_deduped() {
+        assert_eq!(to_id("App  Name"), "app-name");
+        assert_eq!(to_id("App---Name"), "app-name");
+    }
+
+    #[test]
+    fn to_id_leading_trailing_hyphens_trimmed() {
+        assert_eq!(to_id("_App_"), "app");
+        assert_eq!(to_id("-name-"), "name");
+    }
+
+    #[test]
+    fn to_id_empty_stays_empty() {
+        assert_eq!(to_id(""), "");
+    }
+
+    #[test]
+    fn to_display_name_removes_portable_suffix() {
+        let result = to_display_name("VLCPortable");
+        assert!(!result.contains("Portable"), "Got: {}", result);
+    }
+
+    #[test]
+    fn to_display_name_removes_net_suffix() {
+        let result = to_display_name("MyApp_net6.0-windows");
+        assert!(!result.contains("net6.0"), "Got: {}", result);
+    }
+
+    #[test]
+    fn to_display_name_removes_version_numbers() {
+        // Pure version tokens like "5.9.0" should be removed
+        let result = to_display_name("Firefox_5.9.0");
+        assert!(!result.contains("5.9.0"), "Got: {}", result);
+    }
+
+    #[test]
+    fn to_display_name_underscores_become_spaces() {
+        let result = to_display_name("My_App_Name");
+        assert!(result.contains("My") && !result.contains('_'), "Got: {}", result);
+    }
+
+    #[test]
+    fn to_display_name_empty_falls_back_to_original() {
+        // If all tokens are filtered out, return original name
+        let result = to_display_name("1.2.3");
+        assert_eq!(result, "1.2.3");
+    }
+}
