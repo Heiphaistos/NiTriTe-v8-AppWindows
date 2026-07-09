@@ -79,7 +79,7 @@ async function inv<T>(cmd: string, args?: Record<string, unknown>): Promise<T|nu
   try { return await invoke<T>(cmd, args); } catch { return null; }
 }
 
-async function doPing() { pingLoading.value=true; pingResult.value=null; pingResult.value=await inv("run_ping",{host:pingHost.value,count:pingCount.value}); pingLoading.value=false; }
+async function doPing() { pingLoading.value=true; pingResult.value=null; pingResult.value=await inv<PingResult>("run_ping",{host:pingHost.value,count:pingCount.value}); pingLoading.value=false; }
 async function doTracert() {
   tracertLoading.value=true;
   tracertHops.value=[];
@@ -90,20 +90,20 @@ async function doTracert() {
   }
   tracertLoading.value=false;
 }
-async function doNslookup() { nsLoading.value=true; nsResult.value=await inv("run_nslookup",{host:nsHost.value,recordType:nsType.value}); nsLoading.value=false; }
-async function doArp() { arpLoading.value=true; arpTable.value=await inv("get_arp_table")??[]; arpLoading.value=false; }
-async function doRoute() { routeLoading.value=true; routeTable.value=await inv("get_route_table")??[]; routeLoading.value=false; }
+async function doNslookup() { nsLoading.value=true; nsResult.value=await inv<DnsResult>("run_nslookup",{host:nsHost.value,recordType:nsType.value}); nsLoading.value=false; }
+async function doArp() { arpLoading.value=true; arpTable.value=await inv<ArpEntry[]>("get_arp_table")??[]; arpLoading.value=false; }
+async function doRoute() { routeLoading.value=true; routeTable.value=await inv<RouteEntry[]>("get_route_table")??[]; routeLoading.value=false; }
 async function doPortScan() {
   scanLoading.value=true; scanResults.value=[];
   const ports = scanPorts.value.split(/[,\s]+/).map(p=>parseInt(p.trim())).filter(n=>!isNaN(n)&&n>0&&n<65536);
-  scanResults.value=await inv("scan_ports",{host:scanHost.value,ports})??[];
+  scanResults.value=await inv<PortScanResult[]>("scan_ports",{host:scanHost.value,ports})??[];
   scanLoading.value=false;
 }
-async function doWifi() { wifiLoading.value=true; wifiNetworks.value=await inv("get_wifi_networks")??[]; wifiLoading.value=false; }
-async function doOpenPorts() { openPortsLoading.value=true; openPorts.value=await inv("get_local_open_ports")??[]; openPortsLoading.value=false; }
-async function doHttp() { httpLoading.value=true; httpResult.value=await inv("check_http",{url:httpUrl.value}); httpLoading.value=false; }
-async function doShares() { sharesLoading.value=true; shares.value=await inv("get_net_shares",{host:sharesHost.value})??[]; sharesLoading.value=false; }
-async function doBandwidth() { bwLoading.value=true; bandwidth.value=await inv("test_bandwidth"); bwLoading.value=false; }
+async function doWifi() { wifiLoading.value=true; wifiNetworks.value=await inv<WifiNetwork[]>("get_wifi_networks")??[]; wifiLoading.value=false; }
+async function doOpenPorts() { openPortsLoading.value=true; openPorts.value=await inv<OpenPort[]>("get_local_open_ports")??[]; openPortsLoading.value=false; }
+async function doHttp() { httpLoading.value=true; httpResult.value=await inv<HttpCheckResult>("check_http",{url:httpUrl.value}); httpLoading.value=false; }
+async function doShares() { sharesLoading.value=true; shares.value=await inv<NetShareEntry[]>("get_net_shares",{host:sharesHost.value})??[]; sharesLoading.value=false; }
+async function doBandwidth() { bwLoading.value=true; bandwidth.value=await inv<BandwidthResult>("test_bandwidth"); bwLoading.value=false; }
 
 function sigColor(s: number) { return s>=70?'var(--success)':s>=40?'var(--warning)':'var(--error)'; }
 
