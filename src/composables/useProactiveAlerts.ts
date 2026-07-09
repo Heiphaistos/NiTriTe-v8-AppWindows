@@ -27,7 +27,7 @@ export const activeAlerts = ref<Array<{
 }>>([]);
 
 let monitorInterval: ReturnType<typeof setInterval> | null = null;
-let isRunning = false;
+let instanceCount = 0;
 
 function addAlert(id: string, type: 'temp' | 'disk' | 'ram' | 'smart', severity: 'warning' | 'critical', message: string) {
   const existing = activeAlerts.value.find(a => a.id === id && !a.dismissed);
@@ -96,7 +96,8 @@ export function useProactiveAlerts(thresholds: AlertThresholds = DEFAULT_THRESHO
           addAlert(`smart-realloc-${s.name}`, 'smart', 'critical',
             `${s.name}: ${s.reallocated_sectors} secteur(s) réalloué(s) — Défaillance imminente!`);
         }
-        if (s.health_status && !s.health_status.toLowerCase().includes('health') && !s.health_status.toLowerCase().includes('sain') && !s.health_status.toLowerCase().includes('ok')) {
+        const healthy = ['ok', 'good', 'passed', 'sain', 'healthy'];
+        if (s.health_status && !healthy.some(h => s.health_status.toLowerCase().includes(h))) {
           addAlert(`smart-health-${s.name}`, 'smart', 'critical', `${s.name}: État SMART dégradé (${s.health_status})`);
         }
       }
@@ -104,8 +105,8 @@ export function useProactiveAlerts(thresholds: AlertThresholds = DEFAULT_THRESHO
   }
 
   function start(intervalMs = 60000) {
-    if (isRunning) return;
-    isRunning = true;
+    instanceCount++;
+    if (instanceCount > 1) return; // timer déjà actif — on incrémente juste le compteur
     checkOnce();
     monitorInterval = setInterval(checkOnce, intervalMs);
     if ('Notification' in window && Notification.permission === 'default') {
@@ -114,8 +115,11 @@ export function useProactiveAlerts(thresholds: AlertThresholds = DEFAULT_THRESHO
   }
 
   function stop() {
-    if (monitorInterval) { clearInterval(monitorInterval); monitorInterval = null; }
-    isRunning = false;
+    instanceCount = Math.max(0, instanceCount - 1);
+    if (instanceCount === 0 && monitorInterval) {
+      clearInterval(monitorInterval);
+      monitorInterval = null;
+    }
   }
 
   // Auto-cleanup quand le composant appelant est détruit
