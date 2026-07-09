@@ -132,7 +132,7 @@ pub fn run_traceroute(host: String) -> Vec<TracertHop> {
 
 // ─── DNS Lookup ────────────────────────────────────────────────────────────────
 #[tauri::command]
-pub fn run_nslookup(host: String, record_type: String) -> DnsResult {
+pub fn run_nslookup(host: String, record_type: String, dns_server: Option<String>) -> DnsResult {
     let h = match validate_host(&host) {
         Ok(h) => h,
         Err(e) => { tracing::warn!("run_nslookup: {}", e); return DnsResult::default(); }
@@ -141,7 +141,11 @@ pub fn run_nslookup(host: String, record_type: String) -> DnsResult {
         "A"|"AAAA"|"MX"|"NS"|"TXT"|"CNAME"|"SOA"|"PTR"|"SRV" => record_type.to_uppercase(),
         _ => "A".to_string(),
     };
-    let ps = format!(r#"try {{ $r = Resolve-DnsName '{host}' -Type {rtype} -ErrorAction SilentlyContinue; if ($r) {{ $recs = @($r | ForEach-Object {{ if($_.IPAddress){{[string]$_.IPAddress}}elseif($_.NameHost){{[string]$_.NameHost}}elseif($_.Exchange){{[string]$_.Exchange}}elseif($_.Strings){{$_.Strings -join ' '}}else{{[string]$_.Name}} }}); @{{ok=$true;recs=$recs;qt='{rtype}'}} | ConvertTo-Json -Compress }} else {{ '@{{\"ok\":false,\"recs\":[],\"qt\":\"{rtype}\"}}' }} }} catch {{ '@{{\"ok\":false,\"recs\":[],\"qt\":\"{rtype}\"}}' }}"#, host=h, rtype=rtype);
+    let server_arg = match &dns_server {
+        Some(s) if !s.is_empty() => format!(" -Server '{}'", s.replace('\'', "")),
+        _ => String::new(),
+    };
+    let ps = format!(r#"try {{ $r = Resolve-DnsName '{host}' -Type {rtype}{server_arg} -ErrorAction SilentlyContinue; if ($r) {{ $recs = @($r | ForEach-Object {{ if($_.IPAddress){{[string]$_.IPAddress}}elseif($_.NameHost){{[string]$_.NameHost}}elseif($_.Exchange){{[string]$_.Exchange}}elseif($_.Strings){{$_.Strings -join ' '}}else{{[string]$_.Name}} }}); @{{ok=$true;recs=$recs;qt='{rtype}'}} | ConvertTo-Json -Compress }} else {{ '@{{\"ok\":false,\"recs\":[],\"qt\":\"{rtype}\"}}' }} }} catch {{ '@{{\"ok\":false,\"recs\":[],\"qt\":\"{rtype}\"}}' }}"#, host=h, rtype=rtype, server_arg=server_arg);
     #[cfg(target_os = "windows")]
     {
         let o = Command::new("powershell").args(["-NoProfile","-NonInteractive","-Command",&ps]).creation_flags(0x08000000).output();

@@ -143,7 +143,7 @@ async function testDnsReal() {
     try {
       const result = await invoke<{ host: string; records: string[]; query_type: string; success: boolean }>(
         "run_nslookup",
-        { host, recordType: "A" }
+        { host, recordType: "A", dnsServer: srv.ip }
       );
       const elapsed = Date.now() - before;
       dnsTestResults.value.push({
