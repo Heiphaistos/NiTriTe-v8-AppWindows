@@ -165,3 +165,48 @@ Remove-ItemProperty -Path $regPath -Name $entryName -ErrorAction Stop"#,
         Err(NiTriTeError::System(format!("Impossible de desactiver {}: {}", name, err.trim())))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn disable_startup_hklm_requires_elevation() {
+        let r = disable_startup_program("app", "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
+        assert!(r.is_err());
+        let msg = format!("{:?}", r.unwrap_err());
+        assert!(msg.contains("droits") || msg.contains("ElevationRequired") || msg.contains("elevation"));
+    }
+
+    #[test]
+    fn disable_startup_unknown_path_rejected() {
+        let r = disable_startup_program("app", "HKCU\\..\\SYSTEM");
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn disable_startup_allowed_hkcu_path_passes_validation() {
+        // HKCU Run path is allowed — command may fail since we're in test,
+        // but it must not fail at the validation stage (CommandDenied).
+        let r = disable_startup_program("safe_app", "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
+        // Either Ok (unlikely in test env) or System error — not CommandDenied
+        if let Err(e) = r {
+            let msg = format!("{:?}", e);
+            assert!(!msg.contains("CommandDenied"), "Expected validation to pass, got: {}", msg);
+        }
+    }
+
+    #[test]
+    fn disable_startup_metachar_name_rejected() {
+        let r = disable_startup_program("evil'; rm -rf /", "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
+        assert!(r.is_err());
+        let msg = format!("{:?}", r.unwrap_err());
+        assert!(msg.contains("CommandDenied") || msg.contains("invalide") || msg.contains("invalid"));
+    }
+
+    #[test]
+    fn disable_startup_empty_name_rejected() {
+        let r = disable_startup_program("", "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
+        assert!(r.is_err());
+    }
+}
