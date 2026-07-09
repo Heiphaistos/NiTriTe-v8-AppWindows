@@ -389,3 +389,48 @@ pub fn run_repair_command(repair_type: String) -> RepairResult {
     }
     RepairResult { command: label.to_string(), ..Default::default() }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn repair_cmd_unknown_returns_none() {
+        assert!(repair_cmd_and_label("inject_me; rm -rf /").is_none());
+        assert!(repair_cmd_and_label("").is_none());
+        assert!(repair_cmd_and_label("unknown_repair").is_none());
+    }
+
+    #[test]
+    fn repair_cmd_known_types_return_some() {
+        assert!(repair_cmd_and_label("sfc").is_some());
+        assert!(repair_cmd_and_label("flush_dns").is_some());
+        assert!(repair_cmd_and_label("winsock").is_some());
+        assert!(repair_cmd_and_label("dism_restore").is_some());
+        assert!(repair_cmd_and_label("firewall_reset").is_some());
+    }
+
+    #[test]
+    fn timeout_dism_restore_is_1800() {
+        assert_eq!(timeout_for_repair("dism_restore"), 1800);
+    }
+
+    #[test]
+    fn timeout_default_is_120() {
+        assert_eq!(timeout_for_repair("flush_dns"), 120);
+        assert_eq!(timeout_for_repair("winsock"), 120);
+        assert_eq!(timeout_for_repair("unknown"), 120);
+    }
+
+    #[test]
+    fn timeout_sfc_is_600() {
+        assert_eq!(timeout_for_repair("sfc"), 600);
+    }
+
+    #[test]
+    fn run_repair_unknown_returns_failure() {
+        let result = run_repair_command("injected_command".to_string());
+        assert!(!result.success);
+        assert!(result.output.contains("inconnu"));
+    }
+}
