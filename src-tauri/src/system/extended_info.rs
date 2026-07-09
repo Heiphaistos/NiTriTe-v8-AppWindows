@@ -235,3 +235,25 @@ fn measure_folder(path: &str) -> (f64, u64) {
         Err(_) => (0.0, 0),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_wmi_date_standard_format() {
+        // "20230115000000.000000+000" → "15/01/2023"
+        assert_eq!(parse_wmi_date("20230115000000.000000+000"), "15/01/2023");
+    }
+
+    #[test]
+    fn parse_wmi_date_date_only_8_chars() {
+        assert_eq!(parse_wmi_date("20260315"), "15/03/2026");
+    }
+
+    #[test]
+    fn parse_wmi_date_short_returns_as_is() {
+        assert_eq!(parse_wmi_date(""), "");
+        assert_eq!(parse_wmi_date("N/A"), "N/A");
+    }
+}

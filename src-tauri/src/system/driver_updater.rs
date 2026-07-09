@@ -564,3 +564,79 @@ pub fn get_all_hardware_ids() -> Vec<String> {
     }
     vec![]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── extract_hw_ids_from_inf ───────────────────────────────────────────────
+
+    #[test]
+    fn extract_hw_ids_finds_pci_id() {
+        let inf = "[Manufacturer]\nDevice.1 = PCI\\VEN_8086&DEV_1234, PCI\\VEN_8086&DEV_1234&SUBSYS_5678";
+        let ids = extract_hw_ids_from_inf(inf);
+        assert!(!ids.is_empty(), "Should find PCI hardware IDs");
+        assert!(ids.iter().any(|id| id.contains("VEN_8086")));
+    }
+
+    #[test]
+    fn extract_hw_ids_skips_comments_and_sections() {
+        let inf = "; This is a comment\n[Version]\nSignature=$Windows NT$";
+        let ids = extract_hw_ids_from_inf(inf);
+        assert!(ids.is_empty(), "Comments and sections should not yield IDs");
+    }
+
+    #[test]
+    fn extract_hw_ids_finds_usb_id() {
+        let inf = "[DeviceList]\nGenericUSB = USB\\VID_1234&PID_5678";
+        let ids = extract_hw_ids_from_inf(inf);
+        assert!(ids.iter().any(|id| id.contains("VID_1234")), "Got: {:?}", ids);
+    }
+
+    #[test]
+    fn extract_hw_ids_no_duplicates() {
+        let inf = "[DeviceList]\nA = PCI\\VEN_8086&DEV_1234\nB = PCI\\VEN_8086&DEV_1234";
+        let ids = extract_hw_ids_from_inf(inf);
+        assert_eq!(ids.len(), 1, "Duplicates should be deduplicated");
+    }
+
+    // ── parse_inf_meta ────────────────────────────────────────────────────────
+
+    #[test]
+    fn parse_inf_meta_extracts_version_section() {
+        let inf = "[Version]\nProvider=%Intel%\nDriverVersion=08/12/2023,27.20.100.9316\n[Manufacturer]";
+        let (provider, version, date) = parse_inf_meta(inf);
+        assert_eq!(provider, "Intel");
+        assert_eq!(date, "08/12/2023");
+        assert_eq!(version, "27.20.100.9316");
+    }
+
+    #[test]
+    fn parse_inf_meta_empty_when_no_version_section() {
+        let inf = "[Manufacturer]\nSomeKey=SomeValue";
+        let (provider, version, date) = parse_inf_meta(inf);
+        assert!(provider.is_empty());
+        assert!(version.is_empty());
+        assert!(date.is_empty());
+    }
+
+    // ── strip_hw_id_rev ───────────────────────────────────────────────────────
+
+    #[test]
+    fn strip_hw_id_removes_rev_subsys() {
+        let id = "PCI\\VEN_8086&DEV_1234&SUBSYS_5678&REV_01";
+        assert_eq!(strip_hw_id_rev(id), "PCI\\VEN_8086&DEV_1234");
+    }
+
+    #[test]
+    fn strip_hw_id_no_rev_returns_original() {
+        let id = "PCI\\VEN_8086&DEV_1234";
+        assert_eq!(strip_hw_id_rev(id), "PCI\\VEN_8086&DEV_1234");
+    }
+
+    #[test]
+    fn strip_hw_id_single_part_returns_original() {
+        let id = "PCI\\VEN_8086";
+        assert_eq!(strip_hw_id_rev(id), "PCI\\VEN_8086");
+    }
+}
