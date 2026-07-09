@@ -74,10 +74,7 @@ function toggleBackup() {
 
 async function createRestorePoint(description: string) {
   try {
-    await invoke("run_system_command", {
-      cmd: "powershell",
-      args: ["-Command", `Checkpoint-Computer -Description '${description}' -RestorePointType 'MODIFY_SETTINGS'`],
-    });
+    await invoke("create_restore_point_cmd", { description });
     notify.success("Point de restauration créé", description);
   } catch (e: any) {
     notify.warning("Point de restauration", "Impossible de créer (droits admin ?)");
@@ -97,11 +94,8 @@ async function rollbackLastWindowsUpdate() {
   rollbackConfirm.value = false;
   rollbackRunning.value = true;
   try {
-    await invoke("run_system_command", {
-      cmd: "powershell",
-      args: ["-Command", "Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 1 | ForEach-Object { wusa.exe /uninstall /kb:($_.HotFixID -replace 'KB','') /quiet /norestart }"],
-    });
-    notify.success("Rollback lancé", "Désinstallation de la dernière mise à jour Windows en cours");
+    const kbId = await invoke<string>("rollback_last_windows_update_cmd");
+    notify.success("Rollback lancé", `Désinstallation de ${kbId || "la dernière MAJ Windows"} en cours (redémarrage requis)`);
   } catch (e: any) {
     notify.error("Rollback échoué", String(e));
   }

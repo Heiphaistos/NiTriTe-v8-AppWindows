@@ -110,3 +110,47 @@ pub async fn create_restore_point_cmd(description: String) -> Result<(), NiTriTe
         .await
         .map_err(|e| NiTriTeError::System(e.to_string()))?
 }
+
+pub fn rollback_last_windows_update() -> Result<String, NiTriTeError> {
+    let ps = r#"
+try {
+    $kb = Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 1 -ErrorAction Stop
+    if (-not $kb) { throw "Aucune mise a jour trouvee" }
+    $kbId = $kb.HotFixID -replace 'KB', ''
+    $proc = Start-Process -FilePath "wusa.exe" -ArgumentList "/uninstall", "/kb:$kbId", "/quiet", "/norestart" -Wait -PassThru -ErrorAction Stop
+    if ($proc.ExitCode -eq 0 -or $proc.ExitCode -eq 3010) {
+        Write-Output "OK:$($kb.HotFixID)"
+    } else {
+        throw "wusa.exe code de sortie: $($proc.ExitCode)"
+    }
+} catch {
+    Write-Error $_.Exception.Message
+    exit 1
+}
+"#;
+
+    let output = Command::new("powershell")
+        .args(["-NoProfile", "-NonInteractive", "-Command", ps])
+        .creation_flags(0x08000000)
+        .output()
+        .map_err(|e| NiTriTeError::System(e.to_string()))?;
+
+    if !output.status.success() {
+        let err = String::from_utf8_lossy(&output.stderr);
+        return Err(NiTriTeError::System(format!(
+            "Rollback échoué : {}",
+            err.trim()
+        )));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let kb_id = stdout.strip_prefix("OK:").unwrap_or(&stdout).to_string();
+    Ok(kb_id)
+}
+
+#[tauri::command]
+pub async fn rollback_last_windows_update_cmd() -> Result<String, NiTriTeError> {
+    tokio::task::spawn_blocking(rollback_last_windows_update)
+        .await
+        .map_err(|e| NiTriTeError::System(e.to_string()))?
+}
