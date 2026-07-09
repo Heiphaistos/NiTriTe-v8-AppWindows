@@ -467,13 +467,18 @@ async function installSinglePack(infPath: string) {
 async function installAll() {
   if (!scanResult.value) return
   installing.value = true
-  try {
-    for (const m of scanResult.value.matches) {
-      await invokeRaw("install_driver", { infPath: m.inf_path })
-    }
-    showMsg(`${scanResult.value.matches.length} pilotes installés`)
-  } catch(e) { showMsg(String(e), true) }
-  finally { installing.value = false }
+  let ok = 0, fail = 0
+  for (const m of scanResult.value.matches) {
+    try {
+      const r = await invokeRaw<DriverInstallResult>("install_driver", { infPath: m.inf_path })
+      if (r.success) ok++; else fail++;
+    } catch { fail++ }
+  }
+  showMsg(
+    `${ok} pilote(s) installé(s)${fail > 0 ? `, ${fail} échec(s)` : ''}`,
+    fail > 0 && ok === 0
+  )
+  installing.value = false
 }
 </script>
 
