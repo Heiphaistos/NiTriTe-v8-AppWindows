@@ -15,6 +15,7 @@ import type {
   StoragePhysical, NetworkAdapter, MonitorDetail, AudioDevice, UsbDevice,
   BatteryDetailed, PowerPlan, PrinterDetail, InstalledSoftware,
   EnvVar, StartupProgram, InstalledUpdate, WinLicense,
+  CpuExtendedInfo, FolderEntry,
 } from "@/types/diagnostic";
 import {
   FileDown, FolderOpen, ScanLine, RefreshCw, Search,
@@ -99,7 +100,7 @@ const biosExtended    = ref<Record<string, unknown> | null>(null);
 const moboInfo        = ref<MoboDetailed | null>(null);
 const moboExtended    = ref<Record<string, unknown> | null>(null);
 const cpuCache        = ref<CpuCache | null>(null);
-const cpuExtended     = ref<Record<string, unknown> | null>(null);
+const cpuExtended     = ref<CpuExtendedInfo | null>(null);
 const osExtended      = ref<Record<string, unknown> | null>(null);
 const gpuList         = ref<GpuDetailed[]>([]);
 const ramData         = ref<RamDetailed | null>(null);
@@ -123,7 +124,7 @@ const scheduledTasks  = ref<unknown[]>([]);
 const securityInfo    = ref<unknown | null>(null);
 const licenseInfo     = ref<WinLicense | null>(null);
 const updatesHistory  = ref<InstalledUpdate[]>([]);
-const folders         = ref<unknown[]>([]);
+const folders         = ref<FolderEntry[]>([]);
 const smartData       = ref<unknown[]>([]);
 const scanResult      = ref(null as import("@/types/diagnostic").ScanResult | null);
 const scanProblems    = ref<string[]>([]);
@@ -182,7 +183,7 @@ async function loadTab(tab: string, force = false) {
         if (!sysInfo.value || force) sysInfo.value = await invokeCached("get_system_info", undefined, force);
         [cpuCache.value, cpuExtended.value] = await Promise.all([
           invokeCached<CpuCache>("get_cpu_cache_info", undefined, force),
-          invokeCached<Record<string, unknown>>("get_cpu_extended", undefined, force).catch(() => null),
+          invokeCached<CpuExtendedInfo>("get_cpu_extended", undefined, force).catch(() => null),
         ]); break;
       case "gpu":         gpuList.value       = await invokeCached("get_gpu_detailed", undefined, force); break;
       case "ram":         ramData.value        = await invokeCached("get_ram_detailed", undefined, force); break;
@@ -229,7 +230,7 @@ async function loadTab(tab: string, force = false) {
       case "security": securityInfo.value  = await invokeCached("get_security_status", undefined, force).catch(() => null); break;
       case "license":  licenseInfo.value   = await invokeCached("get_windows_license", undefined, force); break;
       case "updates":  updatesHistory.value = await invokeCached("get_installed_updates", undefined, force); break;
-      case "folders":  folders.value       = await invoke("get_folder_sizes_detailed"); break;
+      case "folders":  folders.value       = await invoke<FolderEntry[]>("get_folder_sizes_detailed"); break;
       // Ces onglets chargent leurs données eux-mêmes
       case "activation": case "comptes": case "parefeu": case "partages":
       case "registre": case "historique": case "pilotes": case "certificats":

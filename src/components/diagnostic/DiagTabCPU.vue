@@ -6,11 +6,12 @@ import NBadge from "@/components/ui/NBadge.vue";
 import NProgress from "@/components/ui/NProgress.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
 import NCollapse from "@/components/ui/NCollapse.vue";
+import type { SysInfo, CpuExtendedInfo, CpuCacheInfo } from "@/types/diagnostic";
 
 const props = defineProps<{
-  sysInfo: any;
-  cpuCache: any;
-  cpuExtended: any;
+  sysInfo: SysInfo | null;
+  cpuCache: CpuCacheInfo | null;
+  cpuExtended: CpuExtendedInfo | null;
 }>();
 
 interface CoreTemp { core: number; label: string; temp_celsius: number; }
@@ -123,8 +124,8 @@ const cpuScore = computed(() => {
             <div class="info-row"><span>L2</span><NBadge variant="info">{{ kbStr(cpuCache.l2_kb) }}</NBadge></div>
             <div class="info-row"><span>L3</span><NBadge variant="info">{{ kbStr(cpuCache.l3_kb) }}</NBadge></div>
             <div v-if="cpuCache.l4_kb > 0" class="info-row"><span>L4</span><NBadge variant="info">{{ kbStr(cpuCache.l4_kb) }}</NBadge></div>
-            <div class="info-row"><span>Cache L2 (WMI)</span><span>{{ cpuExtended?.l2_cache_size_kb > 0 ? kbStr(cpuExtended.l2_cache_size_kb) : 'N/A' }}</span></div>
-            <div class="info-row"><span>Cache L3 (WMI)</span><span>{{ cpuExtended?.l3_cache_size_kb > 0 ? kbStr(cpuExtended.l3_cache_size_kb) : 'N/A' }}</span></div>
+            <div class="info-row"><span>Cache L2 (WMI)</span><span>{{ cpuExtended && cpuExtended.l2_cache_size_kb > 0 ? kbStr(cpuExtended.l2_cache_size_kb) : 'N/A' }}</span></div>
+            <div class="info-row"><span>Cache L3 (WMI)</span><span>{{ cpuExtended && cpuExtended.l3_cache_size_kb > 0 ? kbStr(cpuExtended.l3_cache_size_kb) : 'N/A' }}</span></div>
           </div>
         </NCollapse>
       </template>

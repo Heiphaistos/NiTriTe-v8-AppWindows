@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, type Component } from "vue";
 import { invoke } from "@/utils/invoke";
 import { cachedInvoke } from "@/composables/useCachedInvoke";
 import NCard from "@/components/ui/NCard.vue";
@@ -35,7 +35,7 @@ const showSummary = ref(false);
 const installResults = ref<InstallResult[]>([]);
 
 // Profils prédéfinis
-interface Profile { id: string; label: string; icon: any; color: string; wingetIds: string[] }
+interface Profile { id: string; label: string; icon: Component; color: string; wingetIds: string[] }
 const PROFILES: Profile[] = [
   { id: "essential", label: "Essentiels", icon: Star, color: "#f97316",
     wingetIds: ["7zip.7zip", "Google.Chrome", "Mozilla.Firefox", "Notepad++.Notepad++", "VideoLAN.VLC", "Microsoft.PowerShell"] },
@@ -72,7 +72,7 @@ interface AppItem {
 const apps = ref<AppItem[]>([]);
 
 // Categories avec icônes — correspondent aux valeurs exactes de programs.json
-const CATEGORIES: { id: string; label: string; icon: any }[] = [
+const CATEGORIES: { id: string; label: string; icon: Component }[] = [
   { id: "Outils Essentiels", label: "Outils Essentiels", icon: Star },
   { id: "Navigateurs", label: "Navigateurs", icon: Globe },
   { id: "Securite", label: "Sécurité", icon: Shield },

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, type Component } from "vue";
 import { invoke } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -102,12 +102,12 @@ function clearActionHistory() {
 // === Debloat ===
 interface DebloatResult { action: string; success: boolean; message: string; }
 interface DebloatBtn {
-  id: string; label: string; icon: any;
+  id: string; label: string; icon: Component;
   cmd: string; param?: string;
   loading: boolean; result: DebloatResult | null;
 }
 
-function db(id: string, label: string, icon: any, cmd = "debloat_run_extra"): DebloatBtn {
+function db(id: string, label: string, icon: Component, cmd = "debloat_run_extra"): DebloatBtn {
   return { id, label, icon, cmd, param: cmd === "debloat_run_extra" ? id : undefined, loading: false, result: null };
 }
 

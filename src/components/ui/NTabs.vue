@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, type Component } from "vue";
 
 const props = defineProps<{
-  tabs: { id: string; label: string; icon?: any }[];
+  tabs: { id: string; label: string; icon?: Component }[];
   modelValue?: string;
   wrap?: boolean;
 }>();

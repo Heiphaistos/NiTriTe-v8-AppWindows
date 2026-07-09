@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, markRaw, onMounted } from "vue";
+import { ref, computed, markRaw, onMounted, type Component } from "vue";
 import { invoke } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NSearchBar from "@/components/ui/NSearchBar.vue";
@@ -13,7 +13,7 @@ import {
 } from "lucide-vue-next";
 
 // Map icon name → composant
-const iconMap: Record<string, any> = {
+const iconMap: Record<string, Component> = {
   Wifi:          markRaw(Wifi),
   Zap:           markRaw(Zap),
   Shield:        markRaw(Shield),
@@ -30,7 +30,7 @@ const iconMap: Record<string, any> = {
 };
 
 // Enrichissement : ajouter les composants icône à la volée
-const categories = computed<(KBCategory & { iconComponent: any })[]>(() =>
+const categories = computed<(KBCategory & { iconComponent: Component })[]>(() =>
   knowledgeBase.map((cat) => ({
     ...cat,
     iconComponent: iconMap[cat.icon] ?? iconMap.Settings,

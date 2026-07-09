@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, type Component } from "vue";
 
 const props = defineProps<{
   title: string;
   subtitle?: string;
   value: string | number;
-  icon: any;
+  icon: Component;
   color?: "accent" | "success" | "warning" | "danger" | "info";
   progress?: number;
   trend?: { value: number; label: string };

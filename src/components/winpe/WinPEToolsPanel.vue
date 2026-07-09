@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, type Component } from "vue";
 import { invoke } from "@/utils/invoke";
 import NButton from "@/components/ui/NButton.vue";
 import { useNotificationStore } from "@/stores/notifications";
@@ -15,7 +15,7 @@ const notify = useNotificationStore();
 
 interface RecoveryTool {
   id: string; name: string; type: string; description: string;
-  url: string; size: string; icon: any; localId?: string;
+  url: string; size: string; icon: Component; localId?: string;
 }
 
 const RECOVERY_TOOLS: RecoveryTool[] = [
@@ -320,7 +320,7 @@ const QUICK_CMDS: QuickCmd[] = [
 
 // ─── Catégories ──────────────────────────────────────────────────────────────
 
-interface CatDef { label: string; icon: any; }
+interface CatDef { label: string; icon: Component; }
 const CATEGORIES: CatDef[] = [
   { label: "Tous",           icon: LayoutGrid },
   { label: "Réparation",     icon: Wrench },

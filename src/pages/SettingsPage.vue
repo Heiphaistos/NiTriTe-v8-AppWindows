@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, type Component } from "vue";
 import { invoke } from "@/utils/invoke";
 import NButton from "@/components/ui/NButton.vue";
 import NInput from "@/components/ui/NInput.vue";
@@ -226,7 +226,7 @@ function resetDefaults() {
   notify.info("Paramètres réinitialisés — cliquez Save pour confirmer");
 }
 
-const tabs: { id: Tab; label: string; icon: any }[] = [
+const tabs: { id: Tab; label: string; icon: Component }[] = [
   { id: "interface",     label: "Interface",     icon: Palette   },
   { id: "performance",   label: "Performance",   icon: Zap       },
   { id: "notifications", label: "Notifications", icon: Bell      },

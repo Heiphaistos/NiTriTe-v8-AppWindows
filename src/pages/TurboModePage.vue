@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, type Component } from "vue";
 import { invoke } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -134,7 +134,7 @@ function formatMb(mb: number): string {
 }
 
 // ─── Optimisations individuelles ─────────────────────────────────────────────
-interface QuickOpt { id: string; label: string; desc: string; icon: any; color: string; }
+interface QuickOpt { id: string; label: string; desc: string; icon: Component; color: string; }
 
 const quickOpts: QuickOpt[] = [
   { id: "clean_temp",       label: "Nettoyer fichiers temporaires",     icon: Trash2,     color: "#ef4444", desc: "Supprime %TEMP% et C:\\Windows\\Temp" },

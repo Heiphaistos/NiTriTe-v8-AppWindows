@@ -6,8 +6,20 @@ export interface OsInfo {
 }
 export interface CpuInfo {
   name: string; manufacturer: string; cores: number; threads: number
-  base_speed_mhz: number; usage_percent: number
+  base_speed_mhz: number; max_speed_mhz?: number; usage_percent: number
 }
+export interface CpuExtendedInfo {
+  socket_designation: string; family: string; stepping: string; revision: string;
+  processor_id: string; max_clock_speed_mhz: number; current_voltage: string;
+  external_clock_mhz: number; l2_cache_size_kb: number; l3_cache_size_kb: number;
+  number_of_physical_packages: number; virtualization_enabled: boolean;
+  address_width: number; data_width: number; characteristics: string[];
+}
+export interface CpuCacheInfo {
+  l1_instruction_kb: number; l1_data_kb: number;
+  l2_kb: number; l3_kb: number; l4_kb: number;
+}
+export interface FolderEntry { label: string; path: string; size_mb: number; size_gb?: number; file_count: number; }
 export interface RamInfo { total_gb: number; used_gb: number; usage_percent: number }
 
 export interface SysInfo {

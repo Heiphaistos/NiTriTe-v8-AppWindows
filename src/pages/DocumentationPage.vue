@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, type Component } from "vue";
 import NCard from "@/components/ui/NCard.vue";
 import NSearchBar from "@/components/ui/NSearchBar.vue";
 import {
@@ -13,7 +13,7 @@ import {
 interface DocSection {
   id: string;
   title: string;
-  icon: any;
+  icon: Component;
   content: { type: "text" | "list" | "kbd" | "warning" | "tip"; value: string | string[] }[];
 }
 

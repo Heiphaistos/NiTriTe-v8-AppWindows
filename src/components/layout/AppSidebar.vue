@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, watch, computed, inject } from "vue";
+import { ref, reactive, watch, computed, inject, type Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useLocalStorage } from "@vueuse/core";
 import { navigationSections } from "@/data/navigation";
@@ -80,7 +80,7 @@ const sidebarWidthPx = computed(() => {
   return 240;
 });
 
-const iconMap: Record<string, any> = {
+const iconMap: Record<string, Component> = {
   "layout-dashboard": LayoutDashboard,
   stethoscope: Stethoscope, activity: Activity, zap: Zap,
   "layout-grid": LayoutGrid, wrench: Wrench, download: Download,

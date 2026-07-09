@@ -8,12 +8,14 @@ import NSpinner from "@/components/ui/NSpinner.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
 import { FolderOpen, Trash2, RefreshCw, CheckCircle } from "lucide-vue-next";
 
+import type { FolderEntry } from "@/types/diagnostic";
+
 async function openFolder(path: string) {
   await invoke("open_path", { path }).catch(() => {});
 }
 
 const props = defineProps<{
-  folders: any[];
+  folders: FolderEntry[];
 }>();
 
 // Mapping labels → clés de réparation (run_repair_command)
@@ -35,7 +37,7 @@ const CLEAN_MAP: Record<string, string> = {
   "download":     "delivery_opt",
 };
 
-function repairKeyFor(folder: any): string | null {
+function repairKeyFor(folder: FolderEntry): string | null {
   const lbl = (folder.label || "").toLowerCase();
   const path = (folder.path || "").toLowerCase();
   for (const [kw, key] of Object.entries(CLEAN_MAP)) {
@@ -48,12 +50,12 @@ const cleaning = ref<string | null>(null);
 const cleaned = ref<Set<string>>(new Set());
 const cleanResults = ref<Record<string, string>>({});
 
-async function cleanFolder(folder: any) {
+async function cleanFolder(folder: FolderEntry) {
   const key = repairKeyFor(folder);
   if (!key) return;
   cleaning.value = folder.label;
   try {
-    const r: any = await invoke("run_repair_command", { repairType: key });
+    const r = await invoke("run_repair_command", { repairType: key }) as { success: boolean; output?: string } | null;
     cleaned.value = new Set([...cleaned.value, folder.label]);
     cleanResults.value[folder.label] = r?.success ? "OK" : (r?.output || "Terminé");
   } catch (e: any) {

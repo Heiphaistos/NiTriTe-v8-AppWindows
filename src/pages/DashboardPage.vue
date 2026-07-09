@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed, type Component } from "vue";
 import { invoke } from "@/utils/invoke";
 import { useRouter } from "vue-router";
 import { useDiagnosticStore } from "@/stores/diagnosticStore";
@@ -112,7 +112,7 @@ function healthColor() { return healthScore.value >= 80 ? "var(--success)" : hea
 function healthLabel() { return healthScore.value >= 80 ? "Excellent" : healthScore.value >= 60 ? "Bon" : healthScore.value >= 40 ? "Moyen" : "Critique"; }
 
 // ─── Suggestions Engine ──────────────────────────────────────────────────────
-interface Suggestion { id: string; icon: any; title: string; description: string; route: string; level: 'info' | 'warning' | 'critical'; }
+interface Suggestion { id: string; icon: Component; title: string; description: string; route: string; level: 'info' | 'warning' | 'critical'; }
 
 const suggestions = computed<Suggestion[]>(() => {
   const list: Suggestion[] = [];
