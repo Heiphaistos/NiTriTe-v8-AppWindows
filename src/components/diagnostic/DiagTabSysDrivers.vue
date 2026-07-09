@@ -314,6 +314,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, shallowRef, defineAsyncComponent } from "vue";
 import { invoke, invokeRaw } from "@/utils/invoke";
+import type { DriverInstallResult } from "@/types/diagnostic";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Search, AlertTriangle, Shield, RefreshCw, Download, HardDrive, Cpu, FolderOpen, CheckCircle, Zap } from "lucide-vue-next";
 const DiagTabDriverUpdater = defineAsyncComponent(() => import("./DiagTabDriverUpdater.vue"));
@@ -409,8 +410,8 @@ async function checkWU() {
 async function installAllWU() {
   installing.value = true
   try {
-    const r = await invoke<string>("install_all_driver_updates")
-    showMsg(r)
+    const r = await invoke<DriverInstallResult>("install_all_driver_updates")
+    showMsg(r.output.slice(0, 120), !r.success)
     await checkWU()
   } catch(e) { showMsg(String(e), true) }
   finally { installing.value = false }
@@ -419,8 +420,8 @@ async function installAllWU() {
 async function installSingleWU(updateId: string) {
   installing.value = true
   try {
-    const r = await invoke<string>("install_driver_winupdate", { updateId })
-    showMsg(r)
+    const r = await invoke<DriverInstallResult>("install_driver_winupdate", { updateId })
+    showMsg(r.output.slice(0, 120), !r.success)
   } catch(e) { showMsg(String(e), true) }
   finally { installing.value = false }
 }
@@ -457,8 +458,8 @@ async function analyzeCompatibility() {
 async function installSinglePack(infPath: string) {
   installing.value = true
   try {
-    const r = await invoke<string>("install_driver", { infPath })
-    showMsg(r)
+    const r = await invoke<DriverInstallResult>("install_driver", { infPath })
+    showMsg(r.output.slice(0, 120), !r.success)
   } catch(e) { showMsg(String(e), true) }
   finally { installing.value = false }
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { invokeRaw as invoke } from "@/utils/invoke";
+import type { DriverDriverInstallResult } from "@/types/diagnostic";
 import { useNotificationStore } from "@/stores/notifications";
 const notify = useNotificationStore();
 import NBadge from "@/components/ui/NBadge.vue";
@@ -21,7 +22,6 @@ interface DriverScanResult {
   devices: HardwareDevice[]; matches: DriverMatch[]; inf_count: number;
   scan_time_ms: number; pack_folder: string; devices_with_match: number; devices_with_problem: number;
 }
-interface InstallResult { inf_path: string; success: boolean; output: string; duration_secs: number; }
 
 // ─── State ─────────────────────────────────────────────────────────────────────
 const devices = ref<HardwareDevice[]>([]);
@@ -29,7 +29,7 @@ const devicesLoading = ref(false);
 const packFolder = ref("");
 const scanResult = ref<DriverScanResult | null>(null);
 const scanLoading = ref(false);
-const installResults = ref<Record<string, InstallResult>>({});
+const installResults = ref<Record<string, DriverInstallResult>>({});
 const installing = ref<string | null>(null);
 const selectedMatches = ref<Set<string>>(new Set());
 const searchQuery = ref("");
@@ -134,7 +134,7 @@ async function runScan() {
 async function installDriver(match: DriverMatch) {
   installing.value = match.device_id;
   try {
-    const result = await invoke<InstallResult>("install_driver", { infPath: match.inf_path });
+    const result = await invoke<DriverInstallResult>("install_driver", { infPath: match.inf_path });
     installResults.value[match.device_id] = result;
   } catch {}
   finally { installing.value = null; }

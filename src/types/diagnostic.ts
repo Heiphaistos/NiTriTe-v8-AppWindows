@@ -246,6 +246,7 @@ export interface ScanResult {
   office_activation_type?: string
 }
 
+export interface DriverInstallResult { inf_path: string; success: boolean; output: string; duration_secs: number }
 export interface AppLogEntry { timestamp: string; level: string; message: string }
 export interface ToolEntry { name: string; description: string; command: string; is_url: boolean; section: string; icon: string; category?: string; requires_admin?: boolean }
 export interface RecentInstall { name: string; version: string; publisher: string; install_date: string }
