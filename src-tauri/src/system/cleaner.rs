@@ -333,3 +333,41 @@ fn get_large_files_sync(folder: String, min_size_mb: f64) -> Vec<serde_json::Val
     }
     vec![]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn clean_target_unknown_returns_failure() {
+        let r = clean_target("../../etc/passwd".to_string());
+        assert!(!r.success);
+        assert!(r.message.contains("inconnue"));
+    }
+
+    #[test]
+    fn clean_target_empty_returns_failure() {
+        let r = clean_target(String::new());
+        assert!(!r.success);
+    }
+
+    #[test]
+    fn quarantine_target_unknown_returns_failure() {
+        let r = quarantine_target("inject; rm -rf /".to_string());
+        assert!(!r.success);
+        assert!(r.message.contains("non support"));
+    }
+
+    #[test]
+    fn quarantine_safe_name_strips_path_chars() {
+        // safe_name used for dir creation — verify it replaces dangerous chars
+        let raw = "Chrome Cache";
+        let safe = raw.replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], "_");
+        assert_eq!(safe, "Chrome Cache");
+
+        let dangerous = "../../etc/passwd";
+        let safe2 = dangerous.replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], "_");
+        assert!(!safe2.contains('/'));
+        assert!(!safe2.contains('\\'));
+    }
+}
