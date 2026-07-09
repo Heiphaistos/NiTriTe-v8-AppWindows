@@ -1,27 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { invoke } from "@/utils/invoke";
 import { cachedInvoke } from "@/composables/useCachedInvoke";
+import type { SystemHistory } from "@/types/diagnostic";
 import NBadge from "@/components/ui/NBadge.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
 import { History, Clock, AlertTriangle, Package, Power } from "lucide-vue-next";
-
-interface RecentInstall {
-  name: string; version: string; publisher: string; install_date: string;
-}
-interface RecentEvent {
-  time: string; source: string; message: string; id: number; level: string;
-}
-interface SystemHistory {
-  windows_install_date: string; last_boot_time: string;
-  current_uptime_hours: number; total_uptime_days_since_install: number;
-  bsod_count_30d: number; bsod_list: string[];
-  recent_installs: RecentInstall[]; recent_uninstalls: string[];
-  critical_events_7d: number; error_events_7d: number; warning_events_7d: number;
-  last_logon_user: string; shutdown_count: number; hibernation_count: number;
-  crash_count_30d: number; recent_critical: RecentEvent[];
-}
 
 const data = ref<SystemHistory | null>(null);
 const loading = ref(true);
