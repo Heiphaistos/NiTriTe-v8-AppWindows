@@ -751,3 +751,62 @@ foreach ($v in $vols) {\
         { Ok("BitLocker non disponible hors Windows.".to_string()) }
     }).await.map_err(|e| e.to_string())?
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fmt_date_full_wmi_format() {
+        assert_eq!(fmt_date("20260315"), "15/03/2026");
+    }
+
+    #[test]
+    fn fmt_date_short_returns_as_is() {
+        assert_eq!(fmt_date("2026"), "2026");
+        assert_eq!(fmt_date(""), "");
+    }
+
+    #[test]
+    fn fmt_date_non_numeric_returns_as_is() {
+        assert_eq!(fmt_date("N/A"), "N/A");
+    }
+
+    #[test]
+    fn mem_type_str_ddr4() {
+        assert_eq!(mem_type_str(26), "DDR4");
+    }
+
+    #[test]
+    fn mem_type_str_ddr5() {
+        assert_eq!(mem_type_str(34), "DDR5");
+        assert_eq!(mem_type_str(43), "DDR5");
+    }
+
+    #[test]
+    fn mem_type_str_ddr3() {
+        assert_eq!(mem_type_str(24), "DDR3");
+    }
+
+    #[test]
+    fn mem_type_str_unknown() {
+        assert_eq!(mem_type_str(0), "Inconnu");
+        assert_eq!(mem_type_str(99), "Inconnu");
+    }
+
+    #[test]
+    fn form_factor_dimm() {
+        assert_eq!(form_factor_str(8), "DIMM");
+    }
+
+    #[test]
+    fn form_factor_so_dimm() {
+        assert_eq!(form_factor_str(12), "SO-DIMM");
+    }
+
+    #[test]
+    fn form_factor_unknown() {
+        assert_eq!(form_factor_str(0), "Unknown");
+        assert_eq!(form_factor_str(99), "Unknown");
+    }
+}

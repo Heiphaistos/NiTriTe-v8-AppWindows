@@ -458,3 +458,62 @@ fn run_ps(script: &str) -> Option<String> {
     #[cfg(not(target_os = "windows"))]
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── parse_wbadmin_pct ─────────────────────────────────────────────────────
+
+    #[test]
+    fn parse_wbadmin_pct_extracts_percentage() {
+        // wbadmin output format: "xxx copied (25%)"
+        let line = "Creating a backup of volume C:, copied (25%)";
+        assert_eq!(parse_wbadmin_pct(line), Some(25));
+    }
+
+    #[test]
+    fn parse_wbadmin_pct_100_percent() {
+        let line = "Backup operations completed, copied (100%)";
+        assert_eq!(parse_wbadmin_pct(line), Some(100));
+    }
+
+    #[test]
+    fn parse_wbadmin_pct_no_match_returns_none() {
+        assert_eq!(parse_wbadmin_pct("No percentage here"), None);
+        assert_eq!(parse_wbadmin_pct(""), None);
+    }
+
+    // ── robocopy_message ──────────────────────────────────────────────────────
+
+    #[test]
+    fn robocopy_message_code_0_no_difference() {
+        let msg = robocopy_message(0, "C:", "D:");
+        assert!(msg.contains("identiques"), "Got: {}", msg);
+        assert!(msg.contains("C:") && msg.contains("D:"));
+    }
+
+    #[test]
+    fn robocopy_message_code_1_success() {
+        let msg = robocopy_message(1, "C:", "D:");
+        assert!(msg.contains("succès"), "Got: {}", msg);
+    }
+
+    #[test]
+    fn robocopy_message_code_8_error() {
+        let msg = robocopy_message(8, "C:", "D:");
+        assert!(msg.contains("n'ont pas pu"), "Got: {}", msg);
+    }
+
+    #[test]
+    fn robocopy_message_code_16_fatal() {
+        let msg = robocopy_message(16, "C:", "D:");
+        assert!(msg.contains("fatale"), "Got: {}", msg);
+    }
+
+    #[test]
+    fn robocopy_message_unknown_code_terminee() {
+        let msg = robocopy_message(42, "C:", "D:");
+        assert!(msg.contains("terminée"), "Got: {}", msg);
+    }
+}
