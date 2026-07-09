@@ -54,8 +54,9 @@ function recordScan(type: string, result: string) {
 }
 
 // Quarantaine
+interface MpThreat { ThreatName?: string; SeverityID?: number; ActionSuccess?: boolean }
 const quarantineLoading = ref(false);
-const quarantineData = ref<any[]>([]);
+const quarantineData = ref<MpThreat[]>([]);
 const showQuarantinePanel = ref(false);
 
 // Timer / compteur fictif pendant scan
