@@ -296,14 +296,14 @@ async function runDiagnostic() {
   }
 
   // 7. Interfaces actives
-  const ifaces = (overview.value?.interfaces || []).filter((i: any) => !i.is_loopback);
-  const downIfaces = ifaces.filter((i: any) => !i.is_up);
+  const ifaces = (overview.value?.interfaces || []).filter(i => !i.is_loopback);
+  const downIfaces = ifaces.filter(i => !i.is_up);
   if (ifaces.length === 0) checks.push({ id: "ifaces", label: "Interfaces réseau", status: "error", detail: "Aucune interface réseau détectée" });
-  else if (downIfaces.length > 0) checks.push({ id: "ifaces", label: "Interfaces réseau", status: "warn", detail: `${downIfaces.length} interface(s) DOWN : ${downIfaces.map((i: any) => i.name).join(", ")}`, tip: "Vérifiez les adaptateurs désactivés dans le Gestionnaire de périphériques." });
-  else checks.push({ id: "ifaces", label: "Interfaces réseau", status: "ok", detail: `${ifaces.length} interface(s) active(s) : ${ifaces.filter((i: any) => i.is_up).map((i: any) => i.name).join(", ")}` });
+  else if (downIfaces.length > 0) checks.push({ id: "ifaces", label: "Interfaces réseau", status: "warn", detail: `${downIfaces.length} interface(s) DOWN : ${downIfaces.map(i => i.name).join(", ")}`, tip: "Vérifiez les adaptateurs désactivés dans le Gestionnaire de périphériques." });
+  else checks.push({ id: "ifaces", label: "Interfaces réseau", status: "ok", detail: `${ifaces.length} interface(s) active(s) : ${ifaces.filter(i => i.is_up).map(i => i.name).join(", ")}` });
 
   // 8. IPv6
-  const hasIPv6 = (overview.value?.interfaces || []).some((i: any) => i.ip_v6 && i.ip_v6.length > 0);
+  const hasIPv6 = (overview.value?.interfaces || []).some(i => i.ip_v6 && i.ip_v6.length > 0);
   checks.push({ id: "ipv6", label: "IPv6", status: hasIPv6 ? "ok" : "info", detail: hasIPv6 ? "IPv6 configuré" : "IPv6 non configuré (IPv4 uniquement)", tip: hasIPv6 ? undefined : "IPv4 seul est suffisant pour la plupart des usages." });
 
   diagChecks.value = checks;

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { invoke } from "@/utils/invoke";
+import type { SystemMonitorPayload } from "@/types/diagnostic";
 import StatsCard from "@/components/shared/StatsCard.vue";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -19,7 +20,7 @@ import {
 
 const notify = useNotificationStore();
 
-interface CoreUsage { id: number; usage: number; }
+interface CoreUsage { id?: number; usage: number; }
 interface ProcessInfo { name: string; pid: number; cpu_percent: number; ram_percent: number; }
 interface GpuInfo { name: string; usage_percent: number; vram_used_mb: number; vram_total_mb: number; temperature_c: number; }
 interface DiskTemp { name: string; temp_c: number; }
@@ -200,7 +201,7 @@ onMounted(async () => {
   try {
     const { listen } = await import("@tauri-apps/api/event");
     await invoke("start_monitoring");
-    unlisten = await listen<any>("system-monitor", (event) => {
+    unlisten = await listen<SystemMonitorPayload>("system-monitor", (event) => {
       if (paused.value) return;
       const raw = event.payload;
       const d: MonitorData = {
@@ -212,7 +213,7 @@ onMounted(async () => {
         ),
         ram_used_gb: raw.ram_used_gb ?? 0,
         ram_total_gb: raw.ram_total_gb ?? 0,
-        ram_percent: raw.ram_percent ?? (raw.ram_total_gb > 0 ? (raw.ram_used_gb / raw.ram_total_gb) * 100 : 0),
+        ram_percent: raw.ram_percent ?? ((raw.ram_total_gb ?? 0) > 0 ? ((raw.ram_used_gb ?? 0) / (raw.ram_total_gb ?? 1)) * 100 : 0),
         disk_percent: raw.disk_percent ?? undefined,
         disk_read_kbs: raw.disk_read_kbs ?? 0,
         disk_write_kbs: raw.disk_write_kbs ?? 0,

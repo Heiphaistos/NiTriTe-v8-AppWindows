@@ -214,3 +214,19 @@ export interface ScanResult {
   activation_type?: string
   office_activation_type?: string
 }
+
+export interface SystemMonitorPayload {
+  cpu_percent?: number; cpu_usage?: number
+  ram_percent?: number; ram_used_gb?: number; ram_total_gb?: number
+  disk_percent?: number; disk_read_kbs?: number; disk_write_kbs?: number
+  disk_temps?: { name: string; temp_c: number }[]
+  network_down_kbs?: number; network_up_kbs?: number
+  net_download_kbs?: number; net_upload_kbs?: number
+  cpu_name?: string; cpu_temp_c?: number; cpu_freq_mhz?: number
+  cpu_per_core?: (number | { id?: number; usage: number })[]
+  cpu_cores?: (number | { id?: number; usage: number })[]
+  gpu_data?: { name: string; usage_percent: number; vram_used_mb: number; vram_total_mb: number; temperature_c: number }[]
+  top_processes?: { name: string; pid: number; cpu_percent: number; memory_mb?: number; ram_percent?: number }[]
+  process_count?: number
+  alerts?: { level: string; message: string }[]
+}

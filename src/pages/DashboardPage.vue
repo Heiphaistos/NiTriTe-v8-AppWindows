@@ -10,6 +10,7 @@ import NButton from "@/components/ui/NButton.vue";
 import NProgress from "@/components/ui/NProgress.vue";
 import NBadge from "@/components/ui/NBadge.vue";
 import AlertThresholdsModal, { type AlertThresholds } from "@/components/ui/AlertThresholdsModal.vue";
+import type { SystemMonitorPayload } from "@/types/diagnostic";
 import {
   Cpu, MemoryStick, HardDrive, Wifi,
   Stethoscope, Trash2, RefreshCw, Save, Shield,
@@ -23,7 +24,7 @@ const router    = useRouter();
 const diagStore = useDiagnosticStore();
 
 // --- Interfaces ---
-interface CoreUsage { id: number; usage: number; }
+interface CoreUsage { id?: number; usage: number; }
 interface GpuInfo { name: string; usage_percent: number; vram_used_mb: number; vram_total_mb: number; temperature_c: number; }
 interface DiskTemp { name: string; temp_c: number; }
 interface ProcessInfo { pid: number; name: string; cpu_percent: number; memory_mb: number; }
@@ -153,7 +154,7 @@ function checkThresholdAlerts(cpu: number, ram: number, disk: number) {
   else if (disk >= t.disk_warn) add("warning", `Disque élevé : ${disk}% (seuil: ${t.disk_warn}%)`);
 }
 
-function applyMonitorData(raw: any) {
+function applyMonitorData(raw: SystemMonitorPayload) {
   cpuUsage.value = Math.round(raw.cpu_percent ?? raw.cpu_usage ?? 0);
   const rU = raw.ram_used_gb ?? 0, rT = raw.ram_total_gb ?? 0;
   ramUsedGb.value = Math.round(rU * 10) / 10; ramTotalGb.value = Math.round(rT * 10) / 10;
@@ -168,8 +169,8 @@ function applyMonitorData(raw: any) {
   else if (!Array.isArray(raw.disk_temps)) diskTemps.value = [];
   diskReadKbs.value = raw.disk_read_kbs ?? 0; diskWriteKbs.value = raw.disk_write_kbs ?? 0;
   cpuTemp.value = raw.cpu_temp_c ?? 0;
-  if (raw.cpu_freq_mhz > 0) cpuFreqMhz.value = raw.cpu_freq_mhz;
-  if (raw.process_count > 0) totalProcesses.value = raw.process_count;
+  if ((raw.cpu_freq_mhz ?? 0) > 0) cpuFreqMhz.value = raw.cpu_freq_mhz!;
+  if ((raw.process_count ?? 0) > 0) totalProcesses.value = raw.process_count!;
   networkDownKbs.value = raw.network_down_kbs ?? raw.net_download_kbs ?? 0;
   networkUpKbs.value = raw.network_up_kbs ?? raw.net_upload_kbs ?? 0;
   topProcesses.value = (raw.top_processes ?? []).slice(0, 8).map((p: any) => ({
@@ -215,7 +216,7 @@ onMounted(async () => {
   try {
     const { listen } = await import("@tauri-apps/api/event");
     isLive.value = true;
-    unlisten = await listen<any>("system-monitor", (e) => { applyMonitorData(e.payload); });
+    unlisten = await listen<SystemMonitorPayload>("system-monitor", (e) => { applyMonitorData(e.payload); });
     const info = await diagStore.fetchSysInfo() as any;
     cpuUsage.value = Math.round(info.cpu?.usage_percent ?? 0);
     ramUsedGb.value = Math.round((info.ram?.used_gb ?? 0) * 10) / 10;

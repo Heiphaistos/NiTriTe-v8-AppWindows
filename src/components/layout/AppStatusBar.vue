@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { Cpu, MemoryStick, HardDrive, Wifi, Activity } from "lucide-vue-next";
+import type { SystemMonitorPayload } from "@/types/diagnostic";
 
 const appVersion = __APP_VERSION__;
 const cpuUsage = ref(0);
@@ -15,7 +16,7 @@ onMounted(async () => {
   try {
     const { listen } = await import("@tauri-apps/api/event");
     // Stocker le unlisten pour nettoyage propre
-    unlistenMonitor = await listen<{ cpu_percent: number; ram_percent: number; disk_percent: number; network_down_kbs: number }>("system-monitor", (event) => {
+    unlistenMonitor = await listen<SystemMonitorPayload>("system-monitor", (event) => {
       const data = event.payload;
       cpuUsage.value   = data.cpu_percent      ?? 0;
       ramUsage.value   = data.ram_percent       ?? 0;
