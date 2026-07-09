@@ -61,23 +61,21 @@ const showQuarantinePanel = ref(false);
 const scanElapsed = ref(0);
 const scanFileCount = ref(0);
 let timerInterval: ReturnType<typeof setInterval> | null = null;
+let progressInterval: ReturnType<typeof setInterval> | null = null;
 
 function startScanTimer(fast: boolean) {
-  stopScanTimer(); // clear any previous interval before creating a new one
+  stopScanTimer();
   scanElapsed.value = 0;
   scanFileCount.value = 0;
   timerInterval = setInterval(() => {
     scanElapsed.value++;
-    // Incrémente plus vite pour quick, plus lent pour full
     scanFileCount.value += fast ? 450 : 80;
   }, 1000);
 }
 
 function stopScanTimer() {
-  if (timerInterval !== null) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-  }
+  if (timerInterval !== null) { clearInterval(timerInterval); timerInterval = null; }
+  if (progressInterval !== null) { clearInterval(progressInterval); progressInterval = null; }
 }
 
 onUnmounted(() => stopScanTimer());
@@ -244,7 +242,6 @@ async function startScan(type: "quick" | "full" | "offline" | "custom") {
   }
 
   let result = "Aucune menace détectée";
-  let progressInterval: ReturnType<typeof setInterval> | null = null;
 
   try {
     // Simulate progress while scan runs
