@@ -670,3 +670,64 @@ async fn run_total_scan(window: tauri::Window) -> Result<system::total_scan::Sca
     system::total_scan::run_total_scan(window).await
 }
 
+#[cfg(test)]
+mod recovery_tests {
+    use super::*;
+
+    // ── has_shell_metacharacters ──────────────────────────────────────────────
+
+    #[test]
+    fn clean_command_returns_false() {
+        assert!(!has_shell_metacharacters("cleanmgr /sagerun:1"));
+        assert!(!has_shell_metacharacters("msinfo32.exe"));
+        assert!(!has_shell_metacharacters("dism /Online"));
+    }
+
+    #[test]
+    fn pipe_is_dangerous() {
+        assert!(has_shell_metacharacters("cmd | whoami"));
+        assert!(has_shell_metacharacters("echo test | calc"));
+    }
+
+    #[test]
+    fn semicolon_is_dangerous() {
+        assert!(has_shell_metacharacters("cmd; whoami"));
+    }
+
+    #[test]
+    fn ampersand_is_dangerous() {
+        assert!(has_shell_metacharacters("notepad & calc"));
+    }
+
+    #[test]
+    fn redirect_is_dangerous() {
+        assert!(has_shell_metacharacters("cmd > evil.txt"));
+        assert!(has_shell_metacharacters("cmd < input.txt"));
+    }
+
+    #[test]
+    fn backtick_and_dollar_subshell_dangerous() {
+        assert!(has_shell_metacharacters("`whoami`"));
+        assert!(has_shell_metacharacters("$(whoami)"));
+    }
+
+    #[test]
+    fn env_var_percent_allowed() {
+        // %TEMP%, %USERPROFILE% are legitimate Windows env vars
+        assert!(!has_shell_metacharacters("%TEMP%\\cleanup.bat"));
+        assert!(!has_shell_metacharacters("%PROGRAMFILES%\\app.exe"));
+    }
+
+    #[test]
+    fn bare_percent_is_dangerous() {
+        assert!(has_shell_metacharacters("cmd %1"));
+        assert!(has_shell_metacharacters("cmd % something"));
+    }
+
+    #[test]
+    fn newline_is_dangerous() {
+        assert!(has_shell_metacharacters("cmd\nwhoami"));
+        assert!(has_shell_metacharacters("cmd\rwhoami"));
+    }
+}
+
