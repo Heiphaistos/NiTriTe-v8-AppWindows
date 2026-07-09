@@ -330,6 +330,89 @@ pub fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::backup::collector::{BackupManifest, BackupItem};
+
+    fn make_manifest(items: Vec<(&str, &str, &str)>) -> BackupManifest {
+        let items: Vec<BackupItem> = items.into_iter().map(|(name, cat, data)| BackupItem {
+            name: name.to_string(),
+            category: cat.to_string(),
+            data: data.to_string(),
+            size_bytes: data.len(),
+        }).collect();
+        let total = items.len();
+        BackupManifest { timestamp: "2026-01-01_12-00-00".to_string(), items, total_items: total, path: "/tmp/test".to_string() }
+    }
+
+    #[test]
+    fn html_escape_special_chars() {
+        assert_eq!(html_escape("A&B"), "A&amp;B");
+        assert_eq!(html_escape("<script>"), "&lt;script&gt;");
+        assert_eq!(html_escape("a > b < c"), "a &gt; b &lt; c");
+        assert_eq!(html_escape("normal text"), "normal text");
+    }
+
+    #[test]
+    fn render_md_empty_manifest() {
+        let m = make_manifest(vec![]);
+        let md = render_md(&m);
+        assert!(md.starts_with("# NiTriTe"));
+        assert!(md.contains("2026-01-01_12-00-00"));
+        assert!(md.contains("0 éléments"));
+    }
+
+    #[test]
+    fn render_md_groups_by_category() {
+        let m = make_manifest(vec![
+            ("Apps", "Systeme", "app data"),
+            ("Pilotes", "Systeme", "driver data"),
+            ("Favoris", "Navigateurs", "bookmarks"),
+        ]);
+        let md = render_md(&m);
+        // Each category appears once as h2
+        let systeme_count = md.matches("## Systeme").count();
+        let nav_count = md.matches("## Navigateurs").count();
+        assert_eq!(systeme_count, 1);
+        assert_eq!(nav_count, 1);
+        assert!(md.contains("### Apps"));
+        assert!(md.contains("### Pilotes"));
+        assert!(md.contains("### Favoris"));
+    }
+
+    #[test]
+    fn render_txt_contains_header_and_items() {
+        let m = make_manifest(vec![("Test Item", "Categorie", "some data")]);
+        let txt = render_txt(&m);
+        assert!(txt.contains("NiTriTe"));
+        assert!(txt.contains("Test Item"));
+        assert!(txt.contains("some data"));
+    }
+
+    #[test]
+    fn render_html_escapes_xss_in_data() {
+        let m = make_manifest(vec![
+            ("Item", "Systeme", "<script>alert('xss')</script>"),
+        ]);
+        let html = render_html(&m);
+        assert!(!html.contains("<script>alert"));
+        assert!(html.contains("&lt;script&gt;"));
+    }
+
+    #[test]
+    fn render_html_has_nav_and_sections() {
+        let m = make_manifest(vec![
+            ("App", "Systeme", "data"),
+            ("Net", "Reseau", "net data"),
+        ]);
+        let html = render_html(&m);
+        assert!(html.contains("<nav>"));
+        assert!(html.contains("Systeme"));
+        assert!(html.contains("Reseau"));
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct BackupEntryInfo {
     pub filename: String,
