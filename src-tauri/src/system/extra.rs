@@ -640,3 +640,72 @@ fn categorize_startup(name: &str, cmd: &str) -> String {
         "Tiers".to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── parse_wmi_date ────────────────────────────────────────────────────────
+
+    #[test]
+    fn parse_wmi_date_full_14_chars() {
+        // "20260315143000" → "15/03/2026 14:30:00"
+        assert_eq!(parse_wmi_date("20260315143000"), "15/03/2026 14:30:00");
+    }
+
+    #[test]
+    fn parse_wmi_date_8_chars_date_only() {
+        // "20260315" → "15/03/2026"
+        assert_eq!(parse_wmi_date("20260315"), "15/03/2026");
+    }
+
+    #[test]
+    fn parse_wmi_date_short_returns_as_is() {
+        assert_eq!(parse_wmi_date("2026"), "2026");
+        assert_eq!(parse_wmi_date(""), "");
+    }
+
+    // ── categorize_startup ────────────────────────────────────────────────────
+
+    #[test]
+    fn categorize_startup_microsoft_by_cmd() {
+        let cat = categorize_startup("OneDrive", "C:\\Windows\\System32\\OneDrive.exe");
+        assert_eq!(cat, "Microsoft / Windows");
+    }
+
+    #[test]
+    fn categorize_startup_microsoft_by_name() {
+        let cat = categorize_startup("Windows Security", "C:\\Program Files\\Security.exe");
+        assert_eq!(cat, "Microsoft / Windows");
+    }
+
+    #[test]
+    fn categorize_startup_nvidia_is_driver() {
+        let cat = categorize_startup("NvTray", "C:\\Program Files\\NVIDIA Corporation\\nvtray.exe");
+        assert_eq!(cat, "Pilotes");
+    }
+
+    #[test]
+    fn categorize_startup_chrome_is_browser() {
+        let cat = categorize_startup("Google Chrome", "C:\\Program Files\\Google\\Chrome\\chrome.exe");
+        assert_eq!(cat, "Navigateur");
+    }
+
+    #[test]
+    fn categorize_startup_steam_is_jeux() {
+        let cat = categorize_startup("Steam", "C:\\Program Files\\Steam\\steam.exe");
+        assert_eq!(cat, "Jeux");
+    }
+
+    #[test]
+    fn categorize_startup_defender_is_securite() {
+        let cat = categorize_startup("Defender", "C:\\security\\defender.exe");
+        assert_eq!(cat, "Sécurité");
+    }
+
+    #[test]
+    fn categorize_startup_unknown_is_tiers() {
+        let cat = categorize_startup("MyApp", "C:\\Users\\User\\AppData\\myapp.exe");
+        assert_eq!(cat, "Tiers");
+    }
+}

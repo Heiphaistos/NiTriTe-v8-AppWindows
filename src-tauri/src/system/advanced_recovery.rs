@@ -568,3 +568,63 @@ fn run_ps_opt(script: &str) -> Option<String> {
     #[cfg(not(target_os = "windows"))]
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── esc ───────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn esc_replaces_html_entities() {
+        assert_eq!(esc("<b>"), "&lt;b&gt;");
+        assert_eq!(esc("a & b"), "a &amp; b");
+        assert_eq!(esc("\"quoted\""), "&quot;quoted&quot;");
+    }
+
+    #[test]
+    fn esc_plain_text_unchanged() {
+        assert_eq!(esc("hello world"), "hello world");
+    }
+
+    #[test]
+    fn esc_empty_string() {
+        assert_eq!(esc(""), "");
+    }
+
+    #[test]
+    fn esc_xss_payload_sanitized() {
+        let out = esc("<script>alert(\"xss\")</script>");
+        assert!(!out.contains('<'));
+        assert!(!out.contains('>'));
+        assert!(!out.contains('"'));
+        assert!(out.contains("&lt;script&gt;"));
+    }
+
+    // ── fmt_size ──────────────────────────────────────────────────────────────
+
+    #[test]
+    fn fmt_size_gb_boundary() {
+        assert_eq!(fmt_size(1_073_741_824), "1.0 GB");
+        assert_eq!(fmt_size(2_147_483_648), "2.0 GB");
+    }
+
+    #[test]
+    fn fmt_size_mb_boundary() {
+        assert_eq!(fmt_size(1_048_576), "1.0 MB");
+        assert_eq!(fmt_size(5_242_880), "5.0 MB");
+    }
+
+    #[test]
+    fn fmt_size_kb_boundary() {
+        assert_eq!(fmt_size(1_024), "1.0 KB");
+        assert_eq!(fmt_size(2_048), "2.0 KB");
+    }
+
+    #[test]
+    fn fmt_size_bytes_below_kb() {
+        assert_eq!(fmt_size(0), "0 B");
+        assert_eq!(fmt_size(512), "512 B");
+        assert_eq!(fmt_size(1_023), "1023 B");
+    }
+}
