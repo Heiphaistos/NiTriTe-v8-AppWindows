@@ -58,6 +58,17 @@ export interface NetworkAdapter {
   net_connection_id: string; is_physical: boolean; status: string
 }
 export interface CpuCache { l1_instruction_kb: number; l1_data_kb: number; l2_kb: number; l3_kb: number; l4_kb: number }
+export interface AppConfig {
+  theme: string; language: string; sidebar_collapsed: boolean
+  ollama_url: string; ollama_model: string; ollama_temperature: number
+  ai_backend: string; llamacpp_server_path: string; llamacpp_model_path: string; llamacpp_port: number
+  monitor_interval_ms: number; show_animations: boolean; compact_mode: boolean
+  notifications_enabled: boolean; process_count: number; font_size: string; export_format: string
+  auto_save?: boolean; disk_cache_enabled?: boolean; gpu_acceleration?: boolean; background_tasks?: boolean
+  max_history_entries?: number; auto_refresh_dashboard?: boolean; dashboard_refresh_ms?: number
+  notif_sounds?: boolean; notif_desktop?: boolean; notif_errors?: boolean; notif_success?: boolean
+  notif_position?: string
+}
 export interface ProblemDevice { name: string; device_id: string; error_code: number; error_description: string; class: string }
 export interface PowerPlanResult { name: string; guid: string; success: boolean; message: string }
 export interface NetPingResult { success: boolean; avg: number; host: string }

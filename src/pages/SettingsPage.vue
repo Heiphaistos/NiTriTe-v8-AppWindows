@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, type Component } from "vue";
 import { invoke } from "@/utils/invoke";
+import type { AppConfig } from "@/types/diagnostic";
 import NButton from "@/components/ui/NButton.vue";
 import NInput from "@/components/ui/NInput.vue";
 import NToggle from "@/components/ui/NToggle.vue";
@@ -86,11 +87,11 @@ onMounted(async () => {
   // Charge la config IA depuis Rust → propage dans le store AI
   await aiStore.loadFromConfig();
   try {
-    const cfg = await invoke<any>("get_config");
+    const cfg = await invoke<AppConfig>("get_config");
     monitorInterval.value      = cfg.monitor_interval_ms    ?? 2000;
     processCount.value         = cfg.process_count          ?? 10;
     sidebarDefault.value       = cfg.sidebar_collapsed      ?? false;
-    exportFormat.value         = cfg.export_format          ?? "json";
+    exportFormat.value         = (cfg.export_format ?? "json") as "json" | "txt" | "html" | "md";
     autoSave.value             = cfg.auto_save              ?? false;
     diskCacheEnabled.value     = cfg.disk_cache_enabled     ?? true;
     gpuAcceleration.value      = cfg.gpu_acceleration       ?? true;
@@ -102,8 +103,8 @@ onMounted(async () => {
     notifDesktop.value         = cfg.notif_desktop          ?? true;
     notifErrors.value          = cfg.notif_errors           ?? true;
     notifSuccess.value         = cfg.notif_success          ?? true;
-    if (cfg.notif_position) notifPosition.value = cfg.notif_position;
-    if (cfg.font_size) appStore.setFontSize(cfg.font_size);
+    if (cfg.notif_position) notifPosition.value = cfg.notif_position as typeof notifPosition.value;
+    if (cfg.font_size) appStore.setFontSize(cfg.font_size as "small" | "normal" | "large");
     if (cfg.show_animations === false) {
       appStore.showAnimations = false;
       document.documentElement.classList.add("no-animations");
@@ -127,7 +128,7 @@ async function testOllama() {
 // ── Export / Import config complète ──────────────────────────
 async function exportConfig() {
   try {
-    const cfg = await invoke<any>("get_config");
+    const cfg = await invoke<AppConfig>("get_config");
     const payload = JSON.stringify({ ...cfg, __nitrite_version: "6.0.0", __exported_at: new Date().toISOString() }, null, 2);
     const { save } = await import("@tauri-apps/plugin-dialog");
     const { writeTextFile } = await import("@tauri-apps/plugin-fs");

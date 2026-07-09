@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { invoke } from "@/utils/invoke";
+import type { AppConfig } from "@/types/diagnostic";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
 import { useNotificationStore } from "@/stores/notifications";
@@ -54,7 +55,7 @@ async function createProfile() {
   if (!newName.value.trim()) return;
   creating.value = true;
   try {
-    const cfg = await invoke<any>("get_config");
+    const cfg = await invoke<AppConfig>("get_config");
     const profile: Profile = {
       name:       newName.value.trim(),
       description: newDesc.value.trim(),
