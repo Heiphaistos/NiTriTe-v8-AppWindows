@@ -10,6 +10,8 @@ import { FolderOpen, Trash2, RefreshCw, CheckCircle } from "lucide-vue-next";
 
 import type { FolderEntry } from "@/types/diagnostic";
 
+interface RepairResult { command: string; success: boolean; output: string; duration_secs: number; }
+
 async function openFolder(path: string) {
   await invoke("open_path", { path }).catch(() => {});
 }
@@ -55,7 +57,7 @@ async function cleanFolder(folder: FolderEntry) {
   if (!key) return;
   cleaning.value = folder.label;
   try {
-    const r = await invoke("run_repair_command", { repairType: key }) as { success: boolean; output?: string } | null;
+    const r = await invoke<RepairResult>("run_repair_command", { repairType: key });
     cleaned.value = new Set([...cleaned.value, folder.label]);
     cleanResults.value[folder.label] = r?.success ? "OK" : (r?.output || "Terminé");
   } catch (e: any) {

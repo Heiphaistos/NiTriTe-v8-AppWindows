@@ -168,7 +168,7 @@ async function loadTab(tab: string, force = false) {
   try {
     switch (tab) {
       case "os":
-        if (!sysInfo.value || force) sysInfo.value = await invokeCached("get_system_info", undefined, force);
+        if (!sysInfo.value || force) sysInfo.value = await invokeCached<SysInfo>("get_system_info", undefined, force);
         if (!osExtended.value || force) osExtended.value = await invokeCached<OsExtended>("get_os_extended", undefined, force).catch(() => null);
         break;
       case "bios":
@@ -182,20 +182,20 @@ async function loadTab(tab: string, force = false) {
           invokeCached<MoboExtended>("get_motherboard_extended", undefined, force).catch(() => null),
         ]); break;
       case "cpu":
-        if (!sysInfo.value || force) sysInfo.value = await invokeCached("get_system_info", undefined, force);
+        if (!sysInfo.value || force) sysInfo.value = await invokeCached<SysInfo>("get_system_info", undefined, force);
         [cpuCache.value, cpuExtended.value] = await Promise.all([
           invokeCached<CpuCache>("get_cpu_cache_info", undefined, force),
           invokeCached<CpuExtendedInfo>("get_cpu_extended", undefined, force).catch(() => null),
         ]); break;
-      case "gpu":         gpuList.value       = await invokeCached("get_gpu_detailed", undefined, force); break;
-      case "ram":         ramData.value        = await invokeCached("get_ram_detailed", undefined, force); break;
+      case "gpu":         gpuList.value       = await invokeCached<GpuDetailed[]>("get_gpu_detailed", undefined, force); break;
+      case "ram":         ramData.value        = await invokeCached<RamDetailed>("get_ram_detailed", undefined, force); break;
       case "disks":
         storageList.value = await invokeCached<StoragePhysical[]>("get_storage_physical_info", undefined, force).catch(() => []);
         invokeCached<SmartDiskInfo[]>("get_smart_info", undefined, force).then(v => { smartData.value = v; }).catch(() => {});
         invokeCached<VolumeInfo[]>("get_logical_volumes", undefined, force).then(v => { volumes.value = v; loadedTabs.value.add("volumes"); }).catch(() => {});
         break;
       case "network":
-        networkAdapters.value = await invokeCached("get_network_adapters_detailed", undefined, force);
+        networkAdapters.value = await invokeCached<NetworkAdapter[]>("get_network_adapters_detailed", undefined, force);
         invokeCached<WifiInfo>("get_wifi_status").then(v => { wifiInfo.value = v; }).catch(() => {});
         break;
       case "connections":
@@ -203,7 +203,7 @@ async function loadTab(tab: string, force = false) {
         wifiInfo.value = await invokeCached<WifiInfo>("get_wifi_status", undefined, force).catch(() => null);
         break;
       case "monitors": {
-        monitors.value = await invokeCached("get_monitor_info", undefined, force);
+        monitors.value = await invokeCached<MonitorDetail[]>("get_monitor_info", undefined, force);
         invokeCached<unknown>("get_monitor_refresh_rates", undefined, force).then(rateData => {
           const rates: unknown[] = Array.isArray(rateData) ? rateData : (rateData ? [rateData] : []);
           if (!rates.length) return;
@@ -217,20 +217,20 @@ async function loadTab(tab: string, force = false) {
         }).catch(() => {});
         break;
       }
-      case "audio":    audioDevices.value  = await invokeCached("get_audio_devices", undefined, force); break;
-      case "usb":      usbDevices.value    = await invokeCached("get_usb_devices", undefined, force); break;
-      case "battery":  batteries.value     = await invokeCached("get_battery_detailed", undefined, force); break;
-      case "power":    powerPlans.value    = await invokeCached("get_power_plans", undefined, force); break;
-      case "printers": printers.value      = await invokeCached("get_printers", undefined, force); break;
-      case "software": softwareList.value  = await invokeCached("get_installed_software", undefined, force); break;
-      case "env":      envVars.value       = await invokeCached("get_environment_variables", undefined, force); break;
-      case "processes":processes.value     = await invokeCached("get_running_processes", undefined, force); break;
-      case "services": services.value      = await invokeCached("get_windows_services", undefined, force); break;
-      case "startup":  startupPrograms.value = await invokeCached("get_startup_programs_detailed", undefined, force); break;
-      case "tasks":    scheduledTasks.value = await invokeCached("get_scheduled_tasks", undefined, force); break;
+      case "audio":    audioDevices.value  = await invokeCached<AudioDevice[]>("get_audio_devices", undefined, force); break;
+      case "usb":      usbDevices.value    = await invokeCached<UsbDevice[]>("get_usb_devices", undefined, force); break;
+      case "battery":  batteries.value     = await invokeCached<BatteryDetailed[]>("get_battery_detailed", undefined, force); break;
+      case "power":    powerPlans.value    = await invokeCached<PowerPlan[]>("get_power_plans", undefined, force); break;
+      case "printers": printers.value      = await invokeCached<PrinterDetail[]>("get_printers", undefined, force); break;
+      case "software": softwareList.value  = await invokeCached<InstalledSoftware[]>("get_installed_software", undefined, force); break;
+      case "env":      envVars.value       = await invokeCached<EnvVar[]>("get_environment_variables", undefined, force); break;
+      case "processes":processes.value     = await invokeCached<ProcessInfo[]>("get_running_processes", undefined, force); break;
+      case "services": services.value      = await invokeCached<ServiceInfo[]>("get_windows_services", undefined, force); break;
+      case "startup":  startupPrograms.value = await invokeCached<StartupProgram[]>("get_startup_programs_detailed", undefined, force); break;
+      case "tasks":    scheduledTasks.value = await invokeCached<ScheduledTask[]>("get_scheduled_tasks", undefined, force); break;
       case "security": securityInfo.value  = await invokeCached<SecurityStatus>("get_security_status", undefined, force).catch(() => null); break;
-      case "license":  licenseInfo.value   = await invokeCached("get_windows_license", undefined, force); break;
-      case "updates":  updatesHistory.value = await invokeCached("get_installed_updates", undefined, force); break;
+      case "license":  licenseInfo.value   = await invokeCached<WinLicense>("get_windows_license", undefined, force); break;
+      case "updates":  updatesHistory.value = await invokeCached<InstalledUpdate[]>("get_installed_updates", undefined, force); break;
       case "folders":  folders.value       = await invoke<FolderEntry[]>("get_folder_sizes_detailed"); break;
       // Ces onglets chargent leurs données eux-mêmes
       case "activation": case "comptes": case "parefeu": case "partages":
