@@ -129,7 +129,7 @@ async function testOllama() {
 async function exportConfig() {
   try {
     const cfg = await invoke<AppConfig>("get_config");
-    const payload = JSON.stringify({ ...cfg, __nitrite_version: "6.0.0", __exported_at: new Date().toISOString() }, null, 2);
+    const payload = JSON.stringify({ ...cfg, __nitrite_version: "6.17.0", __exported_at: new Date().toISOString() }, null, 2);
     const { save } = await import("@tauri-apps/plugin-dialog");
     const { writeTextFile } = await import("@tauri-apps/plugin-fs");
     const path = await save({ defaultPath: "nitrite-config.json", filters: [{ name: "JSON", extensions: ["json"] }] });

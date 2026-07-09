@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { invoke } from "@/utils/invoke";
+import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NBadge from "@/components/ui/NBadge.vue";
@@ -222,21 +223,21 @@ async function runDiagnostic() {
   const [gwResult, inetResult, dnsResult, dhcpResult] = await Promise.allSettled([
     // 1. Passerelle
     gw
-      ? invoke<any>("run_system_command", { cmd: "cmd", args: ["/c", "ping", "-n", "2", "-w", "1000", gw] })
+      ? invoke<CommandResult>("run_system_command", { cmd: "cmd", args: ["/c", "ping", "-n", "2", "-w", "1000", gw] })
       : Promise.reject(new Error("no-gw")),
     // 2. Internet
-    invoke<any>("run_system_command", { cmd: "cmd", args: ["/c", "ping", "-n", "2", "-w", "2000", "8.8.8.8"] }),
+    invoke<CommandResult>("run_system_command", { cmd: "cmd", args: ["/c", "ping", "-n", "2", "-w", "2000", "8.8.8.8"] }),
     // 3. DNS resolution
-    invoke<any>("run_system_command", { cmd: "cmd", args: ["/c", "nslookup", "google.com"] }),
+    invoke<CommandResult>("run_system_command", { cmd: "cmd", args: ["/c", "nslookup", "google.com"] }),
     // 5. DHCP
-    invoke<any>("run_system_command", { cmd: "ipconfig", args: ["/all"] }),
+    invoke<CommandResult>("run_system_command", { cmd: "ipconfig", args: ["/all"] }),
   ]);
 
   // 1. Passerelle
   if (!gw) {
     checks.push({ id: "gw", label: "Passerelle accessible", status: "error", detail: "Aucune passerelle détectée", tip: "Vérifiez que votre interface réseau est active et configurée." });
   } else if (gwResult.status === "fulfilled") {
-    const out = (gwResult.value?.stdout || gwResult.value || "").toString();
+    const out = gwResult.value?.stdout ?? "";
     const ok = out.includes("TTL=") || out.includes("ttl=");
     checks.push({ id: "gw", label: "Passerelle accessible", status: ok ? "ok" : "error", detail: ok ? `Ping ${gw} OK` : `Impossible de joindre la passerelle ${gw}`, tip: ok ? undefined : "Vérifiez votre câble réseau ou votre routeur." });
   } else {
@@ -245,7 +246,7 @@ async function runDiagnostic() {
 
   // 2. Internet
   if (inetResult.status === "fulfilled") {
-    const out = (inetResult.value?.stdout || inetResult.value || "").toString();
+    const out = inetResult.value?.stdout ?? "";
     const ok = out.includes("TTL=") || out.includes("ttl=");
     checks.push({ id: "inet", label: "Connexion Internet", status: ok ? "ok" : "error", detail: ok ? "Internet accessible (8.8.8.8 répond)" : "8.8.8.8 inaccessible — pas d'Internet", tip: ok ? undefined : "Vérifiez votre routeur/box et la connexion WAN." });
   } else {
@@ -254,7 +255,7 @@ async function runDiagnostic() {
 
   // 3. Résolution DNS
   if (dnsResult.status === "fulfilled") {
-    const out = (dnsResult.value?.stdout || dnsResult.value || "").toString();
+    const out = dnsResult.value?.stdout ?? "";
     const ok = out.includes("Address") && !out.includes("NXDOMAIN") && !out.includes("can't find");
     checks.push({ id: "dns_res", label: "Résolution DNS (google.com)", status: ok ? "ok" : "error", detail: ok ? "DNS résout correctement" : "Échec de résolution — DNS potentiellement bloqué ou mal configuré", tip: ok ? undefined : "Essayez de changer votre DNS dans Paramètres réseau (ex: 8.8.8.8 ou 1.1.1.1)." });
   } else {
@@ -278,7 +279,7 @@ async function runDiagnostic() {
 
   // 5. DHCP / IP statique
   if (dhcpResult.status === "fulfilled") {
-    const out = (dhcpResult.value?.stdout || dhcpResult.value || "").toString();
+    const out = dhcpResult.value?.stdout ?? "";
     const dhcpEnabled = out.toLowerCase().includes("dhcp enabled") && out.toLowerCase().includes("yes");
     const staticIp = out.toLowerCase().includes("dhcp enabled") && out.toLowerCase().includes("no");
     if (dhcpEnabled) checks.push({ id: "dhcp", label: "Configuration IP", status: "ok", detail: "DHCP activé — IP attribuée automatiquement" });

@@ -60,7 +60,7 @@ async function createProfile() {
       name:       newName.value.trim(),
       description: newDesc.value.trim(),
       created_at: new Date().toISOString(),
-      version:    "6.0.0",
+      version:    "6.17.0",
       config: {
         ...cfg,
         ollama_url:         aiStore.ollamaUrl,
