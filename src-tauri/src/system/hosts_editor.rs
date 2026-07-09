@@ -126,6 +126,9 @@ pub fn add_hosts_entry(ip: String, hostname: String, comment: String) -> Result<
 
 #[tauri::command]
 pub fn delete_hosts_entry(line_number: u32) -> Result<String, String> {
+    if line_number == 0 {
+        return Err("Numéro de ligne invalide".to_string());
+    }
     let ps = format!(r#"
 $lines = @(Get-Content '{}')
 $new = @($lines | Select-Object -SkipIndex {})
