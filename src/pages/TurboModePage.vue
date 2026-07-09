@@ -7,6 +7,7 @@ import NBadge from "@/components/ui/NBadge.vue";
 import { useNotificationStore } from "@/stores/notifications";
 import { Zap, Gamepad2, Briefcase, Leaf, CheckCircle, AlertTriangle, TrendingUp, Trash2, HardDrive, Wifi, Shield, RefreshCw, Monitor, Star, History } from "lucide-vue-next";
 import { useDataCache } from "@/stores/dataCache";
+import type { SysInfo } from "@/types/diagnostic";
 
 const notify    = useNotificationStore();
 const dataCache = useDataCache();
@@ -72,11 +73,11 @@ const totalOptimizations = computed(() =>
 
 async function fetchStats(): Promise<SysStats | null> {
   try {
-    const raw = dataCache.get("get_ram_detailed") ?? await invoke<any>("get_ram_detailed");
-    if (!raw) return null;
-    const total = raw.total_mb ?? raw.total ?? 0;
-    const used  = raw.used_mb  ?? raw.used  ?? 0;
-    return { ram_total_mb: total, ram_used_mb: used, ram_free_mb: total - used };
+    const info = dataCache.get("get_system_info") as SysInfo | undefined ?? await invoke<SysInfo>("get_system_info");
+    if (!info) return null;
+    const total_mb = Math.round((info.ram?.total_gb ?? 0) * 1024);
+    const used_mb  = Math.round((info.ram?.used_gb ?? 0) * 1024);
+    return { ram_total_mb: total_mb, ram_used_mb: used_mb, ram_free_mb: total_mb - used_mb };
   } catch { return null; }
 }
 

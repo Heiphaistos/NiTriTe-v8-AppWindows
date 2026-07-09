@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
+import type { SysInfo } from "@/types/diagnostic";
 import { invoke } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -175,27 +176,28 @@ function exceeds(value: number, threshold: number): boolean {
 async function loadStats() {
   loading.value = true;
   try {
-    const info = await invoke<any>("get_system_info");
-    const platform = await invoke<any>("get_platform_info").catch(() => null);
+    const [info, sysHistory] = await Promise.all([
+      invoke<SysInfo>("get_system_info"),
+      invoke<{ current_uptime_hours: number }>("get_system_history").catch(() => null),
+    ]);
 
-    stats.value.osName    = info.os?.name ?? platform?.os_name ?? "Windows";
-    stats.value.osVersion = info.os?.version ?? platform?.os_version ?? "11";
+    stats.value.osName    = info.os?.name ?? "Windows";
+    stats.value.osVersion = info.os?.version ?? "11";
     stats.value.cpuModel  = info.cpu?.name ?? "Inconnu";
     stats.value.cpuUsage  = Math.round(info.cpu?.usage_percent ?? 0);
     stats.value.ramTotal  = info.ram?.total_gb ?? 0;
     stats.value.ramUsed   = info.ram?.used_gb ?? 0;
     stats.value.ramPercent = Math.round(info.ram?.usage_percent ?? 0);
 
-    if (info.disks?.length > 0 && info.disks[0].partitions?.length > 0) {
+    if ((info.disks?.length ?? 0) > 0 && (info.disks[0].partitions?.length ?? 0) > 0) {
       const p = info.disks[0].partitions[0];
       stats.value.diskTotal   = p.total_gb ?? 0;
       stats.value.diskUsed    = p.used_gb ?? 0;
       stats.value.diskPercent = Math.round(p.usage_percent ?? 0);
     }
 
-    stats.value.uptime = platform?.uptime_seconds
-      ? formatUptime(platform.uptime_seconds)
-      : info.uptime ? formatUptime(info.uptime) : "N/A";
+    const uptimeHours = sysHistory?.current_uptime_hours ?? 0;
+    stats.value.uptime = uptimeHours > 0 ? formatUptime(Math.round(uptimeHours * 3600)) : "N/A";
   } catch {
     stats.value = {
       osName: "Windows", osVersion: "11 (26100)", cpuModel: "AMD Ryzen 7 5800X",
@@ -271,11 +273,11 @@ const partitions = ref<Partition[]>([]);
 
 async function loadPartitions() {
   try {
-    const info = await invoke<any>("get_system_info");
+    const info = await invoke<SysInfo>("get_system_info");
     const parts: Partition[] = [];
     for (const disk of (info.disks ?? [])) {
       for (const p of (disk.partitions ?? [])) {
-        parts.push({ letter: p.mount_point ?? p.letter ?? "?", total_gb: p.total_gb ?? 0, used_gb: p.used_gb ?? 0, usage_percent: Math.round(p.usage_percent ?? 0), name: disk.name });
+        parts.push({ letter: "?", total_gb: p.total_gb ?? 0, used_gb: p.used_gb ?? 0, usage_percent: Math.round(p.usage_percent ?? 0), name: disk.name });
       }
     }
     if (parts.length) partitions.value = parts;
