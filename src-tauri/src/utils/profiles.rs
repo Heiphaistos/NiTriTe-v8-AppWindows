@@ -78,3 +78,52 @@ pub fn export_profile_json(name: &str) -> Option<String> {
 pub fn import_profile_from_json(json: &str) -> Result<Profile, String> {
     serde_json::from_str::<Profile>(json).map_err(|e| e.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sanitize_alphanumeric_unchanged() {
+        assert_eq!(sanitize_filename("myProfile123"), "myProfile123");
+        assert_eq!(sanitize_filename("default-profile"), "default-profile");
+        assert_eq!(sanitize_filename("my_profile"), "my_profile");
+    }
+
+    #[test]
+    fn sanitize_path_traversal_blocked() {
+        // "../evil" → 3 replaced chars (./.) + "evil"
+        assert_eq!(sanitize_filename("../evil"), "___evil");
+        // "../../etc/passwd" → 6 replaced chars (../..) + etc + _ + passwd
+        assert_eq!(sanitize_filename("../../etc/passwd"), "______etc_passwd");
+    }
+
+    #[test]
+    fn sanitize_spaces_replaced() {
+        assert_eq!(sanitize_filename("my profile name"), "my_profile_name");
+    }
+
+    #[test]
+    fn sanitize_special_chars_replaced() {
+        assert_eq!(sanitize_filename("profile<>|*"), "profile____");
+        assert_eq!(sanitize_filename("name.json"), "name_json");
+    }
+
+    #[test]
+    fn sanitize_empty_stays_empty() {
+        assert_eq!(sanitize_filename(""), "");
+    }
+
+    #[test]
+    fn import_valid_json_profile() {
+        let json = r#"{"name":"Test","description":"desc","created_at":"2026-01-01","version":"1.0","config":{}}"#;
+        let p = import_profile_from_json(json).unwrap();
+        assert_eq!(p.name, "Test");
+        assert_eq!(p.version, "1.0");
+    }
+
+    #[test]
+    fn import_invalid_json_returns_error() {
+        assert!(import_profile_from_json("{not valid json}").is_err());
+    }
+}
