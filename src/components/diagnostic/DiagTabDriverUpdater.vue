@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { invokeRaw as invoke } from "@/utils/invoke";
-import type { DriverDriverInstallResult } from "@/types/diagnostic";
+import type { DriverInstallResult } from "@/types/diagnostic";
 import { useNotificationStore } from "@/stores/notifications";
 const notify = useNotificationStore();
 import NBadge from "@/components/ui/NBadge.vue";
