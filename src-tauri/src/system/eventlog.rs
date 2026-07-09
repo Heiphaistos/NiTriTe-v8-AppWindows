@@ -97,3 +97,41 @@ fn extract_timestamp(val: &serde_json::Value) -> String {
     }
     "Unknown".to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn extract_timestamp_from_string() {
+        let v = json!("2026-03-15 10:30:00");
+        assert_eq!(extract_timestamp(&v), "2026-03-15 10:30:00");
+    }
+
+    #[test]
+    fn extract_timestamp_from_datetime_obj() {
+        let v = json!({ "DateTime": "2026-01-01 00:00:00" });
+        assert_eq!(extract_timestamp(&v), "2026-01-01 00:00:00");
+    }
+
+    #[test]
+    fn extract_timestamp_unknown_on_empty_obj() {
+        let v = json!({});
+        assert_eq!(extract_timestamp(&v), "Unknown");
+    }
+
+    #[test]
+    fn extract_timestamp_unknown_on_null() {
+        let v = json!(null);
+        assert_eq!(extract_timestamp(&v), "Unknown");
+    }
+
+    #[test]
+    fn extract_timestamp_from_ticks() {
+        // .NET ticks for 2000-01-01 00:00:00 UTC = 630822816000000000
+        let v = json!({ "Ticks": 630822816000000000_i64 });
+        let result = extract_timestamp(&v);
+        assert!(result.starts_with("2000-01-01"), "Got: {}", result);
+    }
+}
