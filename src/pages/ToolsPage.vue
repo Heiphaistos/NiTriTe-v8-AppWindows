@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { invoke } from "@/utils/invoke";
+import type { ToolEntry } from "@/types/diagnostic";
 import NButton from "@/components/ui/NButton.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
 import NSearchBar from "@/components/ui/NSearchBar.vue";
@@ -242,7 +243,7 @@ function normalizeCategory(section: string, name: string = ""): string {
 async function loadTools() {
   loading.value = true;
   try {
-    const raw = await invoke<any[]>("get_tools");
+    const raw = await invoke<ToolEntry[]>("get_tools");
     tools.value = raw.map((t, i) => ({
       id: String(i),
       name: t.name,

@@ -10,7 +10,7 @@ import NButton from "@/components/ui/NButton.vue";
 import NProgress from "@/components/ui/NProgress.vue";
 import NBadge from "@/components/ui/NBadge.vue";
 import AlertThresholdsModal, { type AlertThresholds } from "@/components/ui/AlertThresholdsModal.vue";
-import type { SystemMonitorPayload, SysInfo } from "@/types/diagnostic";
+import type { SystemMonitorPayload, SysInfo, AppLogEntry, SystemHistory } from "@/types/diagnostic";
 import {
   Cpu, MemoryStick, HardDrive, Wifi,
   Stethoscope, Trash2, RefreshCw, Save, Shield,
@@ -206,7 +206,7 @@ const networkStatus = computed(() => {
 onMounted(async () => {
   loadThresholds();
   try {
-    const logs = await invoke<any[]>("get_app_logs");
+    const logs = await invoke<AppLogEntry[]>("get_app_logs");
     if (logs?.length > 0) recentActivity.value = logs.slice(0, 5).map(l => ({
       time: l.timestamp?.substring(11, 16) || "—", message: l.message || "—",
       type: (l.level === "ERROR" ? "error" : l.level === "WARN" ? "warning" : "info") as "error" | "warning" | "info",
@@ -237,7 +237,7 @@ onMounted(async () => {
     if ((info?.ram?.modules?.length ?? 0) > 0) ramType.value = info!.ram.modules![0]?.memory_type ?? "";
     computeHealthScore();
     try {
-      const hist = await invoke<any>("get_system_history");
+      const hist = await invoke<SystemHistory>("get_system_history");
       uptimeH.value = hist?.current_uptime_hours ?? 0;
     } catch { /* uptime: non critique */ }
   } catch (e) {

@@ -246,6 +246,19 @@ export interface ScanResult {
   office_activation_type?: string
 }
 
+export interface AppLogEntry { timestamp: string; level: string; message: string }
+export interface ToolEntry { name: string; description: string; command: string; is_url: boolean; section: string; icon: string; category?: string; requires_admin?: boolean }
+export interface RecentInstall { name: string; version: string; publisher: string; install_date: string }
+export interface RecentEvent { time: string; source: string; message: string; id: number; level: string }
+export interface SystemHistory {
+  windows_install_date: string; last_boot_time: string; current_uptime_hours: number
+  total_uptime_days_since_install: number; bsod_count_30d: number; bsod_list: string[]
+  recent_installs: RecentInstall[]; recent_uninstalls: string[]
+  critical_events_7d: number; error_events_7d: number; warning_events_7d: number
+  last_logon_user: string; shutdown_count: number; hibernation_count: number
+  crash_count_30d: number; recent_critical: RecentEvent[]
+}
+
 export interface SystemMonitorPayload {
   cpu_percent?: number; cpu_usage?: number
   ram_percent?: number; ram_used_gb?: number; ram_total_gb?: number
