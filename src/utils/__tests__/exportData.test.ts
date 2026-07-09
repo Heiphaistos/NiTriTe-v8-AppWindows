@@ -34,7 +34,7 @@ describe("useExportData — exportCSV quoting", () => {
     expect(mockCreateObjectURL).toHaveBeenCalledOnce();
     expect(mockClick).toHaveBeenCalledOnce();
     expect(mockRevokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
-    const blob: Blob = mockCreateObjectURL.mock.calls[0][0];
+    const blob = (mockCreateObjectURL.mock.calls as unknown as [Blob][])[0][0];
     expect(blob.type).toContain("text/csv");
   });
 
@@ -49,7 +49,7 @@ describe("useExportData — exportCSV quoting", () => {
     exportJSON({ a: 1 }, "out");
     expect(mockCreateObjectURL).toHaveBeenCalledOnce();
     expect(mockClick).toHaveBeenCalledOnce();
-    const blob: Blob = mockCreateObjectURL.mock.calls[0][0];
+    const blob = (mockCreateObjectURL.mock.calls as unknown as [Blob][])[0][0];
     expect(blob.type).toContain("application/json");
   });
 
@@ -57,7 +57,7 @@ describe("useExportData — exportCSV quoting", () => {
     const { exportTXT } = useExportData();
     exportTXT(["ligne 1", "ligne 2"], "log");
     expect(mockCreateObjectURL).toHaveBeenCalledOnce();
-    const blob: Blob = mockCreateObjectURL.mock.calls[0][0];
+    const blob = (mockCreateObjectURL.mock.calls as unknown as [Blob][])[0][0];
     expect(blob.type).toContain("text/plain");
   });
 });
