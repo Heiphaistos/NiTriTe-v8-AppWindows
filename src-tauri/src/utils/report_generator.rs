@@ -94,3 +94,108 @@ fn html_escape(s: &str) -> String {
      .replace('>', "&gt;")
      .replace('"', "&quot;")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn html_escape_ampersand() {
+        assert_eq!(html_escape("A&B"), "A&amp;B");
+    }
+
+    #[test]
+    fn html_escape_angle_brackets() {
+        assert_eq!(html_escape("<script>"), "&lt;script&gt;");
+        assert_eq!(html_escape("<img src=x onerror=alert(1)>"), "&lt;img src=x onerror=alert(1)&gt;");
+    }
+
+    #[test]
+    fn html_escape_double_quote() {
+        assert_eq!(html_escape(r#"say "hello""#), "say &quot;hello&quot;");
+    }
+
+    #[test]
+    fn html_escape_combined_xss_payload() {
+        let payload = r#"<script>alert("xss&injection")</script>"#;
+        let escaped = html_escape(payload);
+        // Raw dangerous chars must be gone
+        assert!(!escaped.contains('<'));
+        assert!(!escaped.contains('>'));
+        assert!(!escaped.contains('"'));
+        // '&' remains in entities (&amp; &lt; etc.) — verify entities are present
+        assert!(escaped.contains("&lt;script&gt;"));
+        assert!(escaped.contains("&amp;"));
+        assert!(escaped.contains("&quot;"));
+    }
+
+    #[test]
+    fn html_escape_clean_string_unchanged() {
+        assert_eq!(html_escape("Hello World 123"), "Hello World 123");
+        assert_eq!(html_escape(""), "");
+    }
+
+    #[test]
+    fn generate_html_report_escapes_title() {
+        let data = ReportData {
+            title: "<XSS> & Test".to_string(),
+            generated_at: "2026-01-01".to_string(),
+            sections: vec![],
+        };
+        let html = generate_html_report(data);
+        assert!(!html.contains("<XSS>"));
+        assert!(html.contains("&lt;XSS&gt;"));
+        assert!(html.contains("&amp;"));
+    }
+
+    #[test]
+    fn generate_html_report_section_row_rendered() {
+        let data = ReportData {
+            title: "Rapport".to_string(),
+            generated_at: "2026-01-01".to_string(),
+            sections: vec![ReportSection {
+                title: "Système".to_string(),
+                rows: vec![
+                    vec!["OS".to_string(), "Windows 11".to_string()],
+                    vec!["RAM".to_string(), "16 Go".to_string()],
+                ],
+            }],
+        };
+        let html = generate_html_report(data);
+        assert!(html.contains("Système"));
+        assert!(html.contains("<td>OS</td>"));
+        assert!(html.contains("Windows 11"));
+        assert!(html.contains("16 Go"));
+    }
+
+    #[test]
+    fn generate_html_report_row_value_xss_escaped() {
+        let data = ReportData {
+            title: "Test".to_string(),
+            generated_at: "now".to_string(),
+            sections: vec![ReportSection {
+                title: "Section".to_string(),
+                rows: vec![vec!["Key".to_string(), "<evil>".to_string()]],
+            }],
+        };
+        let html = generate_html_report(data);
+        assert!(!html.contains("<evil>"));
+        assert!(html.contains("&lt;evil&gt;"));
+    }
+
+    #[test]
+    fn generate_md_report_structure() {
+        let data = ReportData {
+            title: "Diagnostic".to_string(),
+            generated_at: "2026-01-01".to_string(),
+            sections: vec![ReportSection {
+                title: "Réseau".to_string(),
+                rows: vec![vec!["IP".to_string(), "192.168.1.1".to_string()]],
+            }],
+        };
+        let md = generate_md_report(data);
+        assert!(md.starts_with("# Diagnostic"));
+        assert!(md.contains("## Réseau"));
+        assert!(md.contains("| IP | 192.168.1.1 |"));
+    }
+}
