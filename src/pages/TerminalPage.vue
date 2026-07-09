@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted } from "vue";
 import { invoke } from "@/utils/invoke";
+import type { ShellResult } from "@/types/diagnostic";
 import NButton from "@/components/ui/NButton.vue";
 import { Terminal, Trash2, Send, Clock, ChevronRight } from "lucide-vue-next";
 
@@ -121,13 +122,13 @@ async function executeCommand(cmd?: string) {
   running.value = true;
 
   try {
-    const result = await invoke<any>("run_in_shell", {
+    const result = await invoke<ShellResult>("run_in_shell", {
       shellId: activeShell.value,
       command: raw,
     });
 
-    const stdout = result?.stdout ?? result?.output ?? "";
-    const stderr = result?.stderr ?? result?.error ?? "";
+    const stdout = result?.stdout ?? "";
+    const stderr = result?.stderr ?? "";
 
     if (stdout) {
       for (const line of stdout.split("\n")) {

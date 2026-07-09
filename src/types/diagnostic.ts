@@ -59,6 +59,7 @@ export interface NetworkAdapter {
 }
 export interface CpuCache { l1_instruction_kb: number; l1_data_kb: number; l2_kb: number; l3_kb: number; l4_kb: number }
 export interface CommandResult { success: boolean; stdout: string; stderr: string; exit_code: number }
+export interface ShellResult { success: boolean; stdout: string; stderr: string; exit_code: number; shell_used: string }
 export interface AppConfig {
   theme: string; language: string; sidebar_collapsed: boolean
   ollama_url: string; ollama_model: string; ollama_temperature: number

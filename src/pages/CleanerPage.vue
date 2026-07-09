@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { invoke } from "@/utils/invoke";
+import type { CommandResult } from "@/types/diagnostic";
 import { listen } from "@tauri-apps/api/event";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -45,12 +46,12 @@ async function togglePreview(t: CleanTarget) {
   if (previewFiles.value[t.name]) return; // déjà chargé
   previewLoading.value = t.name;
   try {
-    const r = await invoke<any>("run_system_command", {
+    const r = await invoke<CommandResult>("run_system_command", {
       cmd: "powershell",
       args: ["-NoProfile", "-Command",
         `Get-ChildItem -LiteralPath '${t.path.replace(/'/g, "''")}' -Recurse -File -EA SilentlyContinue | Select-Object -First 100 | ForEach-Object { $_.FullName }`],
     });
-    const lines: string[] = (r?.stdout ?? r?.output ?? "").split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+    const lines: string[] = (r?.stdout ?? "").split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
     previewFiles.value[t.name] = lines;
   } catch {
     previewFiles.value[t.name] = ["Impossible de lister les fichiers"];

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { invoke } from "@/utils/invoke";
+import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NBadge from "@/components/ui/NBadge.vue";
@@ -29,11 +30,11 @@ if ($found) {
 } else {
     @{ detected=$false; name=''; desc='Aucun adaptateur VPN detecte' } | ConvertTo-Json -Compress
 }`;
-    const res = await invoke<{ stdout?: string; output?: string }>("run_system_command", {
+    const res = await invoke<CommandResult>("run_system_command", {
       cmd: "powershell",
       args: ["-NoProfile", "-NonInteractive", "-Command", ps],
     });
-    const out = (res?.stdout ?? res?.output ?? "").trim();
+    const out = (res?.stdout ?? "").trim();
     const parsed = JSON.parse(out);
     vpnStatus.value = {
       detected: parsed.detected === true,

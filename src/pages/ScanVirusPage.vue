@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from "vue";
 import { invoke } from "@/utils/invoke";
+import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NProgress from "@/components/ui/NProgress.vue";
@@ -102,11 +103,11 @@ const realtimeProtectionVariant = computed(() => {
 
 async function checkDefenderStatus() {
   try {
-    const result = await invoke<any>("run_system_command", {
+    const result = await invoke<CommandResult>("run_system_command", {
       cmd: "powershell",
       args: ["-Command", "Get-MpComputerStatus | Select-Object -ExpandProperty RealTimeProtectionEnabled"],
     });
-    const out = (result?.stdout ?? result?.output ?? "").trim();
+    const out = (result?.stdout ?? "").trim();
     defenderStatus.value = out.toLowerCase().includes("true") ? "active" : "inactive";
   } catch {
     defenderStatus.value = "unknown";
@@ -175,11 +176,11 @@ async function viewQuarantine() {
   showQuarantinePanel.value = true;
   quarantineData.value = [];
   try {
-    const result = await invoke<any>("run_system_command", {
+    const result = await invoke<CommandResult>("run_system_command", {
       cmd: "powershell",
       args: ["-Command", "Get-MpThreat | Select-Object ThreatName,SeverityID,ActionSuccess | ConvertTo-Json"],
     });
-    const raw = (result?.stdout ?? result?.output ?? "").trim();
+    const raw = (result?.stdout ?? "").trim();
     if (!raw || raw === "null") {
       quarantineData.value = [];
     } else {

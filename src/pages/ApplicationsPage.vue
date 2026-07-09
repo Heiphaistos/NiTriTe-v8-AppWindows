@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { invoke, invokeRaw } from "@/utils/invoke";
+import type { CommandResult } from "@/types/diagnostic";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { cachedInvoke, refreshCached } from "@/composables/useCachedInvoke";
 import NButton from "@/components/ui/NButton.vue";
@@ -268,11 +269,11 @@ async function uninstallApp(app: AppInfo) {
 async function checkAppUpdate(app: AppInfo) {
   checkingUpdateIds.value = new Set([...checkingUpdateIds.value, app.id]);
   try {
-    const result = await invoke<any>("run_system_command", {
+    const result = await invoke<CommandResult>("run_system_command", {
       cmd: "winget",
       args: ["upgrade", "--id", app.winget_id],
     });
-    const out: string = result?.stdout ?? result?.output ?? "";
+    const out: string = result?.stdout ?? "";
     if (out.includes("No applicable upgrade")) {
       notifications.success(`${app.name} est à jour`);
     } else if (out.trim()) {

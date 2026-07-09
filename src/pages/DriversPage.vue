@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { invoke } from "@/utils/invoke";
+import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NSearchBar from "@/components/ui/NSearchBar.vue";
@@ -120,11 +121,11 @@ function parseCSV(csv: string): DriverEntry[] {
 async function loadDrivers() {
   loading.value = true;
   try {
-    const result = await invoke<any>("run_system_command", {
+    const result = await invoke<CommandResult>("run_system_command", {
       cmd: "driverquery",
       args: ["/FO", "CSV", "/V"],
     });
-    const out = result?.stdout ?? result?.output ?? "";
+    const out = result?.stdout ?? "";
     drivers.value = parseCSV(out);
   } catch {
     // Données de démo
