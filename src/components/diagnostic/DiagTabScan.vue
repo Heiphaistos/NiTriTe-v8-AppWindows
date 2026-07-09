@@ -17,6 +17,7 @@ import ScanHealthScore from "@/components/diagnostic/ScanHealthScore.vue";
 import ScanProgressBar from "@/components/diagnostic/ScanProgressBar.vue";
 import ScanChoiceCards from "@/components/diagnostic/ScanChoiceCards.vue";
 import ScanSectionHardware from "@/components/diagnostic/ScanSectionHardware.vue";
+import type { ScanResult } from "@/types/diagnostic";
 
 interface BatteryInfo {
   name: string; status: string; estimated_charge_remaining: number; estimated_run_time: string;
@@ -29,7 +30,7 @@ const props = defineProps<{
   scanning: boolean;
   scanProgress: number;
   scanStep: string;
-  scanResult: any; // ScanResult — any car défini dans DiagnosticPage
+  scanResult: ScanResult | null;
   scanProblems: string[];
   batteries: BatteryInfo[];
   onRunScan: () => void;
@@ -69,8 +70,8 @@ const scanSolutions = computed<Solution[]>(() => {
   if (sr.dism_status && !isDismHealthy(sr.dism_status)) sol.push({ problem: "Composant Windows corrompu (DISM)", action: "Lancer DISM /RestoreHealth", repairKey: "dism_restore", severity: "critical" });
   if (sr.sfc_status && sr.sfc_status.toLowerCase().includes("corrupt")) sol.push({ problem: "Fichiers système corrompus (SFC)", action: "Exécuter SFC /scannow", repairKey: "sfc", severity: "critical" });
   if (sr.temp_folder_size_mb > 2048) sol.push({ problem: `Fichiers temp volumineux (${(sr.temp_folder_size_mb/1024).toFixed(1)} GB)`, action: "Nettoyer %TEMP%", repairKey: "temp_cleanup", severity: "warning" });
-  if (sr.disk_usage?.some((d: any) => d.used_percent > 90)) sol.push({ problem: "Disque(s) à plus de 90% de capacité", action: "Nettoyer les fichiers temporaires et le cache", repairKey: "diskcleanup", severity: "critical" });
-  if (sr.disk_usage?.some((d: any) => d.used_percent > 80)) sol.push({ problem: "Disque(s) à plus de 80% de capacité", action: "Activer Storage Sense", repairKey: "storage_sense", severity: "warning" });
+  if (sr.disk_usage?.some(d => d.used_percent > 90)) sol.push({ problem: "Disque(s) à plus de 90% de capacité", action: "Nettoyer les fichiers temporaires et le cache", repairKey: "diskcleanup", severity: "critical" });
+  if (sr.disk_usage?.some(d => d.used_percent > 80)) sol.push({ problem: "Disque(s) à plus de 80% de capacité", action: "Activer Storage Sense", repairKey: "storage_sense", severity: "warning" });
   if (!sr.tpm_present) sol.push({ problem: "TPM absent ou désactivé", action: "Activer le TPM dans le BIOS (requis pour Windows 11)", severity: "warning" });
   if (!sr.secure_boot) sol.push({ problem: "Secure Boot désactivé", action: "Activer Secure Boot dans le BIOS/UEFI", severity: "warning" });
   if (sr.rdp_enabled) sol.push({ problem: "Bureau à distance (RDP) activé", action: "Désactiver si non nécessaire (Paramètres → Système → Bureau à distance)", severity: "info" });
@@ -96,7 +97,7 @@ const healthScore = computed(() => {
   if (sr.dism_status && !isDismHealthy(sr.dism_status)) score -= 15;
   if (sr.sfc_status && sr.sfc_status.toLowerCase().includes('corrupt')) score -= 15;
   if (sr.temp_folder_size_mb > 2048) score -= 3;
-  if (sr.disk_usage?.some((d: any) => d.used_percent > 90)) score -= 10;
+  if (sr.disk_usage?.some(d => d.used_percent > 90)) score -= 10;
   if (!sr.tpm_present) score -= 5;
   if (!sr.secure_boot) score -= 5;
   if (sr.rdp_enabled) score -= 3;
@@ -287,7 +288,7 @@ async function runRepairCommand(type: "sfc" | "dism") {
           <div class="info-row"><span>Mém. virtuelle</span>
             <span>{{ scanResult.virtual_memory_available_mb > 0 ? (scanResult.virtual_memory_available_mb/1024).toFixed(1)+'GB libres / '+(scanResult.virtual_memory_total_mb/1024).toFixed(1)+'GB' : 'N/A' }}</span>
           </div>
-          <div class="info-row" v-if="scanResult.plan_alimentation || scanResult.power_plan">
+          <div class="info-row" v-if="scanResult.power_plan">
             <span>Plan d'alimentation</span><span>{{ scanResult.power_plan }}</span>
           </div>
         </div>
@@ -397,15 +398,15 @@ async function runRepairCommand(type: "sfc" | "dism") {
               {{ s.health || "—" }}
             </NBadge>
           </div>
-          <div v-if="s.power_on_hours > 0 || s.power_on_count > 0 || s.rpm > 0"
+          <div v-if="(s.power_on_hours ?? 0) > 0 || (s.power_on_count ?? 0) > 0 || (s.rpm ?? 0) > 0"
             style="display:flex;gap:16px;margin-top:5px;padding-left:23px;flex-wrap:wrap">
-            <span v-if="s.power_on_hours > 0" class="muted" style="font-size:11px">
-              ⏱ {{ s.power_on_hours >= 8760 ? (s.power_on_hours/8760).toFixed(1)+' ans' : s.power_on_hours+' h' }} allumé
+            <span v-if="(s.power_on_hours ?? 0) > 0" class="muted" style="font-size:11px">
+              ⏱ {{ s.power_on_hours! >= 8760 ? (s.power_on_hours!/8760).toFixed(1)+' ans' : s.power_on_hours+' h' }} allumé
             </span>
-            <span v-if="s.power_on_count > 0" class="muted" style="font-size:11px">
+            <span v-if="(s.power_on_count ?? 0) > 0" class="muted" style="font-size:11px">
               🔁 {{ s.power_on_count }} démarrages
             </span>
-            <span v-if="s.rpm > 0" class="muted" style="font-size:11px">{{ s.rpm }} RPM</span>
+            <span v-if="(s.rpm ?? 0) > 0" class="muted" style="font-size:11px">{{ s.rpm }} RPM</span>
           </div>
         </div>
       </div>
@@ -528,12 +529,12 @@ async function runRepairCommand(type: "sfc" | "dism") {
       <!-- ===== SÉCURITÉ ===== -->
       <div class="diag-section">
         <p class="diag-section-label" style="margin:0 0 8px 0">Sécurité</p>
-        <div v-for="[ok, label, val] in [
+        <div v-for="([ok, label, val], i) in [
           [scanResult.firewall_enabled, 'Pare-feu Windows', scanResult.firewall_enabled ? 'Activé' : 'DÉSACTIVÉ ⚠'],
           [scanResult.defender_enabled, 'Defender (temps réel)', scanResult.defender_enabled ? 'Actif' : 'INACTIF ⚠'],
           [scanResult.network_ok, 'Connectivité Internet (8.8.8.8)', scanResult.network_ok ? 'OK' : 'Hors ligne'],
           [scanResult.suspicious_processes?.length === 0, 'Processus suspects', scanResult.suspicious_processes?.length === 0 ? 'Aucun' : `${scanResult.suspicious_processes?.length} détecté(s)`],
-        ]" :key="label" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+        ]" :key="i" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
           <component :is="ok ? CheckCircle : AlertTriangle" :size="14" :class="ok ? 'ic-ok' : 'ic-warn'" />
           <span style="flex:1">{{ label }}</span>
           <span class="mono">{{ val }}</span>

@@ -17,6 +17,7 @@ import type {
   EnvVar, StartupProgram, InstalledUpdate, WinLicense,
   CpuExtendedInfo, FolderEntry, ProcessInfo, ServiceInfo, ScheduledTask,
   VolumeInfo, SmartDiskInfo, TcpConnection, WifiInfo, SecurityStatus,
+  OsExtended, BiosExtended, MoboExtended,
 } from "@/types/diagnostic";
 import {
   FileDown, FolderOpen, ScanLine, RefreshCw, Search,
@@ -97,12 +98,12 @@ function isGroupActive(groupId: string) {
 // ── Data refs ─────────────────────────────────────────────────────────────────
 const sysInfo         = ref<SysInfo | null>(null);
 const biosInfo        = ref<BiosInfo | null>(null);
-const biosExtended    = ref<Record<string, unknown> | null>(null);
+const biosExtended    = ref<BiosExtended | null>(null);
 const moboInfo        = ref<MoboDetailed | null>(null);
-const moboExtended    = ref<Record<string, unknown> | null>(null);
+const moboExtended    = ref<MoboExtended | null>(null);
 const cpuCache        = ref<CpuCache | null>(null);
 const cpuExtended     = ref<CpuExtendedInfo | null>(null);
-const osExtended      = ref<Record<string, unknown> | null>(null);
+const osExtended      = ref<OsExtended | null>(null);
 const gpuList         = ref<GpuDetailed[]>([]);
 const ramData         = ref<RamDetailed | null>(null);
 const storageList     = ref<StoragePhysical[]>([]);
@@ -168,17 +169,17 @@ async function loadTab(tab: string, force = false) {
     switch (tab) {
       case "os":
         if (!sysInfo.value || force) sysInfo.value = await invokeCached("get_system_info", undefined, force);
-        if (!osExtended.value || force) osExtended.value = await invokeCached<Record<string, unknown>>("get_os_extended", undefined, force).catch(() => null);
+        if (!osExtended.value || force) osExtended.value = await invokeCached<OsExtended>("get_os_extended", undefined, force).catch(() => null);
         break;
       case "bios":
         [biosInfo.value, biosExtended.value] = await Promise.all([
           invokeCached<BiosInfo>("get_bios_info", undefined, force),
-          invokeCached<Record<string, unknown>>("get_bios_extended", undefined, force).catch(() => null),
+          invokeCached<BiosExtended>("get_bios_extended", undefined, force).catch(() => null),
         ]); break;
       case "mobo":
         [moboInfo.value, moboExtended.value] = await Promise.all([
           invokeCached<MoboDetailed>("get_motherboard_detailed", undefined, force),
-          invokeCached<Record<string, unknown>>("get_motherboard_extended", undefined, force).catch(() => null),
+          invokeCached<MoboExtended>("get_motherboard_extended", undefined, force).catch(() => null),
         ]); break;
       case "cpu":
         if (!sysInfo.value || force) sysInfo.value = await invokeCached("get_system_info", undefined, force);

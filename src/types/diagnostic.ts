@@ -24,7 +24,7 @@ export interface RamInfo { total_gb: number; used_gb: number; usage_percent: num
 
 export interface SysInfo {
   os: OsInfo; cpu: CpuInfo; ram: RamInfo
-  gpus: unknown[]; disks: unknown[]; motherboard: unknown
+  gpus: unknown[]; disks: SysDisk[]; motherboard: unknown
 }
 export interface BiosInfo {
   manufacturer: string; version: string; release_date: string
@@ -42,6 +42,7 @@ export interface RamSlot {
   bank_label: string; device_locator: string; manufacturer: string; capacity_gb: number
   speed_mhz: number; configured_speed_mhz: number; memory_type: string; form_factor: string
   serial_number: string; part_number: string; data_width: number
+  min_voltage?: number; configured_voltage?: number
 }
 export interface RamDetailed { total_slots: number; used_slots: number; total_capacity_gb: number; slots: RamSlot[] }
 export interface StoragePhysical {
@@ -55,6 +56,29 @@ export interface NetworkAdapter {
   net_connection_id: string; is_physical: boolean; status: string
 }
 export interface CpuCache { l1_instruction_kb: number; l1_data_kb: number; l2_kb: number; l3_kb: number; l4_kb: number }
+export interface SysDiskPartition { used_gb: number; total_gb: number; usage_percent: number }
+export interface SysDisk { partitions: SysDiskPartition[] }
+export interface OsExtended {
+  install_date: string; last_boot_time: string; registered_user?: string; organization?: string
+  os_language: string; timezone: string; product_type: string; pending_reboot: boolean
+  country_code: string; locale: string; windows_directory: string; system_directory: string
+  system_drive: string; boot_device: string; page_file_path: string
+  total_virtual_memory_gb: number; free_virtual_memory_gb: number
+  total_swap_gb: number; free_physical_gb: number
+  powershell_version: string; dotnet_versions: string[]
+}
+export interface BiosExtended {
+  firmware_type?: string; secure_boot?: boolean; tpm_present?: boolean
+  tpm_enabled?: boolean; tpm_spec_version?: string; chassis_type?: string
+  wake_on_lan?: boolean; fast_boot?: boolean
+}
+export interface ExpansionSlot {
+  name?: string; type?: string; status?: number | string; max_data_width?: number
+}
+export interface MoboExtended {
+  model?: string; cpu_socket?: string; motherboard_temp_c?: number; slot_count?: number
+  expansion_slots?: ExpansionSlot[]
+}
 export interface MonitorDetail {
   name: string; screen_width: number; screen_height: number
   pixels_per_inch: number; manufacturer: string; availability: string;
@@ -167,7 +191,7 @@ export interface ScanResult {
   windows_product_key: string; office_product_key: string; office_name: string
   bitlocker_volumes: { drive: string; protection_status: string; encryption_percent: number; recovery_password: string; protectors: string[] }[]
   motherboard: string; ram_detail: string; cpu_threads: number; cpu_frequency_ghz: number
-  storage_items: { model: string; size_gb: number; media_type: string; interface_type: string; health: string }[]
+  storage_items: { model: string; size_gb: number; media_type: string; interface_type: string; health: string; power_on_hours?: number; power_on_count?: number; rpm?: number }[]
   monitors_detail: string
   tpm_present: boolean; tpm_enabled: boolean; tpm_version: string
   secure_boot: boolean; uac_level: string; rdp_enabled: boolean

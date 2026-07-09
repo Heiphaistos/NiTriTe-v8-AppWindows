@@ -1,15 +1,16 @@
 import { invoke, invokeRaw, useNotificationStore, fullRegPath, type Solution } from "./scanExportHelpers";
+import type { ScanResult, BatteryDetailed } from "@/types/diagnostic";
 
 export async function exportScanMd(
-  scanResult: any,
+  scanResult: ScanResult | null,
   scanProblems: string[],
-  batteries: any[],
+  batteries: BatteryDetailed[],
   scanSolutions: Solution[]
 ) {
   if (!scanResult) return;
   const sr = scanResult;
   const now = new Date().toLocaleString();
-  const e = (s: any) => String(s ?? "").replace(/\r?\n/g, " ").replace(/\|/g, "\\|").replace(/`/g, "'");
+  const e = (s: unknown) => String(s ?? "").replace(/\r?\n/g, " ").replace(/\|/g, "\\|").replace(/`/g, "'");
   const row = (...cells: string[]) => `| ${cells.map(e).join(" | ")} |`;
   const head = (...cols: string[]) => [row(...cols), `|${cols.map(()=>"---").join("|")}|`];
 

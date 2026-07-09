@@ -7,10 +7,11 @@ import NButton from "@/components/ui/NButton.vue";
 import NProgress from "@/components/ui/NProgress.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
 import NCollapse from "@/components/ui/NCollapse.vue";
+import type { RamDetailed, SysInfo } from "@/types/diagnostic";
 
 const props = defineProps<{
-  ramData: any;
-  sysInfo: any;
+  ramData: RamDetailed | null;
+  sysInfo: SysInfo | null;
 }>();
 
 const usagePercent = computed(() => {

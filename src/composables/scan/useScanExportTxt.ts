@@ -1,9 +1,10 @@
 import { invoke, invokeRaw, useNotificationStore, kbStr, fullRegPath, type Solution } from "./scanExportHelpers";
+import type { ScanResult, BatteryDetailed } from "@/types/diagnostic";
 
 export async function exportScanTxt(
-  scanResult: any,
+  scanResult: ScanResult | null,
   scanProblems: string[],
-  batteries: any[],
+  batteries: BatteryDetailed[],
   scanSolutions: Solution[]
 ) {
   if (!scanResult) return;

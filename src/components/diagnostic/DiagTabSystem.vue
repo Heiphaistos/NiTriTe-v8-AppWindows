@@ -4,15 +4,16 @@ import NBadge from "@/components/ui/NBadge.vue";
 import NProgress from "@/components/ui/NProgress.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
 import NCollapse from "@/components/ui/NCollapse.vue";
+import type { SysInfo, BiosInfo, MoboDetailed, OsExtended, BiosExtended, MoboExtended } from "@/types/diagnostic";
 
 const props = defineProps<{
   tab: string;
-  sysInfo: any;
-  biosInfo: any;
-  moboInfo: any;
-  osExtended: any;
-  biosExtended?: any;
-  moboExtended?: any;
+  sysInfo: SysInfo | null;
+  biosInfo: BiosInfo | null;
+  moboInfo: MoboDetailed | null;
+  osExtended: OsExtended | null;
+  biosExtended?: BiosExtended | null;
+  moboExtended?: MoboExtended | null;
 }>();
 </script>
 
@@ -222,8 +223,8 @@ const props = defineProps<{
               <div v-if="moboExtended.cpu_socket" class="info-row"><span>Socket CPU</span><NBadge variant="info">{{ moboExtended.cpu_socket }}</NBadge></div>
               <div class="info-row">
                 <span>Temp. carte mère</span>
-                <NBadge :variant="moboExtended.motherboard_temp_c > 0 ? (moboExtended.motherboard_temp_c > 70 ? 'danger' : moboExtended.motherboard_temp_c > 50 ? 'warning' : 'success') : 'neutral'">
-                  {{ moboExtended.motherboard_temp_c > 0 ? moboExtended.motherboard_temp_c + ' °C' : 'Non disponible' }}
+                <NBadge :variant="(moboExtended.motherboard_temp_c ?? 0) > 0 ? ((moboExtended.motherboard_temp_c ?? 0) > 70 ? 'danger' : (moboExtended.motherboard_temp_c ?? 0) > 50 ? 'warning' : 'success') : 'neutral'">
+                  {{ (moboExtended.motherboard_temp_c ?? 0) > 0 ? moboExtended.motherboard_temp_c + ' °C' : 'Non disponible' }}
                 </NBadge>
               </div>
             </div>
@@ -249,7 +250,7 @@ const props = defineProps<{
                         {{ slot.status == 3 ? 'Disponible' : slot.status == 4 ? 'Utilisé' : slot.status }}
                       </NBadge>
                     </td>
-                    <td class="muted">{{ slot.max_data_width > 0 ? slot.max_data_width + ' bit' : '—' }}</td>
+                    <td class="muted">{{ (slot.max_data_width ?? 0) > 0 ? slot.max_data_width + ' bit' : '—' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -264,10 +265,10 @@ const props = defineProps<{
             <div class="info-row"><span>Modèle</span><span style="font-weight:600">{{ moboInfo.product }}</span></div>
             <div v-if="moboInfo.version && moboInfo.version !== 'N/A'" class="info-row"><span>Révision PCB</span><NBadge variant="info">{{ moboInfo.version }}</NBadge></div>
             <div v-if="moboExtended?.cpu_socket" class="info-row"><span>Socket CPU</span><NBadge variant="success">{{ moboExtended.cpu_socket }}</NBadge></div>
-            <div v-if="moboExtended?.slot_count > 0" class="info-row"><span>Slots d'extension</span><span>{{ moboExtended.slot_count }} slots PCIe/PCI/M.2</span></div>
-            <div v-if="moboExtended?.motherboard_temp_c > 0" class="info-row"><span>Température actuelle</span>
-              <NBadge :variant="moboExtended.motherboard_temp_c > 70 ? 'danger' : moboExtended.motherboard_temp_c > 50 ? 'warning' : 'success'">
-                {{ moboExtended.motherboard_temp_c }}°C
+            <div v-if="(moboExtended?.slot_count ?? 0) > 0" class="info-row"><span>Slots d'extension</span><span>{{ moboExtended!.slot_count }} slots PCIe/PCI/M.2</span></div>
+            <div v-if="(moboExtended?.motherboard_temp_c ?? 0) > 0" class="info-row"><span>Température actuelle</span>
+              <NBadge :variant="(moboExtended!.motherboard_temp_c! > 70) ? 'danger' : (moboExtended!.motherboard_temp_c! > 50) ? 'warning' : 'success'">
+                {{ moboExtended!.motherboard_temp_c }}°C
               </NBadge>
             </div>
           </div>

@@ -1,15 +1,16 @@
 import { invoke, invokeRaw, useNotificationStore, fullRegPath, type Solution } from "./scanExportHelpers";
+import type { ScanResult, BatteryDetailed } from "@/types/diagnostic";
 
 export async function exportScanHtml(
-  scanResult: any,
+  scanResult: ScanResult | null,
   scanProblems: string[],
-  batteries: any[],
+  batteries: BatteryDetailed[],
   scanSolutions: Solution[]
 ) {
   if (!scanResult) return;
   const sr = scanResult;
   const now = new Date().toLocaleString();
-  const h = (s: any) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const h = (s: unknown) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const ok  = (v: boolean, t="Activé", f="DÉSACTIVÉ") => `<span class="${v?'ok':'bad'}">${v?t:f}</span>`;
   const badge = (txt: string, cls: string) => `<span class="badge badge-${cls}">${h(txt)}</span>`;
   const sec = (title: string, icon: string, id = "") =>
@@ -82,7 +83,7 @@ ${sec("Composants Matériels","🔩","s1-hw")}
 ${tbl(["Composant","Détail"],[
   [h("CPU"),    h(`${sr.cpu_name} — ${sr.cpu_cores} cœurs / ${sr.cpu_threads||"?"}T @ ${sr.cpu_frequency_ghz||"?"}GHz`)],
   ...(sr.cpu_socket ? [[h("Socket CPU"), h(sr.cpu_socket)]] : []),
-  ...(sr.cpu_l3_mb > 0 ? [[h("Cache L3"), h(sr.cpu_l3_mb+" MB")]] : []),
+  ...((sr.cpu_l3_mb ?? 0) > 0 ? [[h("Cache L3"), h(sr.cpu_l3_mb+" MB")]] : []),
   [h("CPU Utilisation"), badge(sr.cpu_usage_percent?.toFixed(1)+"%", sr.cpu_usage_percent>80?"danger":sr.cpu_usage_percent>50?"warning":"success")],
   [h("CPU Température"),  sr.cpu_temperature && sr.cpu_temperature!=="N/A" ? badge(sr.cpu_temperature, (()=>{ const t=parseFloat(sr.cpu_temperature); return !isNaN(t)&&t>80?"danger":!isNaN(t)&&t>65?"warning":"success"; })()) : "<span class='muted'>N/A</span>"],
   [h("RAM"),    badge(`${sr.ram_used_gb?.toFixed(1)} / ${sr.ram_total_gb?.toFixed(0)} GB (${sr.ram_usage_percent?.toFixed(0)}%)`, sr.ram_usage_percent>85?"danger":sr.ram_usage_percent>65?"warning":"success")],
