@@ -510,3 +510,75 @@ try {
     }
     BandwidthResult::default()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── validate_host ──────────────────────────────────────────────────────────
+    #[test]
+    fn validate_host_accepts_hostname() {
+        assert!(validate_host("google.com").is_ok());
+        assert!(validate_host("8.8.8.8").is_ok());
+        assert!(validate_host("my-server.local").is_ok());
+    }
+
+    #[test]
+    fn validate_host_rejects_empty() {
+        assert!(validate_host("").is_err());
+        assert!(validate_host("   ").is_err());
+    }
+
+    #[test]
+    fn validate_host_rejects_too_long() {
+        let long = "a".repeat(256);
+        assert!(validate_host(&long).is_err());
+    }
+
+    #[test]
+    fn validate_host_rejects_shell_injection() {
+        assert!(validate_host("host; rm -rf /").is_err());
+        assert!(validate_host("host | net user").is_err());
+        assert!(validate_host("$(whoami)").is_err());
+        assert!(validate_host("host & calc").is_err());
+    }
+
+    #[test]
+    fn validate_host_accepts_ipv6_bracket() {
+        assert!(validate_host("[::1]").is_ok());
+        assert!(validate_host("[2001:db8::1]").is_ok());
+    }
+
+    // ── validate_http_url ──────────────────────────────────────────────────────
+    #[test]
+    fn validate_http_url_accepts_http_https() {
+        assert!(validate_http_url("https://example.com").is_ok());
+        assert!(validate_http_url("http://192.168.1.1").is_ok());
+    }
+
+    #[test]
+    fn validate_http_url_rejects_empty() {
+        assert!(validate_http_url("").is_err());
+    }
+
+    #[test]
+    fn validate_http_url_rejects_file_ftp_unc() {
+        assert!(validate_http_url("file:///etc/passwd").is_err());
+        assert!(validate_http_url("ftp://server").is_err());
+        assert!(validate_http_url("\\\\server\\share").is_err());
+        assert!(validate_http_url("//server/share").is_err());
+    }
+
+    #[test]
+    fn validate_http_url_rejects_no_scheme() {
+        assert!(validate_http_url("example.com").is_err());
+        assert!(validate_http_url("javascript:alert(1)").is_err());
+    }
+
+    #[test]
+    fn validate_http_url_escapes_single_quotes() {
+        let r = validate_http_url("https://example.com/path'test").unwrap();
+        // single quote is doubled for PowerShell safety
+        assert!(r.contains("''test"), "Expected '' escaping, got: {}", r);
+    }
+}
