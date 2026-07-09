@@ -87,7 +87,7 @@ export interface NetworkExtended {
   dns_test: { name: string; ip: string; type: string }[]
   wifi_networks: string[]
 }
-export interface SysDiskPartition { used_gb: number; total_gb: number; usage_percent: number }
+export interface SysDiskPartition { mount_point: string; fs_type: string; used_gb: number; total_gb: number; free_gb: number; usage_percent: number }
 export interface SysDisk { partitions: SysDiskPartition[]; model?: string; name?: string }
 export interface OsExtended {
   install_date: string; last_boot_time: string; registered_user?: string; organization?: string

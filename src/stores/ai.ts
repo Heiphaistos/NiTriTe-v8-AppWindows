@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, watch } from "vue";
 import { invoke } from "@/utils/invoke";
+import type { AppConfig } from "@/types/diagnostic";
 
 export const useAiStore = defineStore("ai", () => {
   const ollamaUrl   = ref(localStorage.getItem("ai_url")   ?? "http://localhost:11434");
@@ -16,7 +17,7 @@ export const useAiStore = defineStore("ai", () => {
   // Charge depuis la config Rust au démarrage
   async function loadFromConfig() {
     try {
-      const cfg = await invoke<any>("get_config");
+      const cfg = await invoke<AppConfig>("get_config");
       if (cfg.ollama_url)         ollamaUrl.value   = cfg.ollama_url;
       if (cfg.ollama_model)       ollamaModel.value = cfg.ollama_model;
       if (cfg.ollama_temperature) temperature.value = cfg.ollama_temperature;
@@ -27,7 +28,7 @@ export const useAiStore = defineStore("ai", () => {
   // Sauvegarde dans la config Rust (appelé depuis SettingsPage)
   async function saveToConfig(extraConfig: Record<string, any> = {}) {
     try {
-      const currentCfg = await invoke<any>("get_config");
+      const currentCfg = await invoke<AppConfig>("get_config");
       await invoke("save_config", {
         config: {
           ...currentCfg,

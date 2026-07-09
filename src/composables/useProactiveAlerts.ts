@@ -1,5 +1,6 @@
 import { ref, onUnmounted } from 'vue';
 import { invoke } from "@/utils/invoke";
+import type { SysInfo, SmartDiskInfo } from "@/types/diagnostic";
 
 interface AlertThresholds {
   cpuTempCritical: number;   // °C
@@ -70,7 +71,7 @@ export function useProactiveAlerts(thresholds: AlertThresholds = DEFAULT_THRESHO
 
     try {
       // Vérifier utilisation disques/RAM
-      const sysInfo = await invoke<any>('get_system_info').catch(() => null);
+      const sysInfo = await invoke<SysInfo>('get_system_info').catch(() => null);
       if (sysInfo) {
         if (sysInfo.ram?.usage_percent >= thresholds.ramUsageWarn) {
           const sev = sysInfo.ram.usage_percent >= 95 ? 'critical' : 'warning';
@@ -93,7 +94,7 @@ export function useProactiveAlerts(thresholds: AlertThresholds = DEFAULT_THRESHO
 
     try {
       // Vérifier SMART
-      const smart = await invoke<any[]>('get_smart_info').catch(() => []);
+      const smart = await invoke<SmartDiskInfo[]>('get_smart_info').catch(() => []);
       for (const s of smart) {
         if (s.reallocated_sectors > 0) {
           addAlert(`smart-realloc-${s.name}`, 'smart', 'critical',
