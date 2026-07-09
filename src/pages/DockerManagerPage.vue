@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { invoke } from "@/utils/invoke";
+import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NBadge from "@/components/ui/NBadge.vue";
@@ -89,10 +90,10 @@ async function load() {
 async function loadVolumes() {
   volumesLoading.value = true;
   try {
-    const raw = await invoke<string>("run_system_command", {
+    const raw = await invoke<CommandResult>("run_system_command", {
       cmd: "docker", args: ["volume", "ls", "--format", "{{.Name}}|{{.Driver}}|{{.Mountpoint}}|{{.CreatedAt}}"],
     });
-    volumes.value = String(raw).trim().split("\n").filter(Boolean).map(line => {
+    volumes.value = (raw?.stdout ?? "").trim().split("\n").filter(Boolean).map(line => {
       const [name, driver, mountpoint, created] = line.split("|");
       return { name: name ?? "", driver: driver ?? "", mountpoint: mountpoint ?? "", created: created?.slice(0, 16) ?? "" };
     });
@@ -157,10 +158,10 @@ async function inspectContainer(c: DockerContainer) {
   }
   inspectLoading.value = c.id;
   try {
-    const raw = await invoke<string>("run_system_command", {
+    const raw = await invoke<CommandResult>("run_system_command", {
       cmd: "docker", args: ["inspect", c.id],
     });
-    inspectData.value = { ...inspectData.value, [c.id]: String(raw) };
+    inspectData.value = { ...inspectData.value, [c.id]: raw?.stdout ?? "" };
   } catch (e: any) {
     inspectData.value = { ...inspectData.value, [c.id]: `Erreur : ${String(e)}` };
   } finally {
@@ -172,11 +173,11 @@ async function inspectContainer(c: DockerContainer) {
 async function fetchStats(c: DockerContainer) {
   statsLoading.value = c.id;
   try {
-    const raw = await invoke<string>("run_system_command", {
+    const raw = await invoke<CommandResult>("run_system_command", {
       cmd: "docker",
       args: ["stats", c.id, "--no-stream", "--format", "{{.CPUPerc}} {{.MemUsage}}"],
     });
-    statsData.value = { ...statsData.value, [c.id]: String(raw).trim() };
+    statsData.value = { ...statsData.value, [c.id]: (raw?.stdout ?? "").trim() };
   } catch (e: any) {
     statsData.value = { ...statsData.value, [c.id]: `Erreur : ${String(e)}` };
   } finally {
@@ -194,10 +195,10 @@ async function pruneImages() {
   if (!confirm("Supprimer toutes les images orphelines (dangling) ? Cette action est irreversible.")) return;
   pruneImgLoading.value = true;
   try {
-    const result = await invoke<string>("run_system_command", {
+    const result = await invoke<CommandResult>("run_system_command", {
       cmd: "docker", args: ["image", "prune", "-f"],
     });
-    notify.success("Nettoyage OK", String(result).trim().slice(0, 80) || "Images orphelines supprimees");
+    notify.success("Nettoyage OK", (result?.stdout ?? "").trim().slice(0, 80) || "Images orphelines supprimees");
     await load();
   } catch (e: any) {
     notify.error("Erreur prune", String(e));
@@ -211,7 +212,7 @@ async function pruneVolumes() {
   if (!confirm("Supprimer tous les volumes inutilises ? Cette action est irreversible.")) return;
   pruneVolLoading.value = true;
   try {
-    await invoke<string>("run_system_command", { cmd: "docker", args: ["volume", "prune", "-f"] });
+    await invoke<CommandResult>("run_system_command", { cmd: "docker", args: ["volume", "prune", "-f"] });
     notify.success("Volumes pruned", "Volumes inutilises supprimes");
     await loadVolumes();
   } catch (e: any) {
