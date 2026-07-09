@@ -7,7 +7,7 @@ import NProgress from "@/components/ui/NProgress.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NCollapse from "@/components/ui/NCollapse.vue";
-import type { MonitorDetail, AudioDevice, UsbDevice, PrinterDetail, BatteryDetailed, PowerPlan } from "@/types/diagnostic";
+import type { MonitorDetail, AudioDevice, UsbDevice, PrinterDetail, BatteryDetailed, PowerPlan, ProblemDevice, PowerPlanResult } from "@/types/diagnostic";
 
 const props = defineProps<{
   tab: string;
@@ -24,7 +24,7 @@ const emit = defineEmits(["reload"]);
 const actionMsg = ref("");
 const actionErr = ref(false);
 const loading = ref(false);
-const usbProblemDevices = ref<any[]>([]);
+const usbProblemDevices = ref<ProblemDevice[]>([]);
 const usbScanDone = ref(false);
 const usbScanLoading = ref(false);
 
@@ -100,7 +100,7 @@ async function scanUsbProblems() {
   usbScanLoading.value = true;
   usbScanDone.value = false;
   try {
-    const all = await invoke<any[]>("get_problem_devices");
+    const all = await invoke<ProblemDevice[]>("get_problem_devices");
     usbProblemDevices.value = all.filter(d => {
       const cls = (d.class || "").toLowerCase();
       const id = (d.device_id || "").toLowerCase();
@@ -120,7 +120,7 @@ async function scanUsbProblems() {
 async function addUltimatePlan() {
   loading.value = true;
   try {
-    const results = await invoke<any[]>("enable_hidden_power_plans");
+    const results = await invoke<PowerPlanResult[]>("enable_hidden_power_plans");
     if (results.length > 0 && results[0].success) {
       showMsg("Plan 'Performances maximales' ajouté ! Rechargement...");
       setTimeout(() => emit("reload"), 1200);

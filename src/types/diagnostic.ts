@@ -58,6 +58,22 @@ export interface NetworkAdapter {
   net_connection_id: string; is_physical: boolean; status: string
 }
 export interface CpuCache { l1_instruction_kb: number; l1_data_kb: number; l2_kb: number; l3_kb: number; l4_kb: number }
+export interface ProblemDevice { name: string; device_id: string; error_code: number; error_description: string; class: string }
+export interface PowerPlanResult { name: string; guid: string; success: boolean; message: string }
+export interface NetPingResult { success: boolean; avg: number; host: string }
+export interface NetworkExtended {
+  ping_gateway: NetPingResult | null; ping_google: NetPingResult; ping_cloudflare: NetPingResult
+  public_ip: string
+  arp_table: { ip: string; mac: string; type: string }[]
+  routes: { prefix: string; next_hop: string; metric: number; iface: string }[]
+  proxy: { enabled: boolean; server: string; bypass: string }
+  firewall: { domain: boolean; private: boolean; public: boolean }
+  shares: { name: string; path: string; desc: string }[]
+  stats: { name: string; recv_bytes: number; sent_bytes: number }[]
+  hosts_entries: { ip: string; host: string }[]
+  dns_test: { name: string; ip: string; type: string }[]
+  wifi_networks: string[]
+}
 export interface SysDiskPartition { used_gb: number; total_gb: number; usage_percent: number }
 export interface SysDisk { partitions: SysDiskPartition[]; model?: string; name?: string }
 export interface OsExtended {

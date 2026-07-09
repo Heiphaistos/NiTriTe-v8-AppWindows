@@ -274,8 +274,8 @@ async function installSelection() {
 
 onMounted(async () => {
   try {
-    const result = await cachedInvoke<any[]>("get_apps");
-    apps.value = result.map((a: any) => ({ ...a, checked: false, installed: false }));
+    const result = await cachedInvoke<Omit<AppItem, 'checked' | 'installed'>[]>("get_apps");
+    apps.value = result.map((a) => ({ ...a, checked: false, installed: false }));
   } catch {
     notifications.warning("Impossible de charger la base de données");
   }

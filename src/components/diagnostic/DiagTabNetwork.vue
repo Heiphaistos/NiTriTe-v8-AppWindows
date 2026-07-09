@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { invoke } from "@/utils/invoke";
-import type { NetworkAdapter, TcpConnection, WifiInfo } from "@/types/diagnostic";
+import type { NetworkAdapter, TcpConnection, WifiInfo, NetworkExtended } from "@/types/diagnostic";
 import {
   Search, Wifi, WifiOff, Globe, Shield, ShieldOff, Router, Share2,
   Activity, Server, Database, RefreshCw, CheckCircle, XCircle, MapPin,
@@ -44,11 +44,11 @@ const stateVariant = (s: string) => {
 
 // === Extended data (réseau étendu) ===
 const extLoading = ref(false);
-const extData = ref<any>(null);
+const extData = ref<NetworkExtended | null>(null);
 
 async function loadExtended() {
   extLoading.value = true;
-  try { extData.value = await invoke("get_network_extended"); }
+  try { extData.value = await invoke<NetworkExtended>("get_network_extended"); }
   catch { extData.value = null; }
   extLoading.value = false;
 }
