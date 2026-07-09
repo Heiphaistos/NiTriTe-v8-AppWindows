@@ -109,3 +109,53 @@ fn get_installed_apps_list() -> String {
         Err(_) => String::new(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_driver(check_name: Option<&str>, check_registry: Option<&str>) -> RecommendedDriver {
+        RecommendedDriver {
+            id: "test".into(),
+            name: "Test Driver".into(),
+            description: "Test".into(),
+            category: "Test".into(),
+            url: "https://example.com".into(),
+            check_registry: check_registry.map(|s| s.to_string()),
+            check_name: check_name.map(|s| s.to_string()),
+        }
+    }
+
+    #[test]
+    fn check_name_found_in_installed_list() {
+        let driver = make_driver(Some("NVIDIA Graphics Driver"), None);
+        let installed = "NVIDIA GeForce Experience\nNVIDIA Graphics Driver\nMicrosoft Edge";
+        assert!(check_driver_installed(&driver, installed));
+    }
+
+    #[test]
+    fn check_name_case_insensitive() {
+        let driver = make_driver(Some("nvidia graphics driver"), None);
+        let installed = "NVIDIA Graphics Driver";
+        assert!(check_driver_installed(&driver, installed));
+    }
+
+    #[test]
+    fn check_name_not_found_returns_false() {
+        let driver = make_driver(Some("AMD Radeon Driver"), None);
+        let installed = "NVIDIA Graphics Driver\nIntel HD Graphics";
+        assert!(!check_driver_installed(&driver, installed));
+    }
+
+    #[test]
+    fn no_check_name_no_check_registry_returns_false() {
+        let driver = make_driver(None, None);
+        assert!(!check_driver_installed(&driver, "anything installed"));
+    }
+
+    #[test]
+    fn check_name_empty_installed_list_returns_false() {
+        let driver = make_driver(Some("Some Driver"), None);
+        assert!(!check_driver_installed(&driver, ""));
+    }
+}
