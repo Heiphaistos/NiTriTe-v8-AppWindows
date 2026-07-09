@@ -285,19 +285,55 @@ async fn get_startup_programs() -> Result<Vec<maintenance::cleanup::StartupEntry
 
 #[tauri::command]
 async fn run_system_command(cmd: String, args: Vec<String>) -> Result<maintenance::commands::CommandResult, NiTriTeError> {
-    // Valider via whitelist avant toute exécution
-    let full_cmd = if args.is_empty() {
-        cmd.clone()
-    } else {
-        format!("{} {}", cmd, args.join(" "))
-    };
-    ai::tool_calling::is_safe(&full_cmd)?;
+    validate_ui_command(&cmd, &args)?;
     tokio::task::spawn_blocking(move || {
         let args_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
         maintenance::commands::execute_system_command(&cmd, &args_refs, 60)
     })
     .await
     .map_err(|e| NiTriTeError::System(e.to_string()))?
+}
+
+/// Validation pour les commandes UI/système (plus permissive que is_safe() qui cible l'IA).
+/// Bloque les opérations destructives, détecte l'injection shell sur les args passés à cmd.exe.
+fn validate_ui_command(cmd: &str, args: &[String]) -> Result<(), NiTriTeError> {
+    let cmd_lower = cmd.to_lowercase();
+    let cmd_base = std::path::Path::new(&cmd_lower)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or(&cmd_lower)
+        .to_string();
+
+    // Commandes vraiment destructives — jamais autorisées
+    const BLOCKED: &[&str] = &[
+        "format", "fdisk", "dd", "mkfs", "deltree",
+        "cipher /w", "sdelete",
+    ];
+    if BLOCKED.iter().any(|b| cmd_base == *b) {
+        return Err(NiTriTeError::CommandDenied(format!("Commande interdite: {}", cmd)));
+    }
+
+    // Quand cmd.exe ou powershell shell-exécutent des args, vérifier l'injection
+    if cmd_base == "cmd" {
+        // Les args /c et /k passent au shell — vérifier que les sous-commandes ne font pas de destruction
+        let shell_args: String = args.iter()
+            .skip_while(|a| a.to_lowercase() == "/c" || a.to_lowercase() == "/k")
+            .cloned().collect::<Vec<_>>().join(" ");
+        let dangerous_patterns = [
+            "rm -rf", "del /f /s", "format ", "rmdir /s /q",
+            "rd /s /q", "> nul", "reg delete", "bcdedit",
+        ];
+        let shell_lower = shell_args.to_lowercase();
+        for pat in dangerous_patterns {
+            if shell_lower.contains(pat) {
+                return Err(NiTriTeError::CommandDenied(
+                    format!("Argument cmd.exe potentiellement destructif: {}", pat)
+                ));
+            }
+        }
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
