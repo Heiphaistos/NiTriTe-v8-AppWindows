@@ -145,3 +145,41 @@ pub async fn delete_dll(path: String) -> Result<(), String> {
     .await
     .map_err(|e| e.to_string())?
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn microsoft_company_is_system() {
+        assert_eq!(dll_category("Microsoft Corporation", "System32"), "Système");
+        assert_eq!(dll_category("Microsoft Windows", "SysWOW64"), "Système");
+    }
+
+    #[test]
+    fn windows_in_company_is_system() {
+        assert_eq!(dll_category("Windows Components", "anywhere"), "Système");
+    }
+
+    #[test]
+    fn third_party_in_system32_is_tiers() {
+        assert_eq!(dll_category("NVidia Corporation", "System32"), "Tiers (System32)");
+        assert_eq!(dll_category("Intel Inc", "SysWOW64"), "Tiers (System32)");
+    }
+
+    #[test]
+    fn third_party_elsewhere_is_application() {
+        assert_eq!(dll_category("Adobe Systems", "ProgramFiles"), "Application");
+        assert_eq!(dll_category("Unknown Vendor", "SomeOtherLocation"), "Application");
+    }
+
+    #[test]
+    fn empty_company_in_system32_is_tiers() {
+        assert_eq!(dll_category("", "System32"), "Tiers (System32)");
+    }
+
+    #[test]
+    fn empty_company_elsewhere_is_application() {
+        assert_eq!(dll_category("", "ProgramFiles"), "Application");
+    }
+}

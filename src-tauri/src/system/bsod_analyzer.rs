@@ -145,3 +145,52 @@ pub fn get_bugcheck_description(code: String) -> String {
         _ => format!("Code {} — voir https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-code-reference2", code),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn known_code_uppercase() {
+        let d = get_bugcheck_description("0x50".to_string());
+        assert!(d.contains("PAGE_FAULT_IN_NONPAGED_AREA"));
+    }
+
+    #[test]
+    fn known_code_without_prefix() {
+        let d = get_bugcheck_description("3B".to_string());
+        assert!(d.contains("SYSTEM_SERVICE_EXCEPTION"));
+    }
+
+    #[test]
+    fn known_code_lowercase_input() {
+        let d = get_bugcheck_description("0xa".to_string());
+        assert!(d.contains("IRQL_NOT_LESS_OR_EQUAL"));
+    }
+
+    #[test]
+    fn code_0a_and_a_same_result() {
+        let a = get_bugcheck_description("A".to_string());
+        let b = get_bugcheck_description("0A".to_string());
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn whea_code_124() {
+        let d = get_bugcheck_description("124".to_string());
+        assert!(d.contains("WHEA_UNCORRECTABLE_ERROR"));
+    }
+
+    #[test]
+    fn unknown_code_links_to_docs() {
+        let d = get_bugcheck_description("DEAD".to_string());
+        assert!(d.contains("DEAD"));
+        assert!(d.contains("docs.microsoft.com"));
+    }
+
+    #[test]
+    fn memory_management_code() {
+        let d = get_bugcheck_description("1A".to_string());
+        assert!(d.contains("MEMORY_MANAGEMENT"));
+    }
+}
