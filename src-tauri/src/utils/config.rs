@@ -74,6 +74,65 @@ impl Default for AppConfig {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_values_are_correct() {
+        assert!(default_true());
+        assert_eq!(default_10(), 10);
+        assert_eq!(default_normal(), "normal");
+        assert_eq!(default_json(), "json");
+        assert!((default_temperature() - 0.7).abs() < f64::EPSILON);
+        assert_eq!(default_ollama_url(), "http://localhost:11434");
+        assert_eq!(default_ollama_model(), "llama3:8b");
+        assert_eq!(default_ai_backend(), "llamacpp");
+        assert_eq!(default_llamacpp_port(), 8080);
+    }
+
+    #[test]
+    fn app_config_default_matches_expected() {
+        let c = AppConfig::default();
+        assert_eq!(c.theme, "nitrite-dark");
+        assert_eq!(c.language, "fr");
+        assert!(!c.sidebar_collapsed);
+        assert_eq!(c.ollama_url, "http://localhost:11434");
+        assert_eq!(c.ollama_model, "llama3:8b");
+        assert_eq!(c.ai_backend, "llamacpp");
+        assert_eq!(c.llamacpp_port, 8080);
+        assert!(c.show_animations);
+        assert!(!c.compact_mode);
+        assert!(c.notifications_enabled);
+        assert_eq!(c.process_count, 10);
+        assert_eq!(c.font_size, "normal");
+        assert_eq!(c.export_format, "json");
+    }
+
+    #[test]
+    fn app_config_serializes_and_deserializes() {
+        let original = AppConfig::default();
+        let json = serde_json::to_string(&original).expect("serialization failed");
+        let restored: AppConfig = serde_json::from_str(&json).expect("deserialization failed");
+        assert_eq!(restored.theme, original.theme);
+        assert_eq!(restored.llamacpp_port, original.llamacpp_port);
+        assert_eq!(restored.process_count, original.process_count);
+    }
+
+    #[test]
+    fn app_config_partial_json_uses_serde_defaults() {
+        // If fields are missing from JSON, serde defaults kick in
+        let json = r#"{"theme":"light","language":"en","sidebar_collapsed":false,"monitor_interval_ms":1000}"#;
+        let c: AppConfig = serde_json::from_str(json).expect("partial json failed");
+        assert_eq!(c.theme, "light");
+        // serde defaults applied
+        assert_eq!(c.llamacpp_port, 8080);
+        assert_eq!(c.process_count, 10);
+        assert!(c.show_animations);
+        assert!(c.notifications_enabled);
+    }
+}
+
 impl AppConfig {
     fn config_file() -> PathBuf {
         paths::config_dir().join("nitrite_config.json")
