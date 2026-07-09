@@ -834,3 +834,31 @@ pub async fn winpe_run_command(command: String) -> Result<RepairResult, NiTriTeE
     .await
     .map_err(|e| NiTriTeError::System(e.to_string()))?
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn winpe_cmd_allowed_list() {
+        assert!(validate_winpe_command("ipconfig /all").is_ok());
+        assert!(validate_winpe_command("sfc /scannow").is_ok());
+        assert!(validate_winpe_command("diskpart").is_ok());
+        assert!(validate_winpe_command("dism /Online /Cleanup-Image /RestoreHealth").is_ok());
+        assert!(validate_winpe_command("chkdsk C: /f").is_ok());
+    }
+
+    #[test]
+    fn winpe_cmd_blocked_unknown() {
+        assert!(validate_winpe_command("cmd /c del *.*").is_err());
+        assert!(validate_winpe_command("powershell -c rm -rf /").is_err());
+        assert!(validate_winpe_command("inject; whoami").is_err());
+        assert!(validate_winpe_command("").is_err());
+    }
+
+    #[test]
+    fn winpe_cmd_full_path_extracted() {
+        // If a full path is provided, only the filename stem is checked
+        assert!(validate_winpe_command("C:\\Windows\\System32\\sfc.exe /scannow").is_ok());
+    }
+}
