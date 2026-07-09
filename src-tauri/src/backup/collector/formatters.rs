@@ -122,3 +122,104 @@ pub fn fmt_val(v: &serde_json::Value, depth: usize) -> String {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn format_size_bytes() {
+        assert_eq!(format_size(0), "0 B");
+        assert_eq!(format_size(512), "512 B");
+        assert_eq!(format_size(1023), "1023 B");
+    }
+
+    #[test]
+    fn format_size_kilobytes() {
+        assert_eq!(format_size(1024), "1.0 KB");
+        assert_eq!(format_size(2048), "2.0 KB");
+    }
+
+    #[test]
+    fn format_size_megabytes() {
+        assert_eq!(format_size(1_048_576), "1.0 MB");
+        assert_eq!(format_size(5_242_880), "5.0 MB");
+    }
+
+    #[test]
+    fn format_size_gigabytes() {
+        assert_eq!(format_size(1_073_741_824), "1.0 GB");
+        assert_eq!(format_size(2_147_483_648), "2.0 GB");
+    }
+
+    #[test]
+    fn friendly_label_known_keys() {
+        assert_eq!(friendly_label("Name"), "Nom");
+        assert_eq!(friendly_label("DisplayName"), "Nom");
+        assert_eq!(friendly_label("Version"), "Version");
+        assert_eq!(friendly_label("Status"), "Statut");
+        assert_eq!(friendly_label("InstallDate"), "Date installation");
+    }
+
+    #[test]
+    fn friendly_label_unknown_passthrough() {
+        assert_eq!(friendly_label("SomeUnknownKey"), "SomeUnknownKey");
+        assert_eq!(friendly_label(""), "");
+    }
+
+    #[test]
+    fn fmt_numeric_mb_key() {
+        let n = serde_json::Number::from_f64(512.0).unwrap();
+        let result = fmt_numeric("SizeMB", &n).unwrap();
+        assert!(result.contains("Mo") || result.contains("Go"));
+    }
+
+    #[test]
+    fn fmt_numeric_percent_key() {
+        let n = serde_json::Number::from_f64(75.0).unwrap();
+        let result = fmt_numeric("EncryptionPercentage", &n).unwrap();
+        assert_eq!(result, "75%");
+    }
+
+    #[test]
+    fn fmt_numeric_unknown_key_returns_none() {
+        let n = serde_json::Number::from(42u64);
+        assert!(fmt_numeric("SomeOtherKey", &n).is_none());
+    }
+
+    #[test]
+    fn json_to_readable_plain_string() {
+        let result = json_to_readable("hello world");
+        assert_eq!(result, "hello world");
+    }
+
+    #[test]
+    fn json_to_readable_invalid_json_passthrough() {
+        let result = json_to_readable("{not valid json}");
+        assert_eq!(result, "{not valid json}");
+    }
+
+    #[test]
+    fn fmt_val_bool_renders_oui_non() {
+        let v = json!({"Active": true, "Connected": false});
+        let result = fmt_val(&v, 0);
+        assert!(result.contains("Oui"));
+        assert!(result.contains("Non"));
+    }
+
+    #[test]
+    fn fmt_val_ps_fields_skipped() {
+        let v = json!({"PSPath": "some/path", "Name": "disk1"});
+        let result = fmt_val(&v, 0);
+        assert!(!result.contains("PSPath"));
+        assert!(result.contains("disk1"));
+    }
+
+    #[test]
+    fn fmt_val_null_excluded() {
+        let v = json!({"Name": "test", "Description": null});
+        let result = fmt_val(&v, 0);
+        assert!(result.contains("test"));
+        assert!(!result.contains("Description"));
+    }
+}

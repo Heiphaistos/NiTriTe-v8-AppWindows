@@ -49,6 +49,92 @@ pub fn generate_deploy_script(apps: Vec<AppEntry>, format: String) -> GeneratedS
     GeneratedScript { content, filename, app_count }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn safe_pkg_id_accepts_valid_ids() {
+        assert!(safe_pkg_id("Google.Chrome"));
+        assert!(safe_pkg_id("VideoLAN.VLC"));
+        assert!(safe_pkg_id("7zip.7zip"));
+        assert!(safe_pkg_id("Microsoft.VisualStudioCode"));
+        assert!(safe_pkg_id("choco-pkg_name-1.0"));
+    }
+
+    #[test]
+    fn safe_pkg_id_rejects_empty() {
+        assert!(!safe_pkg_id(""));
+    }
+
+    #[test]
+    fn safe_pkg_id_rejects_injection_chars() {
+        assert!(!safe_pkg_id("pkg; rm -rf /"));
+        assert!(!safe_pkg_id("pkg && evil"));
+        assert!(!safe_pkg_id("pkg|cmd"));
+        assert!(!safe_pkg_id("pkg$(whoami)"));
+        assert!(!safe_pkg_id("pkg`cmd`"));
+        assert!(!safe_pkg_id("pkg\ninjection"));
+    }
+
+    #[test]
+    fn safe_pkg_id_rejects_too_long() {
+        let long = "a".repeat(201);
+        assert!(!safe_pkg_id(&long));
+    }
+
+    #[test]
+    fn safe_display_name_strips_dangerous_chars() {
+        let result = safe_display_name("App & Company; evil");
+        assert!(!result.contains('&'));
+        assert!(!result.contains(';'));
+        assert!(result.contains("App"));
+    }
+
+    #[test]
+    fn safe_display_name_truncates_at_80() {
+        let long = "A".repeat(100);
+        let result = safe_display_name(&long);
+        assert!(result.len() <= 80);
+    }
+
+    #[test]
+    fn generate_deploy_script_batch_skips_injection() {
+        let apps = vec![AppEntry {
+            name: "Evil App".to_string(),
+            winget_id: Some("evil;cmd".to_string()),
+            choco_id: None,
+        }];
+        let s = generate_deploy_script(apps, "bat".to_string());
+        assert!(!s.content.contains("evil;cmd"));
+    }
+
+    #[test]
+    fn generate_deploy_script_ps1_includes_valid_pkg() {
+        let apps = vec![AppEntry {
+            name: "VLC".to_string(),
+            winget_id: Some("VideoLAN.VLC".to_string()),
+            choco_id: None,
+        }];
+        let s = generate_deploy_script(apps, "ps1".to_string());
+        assert_eq!(s.filename, "deploy_nitrite.ps1");
+        assert_eq!(s.app_count, 1);
+        assert!(s.content.contains("VideoLAN.VLC"));
+    }
+
+    #[test]
+    fn generate_deploy_script_batch_includes_valid_pkg() {
+        let apps = vec![AppEntry {
+            name: "7-Zip".to_string(),
+            winget_id: None,
+            choco_id: Some("7zip".to_string()),
+        }];
+        let s = generate_deploy_script(apps, "bat".to_string());
+        assert_eq!(s.filename, "deploy_nitrite.bat");
+        assert!(s.content.contains("7zip"));
+    }
+}
+
 fn generate_batch(apps: &[AppEntry]) -> String {
     let mut lines = vec![
         "@echo off".to_string(),
