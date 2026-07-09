@@ -768,7 +768,6 @@ fn validate_winpe_command(command: &str) -> Result<(), NiTriTeError> {
     ];
 
     let first_token = command
-        .trim()
         .split_whitespace()
         .next()
         .unwrap_or("")

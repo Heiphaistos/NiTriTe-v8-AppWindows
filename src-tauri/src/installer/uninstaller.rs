@@ -138,7 +138,7 @@ fn run_uninstall_silent(app_name: &str, uninstall_string: &str, _window: &tauri:
         // Préfixes autorisés : msiexec, ou chemin absolu Windows (C:\...), ou UNC (\\)
         let allowed = us_lower.starts_with("msiexec")
             || us_lower.starts_with("msiexec.exe")
-            || (us_lower.len() >= 3 && us_lower.chars().next().map_or(false, |c| c.is_ascii_alphabetic())
+            || (us_lower.len() >= 3 && us_lower.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
                 && us_lower[1..].starts_with(":\\"))
             || us_lower.starts_with("\"")  // chemin entre guillemets, ex : "C:\Program Files\..."
             || us_lower.starts_with("\\\\"); // UNC path

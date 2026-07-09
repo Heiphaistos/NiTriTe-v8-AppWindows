@@ -445,7 +445,7 @@ async fn save_content_to_path(path: String, content: String) -> Result<(), NiTri
     ];
 
     let in_allowed = allowed_prefixes.iter().any(|prefix| {
-        !prefix.is_empty() && canonical_str.starts_with(prefix.as_ref() as &str)
+        !prefix.is_empty() && canonical_str.starts_with(prefix)
     });
 
     // Autorise aussi les chemins sur d'autres lecteurs (clé USB) hors C:\ système
