@@ -236,7 +236,7 @@ onMounted(async () => {
     if (info.ram?.modules?.length > 0) ramType.value = info.ram.modules[0]?.memory_type ?? "";
     computeHealthScore();
     try {
-      const hist = await invoke<any>("get_sys_history");
+      const hist = await invoke<any>("get_system_history");
       uptimeH.value = hist?.current_uptime_hours ?? 0;
     } catch { /* uptime: non critique */ }
   } catch (e) {

@@ -183,20 +183,24 @@ async function createBackup() {
   backupStatus.value = "Initialisation...";
 
   try {
-
-    // Simulate progress steps
+    // Animation préliminaire (max 80%) — l'invoke réel commence après
     for (let i = 0; i < selected.length; i++) {
       const label = backupItems.value.find((b) => b.id === selected[i])?.label ?? selected[i];
-      backupStatus.value = `Sauvegarde : ${label}...`;
-      backupProgress.value = Math.round(((i + 1) / selected.length) * 100);
-      await new Promise((r) => setTimeout(r, 200));
+      backupStatus.value = `Préparation : ${label}...`;
+      backupProgress.value = Math.round(((i + 1) / selected.length) * 80);
+      await new Promise((r) => setTimeout(r, 150));
     }
+
+    backupStatus.value = "Création du fichier backup...";
+    backupProgress.value = 85;
 
     const result = await invokeRaw<{ path: string; total_items: number }>("create_backup", {
       items: selected,
       format: exportFormat.value,
       customPath: useCustomPath.value ? customBackupPath.value : undefined,
     });
+
+    backupProgress.value = 100;
     backupResult.value = { path: result.path, items: selected };
     notify.success(
       `Backup créé — ${selected.length} élément(s) sauvegardé(s)`,
