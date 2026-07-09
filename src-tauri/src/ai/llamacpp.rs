@@ -547,3 +547,63 @@ pub async fn chat(
     let result: serde_json::Value = resp.json().await?;
     Ok(result["choices"][0]["message"]["content"].as_str().unwrap_or("").to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_github_url_accepted() {
+        assert!(validate_download_url("https://github.com/ggerganov/llama.cpp/releases/download/v1/llama-server.exe").is_ok());
+        assert!(validate_download_url("https://objects.githubusercontent.com/file.zip").is_ok());
+    }
+
+    #[test]
+    fn valid_huggingface_url_accepted() {
+        assert!(validate_download_url("https://huggingface.co/TheBloke/Mistral-7B-v0.1-GGUF/resolve/main/model.gguf").is_ok());
+        assert!(validate_download_url("https://cdn-lfs.huggingface.co/repos/model.gguf").is_ok());
+        assert!(validate_download_url("https://cdn-lfs-us-1.huggingface.co/repos/model.gguf").is_ok());
+    }
+
+    #[test]
+    fn http_url_rejected() {
+        let r = validate_download_url("http://github.com/file.zip");
+        assert!(r.is_err());
+        assert!(r.unwrap_err().contains("HTTPS requis"));
+    }
+
+    #[test]
+    fn unknown_host_rejected() {
+        let r = validate_download_url("https://evil.com/malware.exe");
+        assert!(r.is_err());
+        assert!(r.unwrap_err().contains("non autorisé"));
+    }
+
+    #[test]
+    fn subdomain_of_allowed_host_accepted() {
+        assert!(validate_download_url("https://cdn-lfs-us-1.huggingface.co/path/file.gguf").is_ok());
+    }
+
+    #[test]
+    fn fake_subdomain_trick_rejected() {
+        // "evil.com/github.com/..." should NOT pass — host is evil.com
+        let r = validate_download_url("https://evil.com/github.com/file.zip");
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn empty_url_rejected() {
+        assert!(validate_download_url("").is_err());
+        assert!(validate_download_url("https://").is_err());
+    }
+
+    #[test]
+    fn ftp_rejected() {
+        assert!(validate_download_url("ftp://github.com/file.zip").is_err());
+    }
+
+    #[test]
+    fn url_with_port_accepted() {
+        assert!(validate_download_url("https://github.com:443/file.zip").is_ok());
+    }
+}
