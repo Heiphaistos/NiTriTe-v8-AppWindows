@@ -51,13 +51,13 @@ let scoopUnlisten: (() => void) | null = null;
 // === Windows Update ===
 async function scanWU() {
   scanningWU.value = true; wuScanned.value = false; wuMessage.value = "";
-  try { pendingWU.value = await invokeRaw("scan_pending_windows_updates"); }
+  try { pendingWU.value = await invokeRaw<PendingUpdate[]>("scan_pending_windows_updates"); }
   catch { pendingWU.value = []; }
   wuScanned.value = true; scanningWU.value = false;
 }
 async function triggerWU() {
   triggeringWU.value = true;
-  try { wuMessage.value = await invokeRaw("trigger_windows_update"); }
+  try { wuMessage.value = await invokeRaw<string>("trigger_windows_update"); }
   catch { wuMessage.value = "Erreur lors du déclenchement"; }
   triggeringWU.value = false;
 }
@@ -66,8 +66,8 @@ async function triggerWU() {
 async function loadWinget() {
   wingetLoading.value = true; wingetMsg.value = "";
   try {
-    wingetOk.value = await invoke("check_winget");
-    if (wingetOk.value) wingetList.value = await invoke("list_upgradable");
+    wingetOk.value = await invoke<boolean>("check_winget");
+    if (wingetOk.value) wingetList.value = await invoke<WingetPackage[]>("list_upgradable");
   } catch { wingetOk.value = false; }
   wingetLoading.value = false;
 }
@@ -85,16 +85,16 @@ async function upgradeWinget() {
 async function loadChoco() {
   chocoLoading.value = true; chocoMsg.value = "";
   try {
-    chocoInstalled.value = await invoke("check_chocolatey");
-    if (chocoInstalled.value) chocoList.value = await invoke("list_chocolatey_upgrades");
+    chocoInstalled.value = await invoke<boolean>("check_chocolatey");
+    if (chocoInstalled.value) chocoList.value = await invoke<ChocoPackage[]>("list_chocolatey_upgrades");
   } catch { chocoInstalled.value = false; }
   chocoLoading.value = false;
 }
 async function upgradeChoco() {
   chocoUpgrading.value = true; chocoMsg.value = "Mise à jour en cours...";
   try {
-    const r = await invokeRaw<{ success?: boolean; upgraded_count?: number; error?: string }>("upgrade_chocolatey_all");
-    chocoMsg.value = r?.success ? `${r.upgraded_count} paquet(s) mis à jour ✓` : `Erreur : ${r?.error || "inconnue"}`;
+    const r = await invokeRaw<{ success: boolean; upgraded_count: number; message: string }>("upgrade_chocolatey_all");
+    chocoMsg.value = r?.success ? `${r.upgraded_count} paquet(s) mis à jour ✓` : `Erreur : ${r?.message || "inconnue"}`;
     await loadChoco();
   } catch (e: any) { chocoMsg.value = "Erreur : " + e; }
   chocoUpgrading.value = false;
@@ -104,8 +104,8 @@ async function upgradeChoco() {
 async function loadScoop() {
   scoopLoading.value = true; scoopMsg.value = "";
   try {
-    scoopInstalled.value = await invoke("check_scoop");
-    if (scoopInstalled.value) scoopList.value = await invoke("list_scoop_upgrades");
+    scoopInstalled.value = await invoke<boolean>("check_scoop");
+    if (scoopInstalled.value) scoopList.value = await invoke<ScoopPackage[]>("list_scoop_upgrades");
   } catch { scoopInstalled.value = false; }
   scoopLoading.value = false;
 }
