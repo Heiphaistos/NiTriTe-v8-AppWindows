@@ -420,3 +420,47 @@ pub async fn get_all_sensors() -> Result<Vec<SensorReading>, String> {
         .await
         .map_err(|e| e.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_for_known_types() {
+        assert_eq!(unit_for("Temperature"), "°C");
+        assert_eq!(unit_for("Fan"), "RPM");
+        assert_eq!(unit_for("Voltage"), "V");
+        assert_eq!(unit_for("Load"), "%");
+        assert_eq!(unit_for("Clock"), "MHz");
+        assert_eq!(unit_for("Power"), "W");
+        assert_eq!(unit_for("Data"), "GB");
+        assert_eq!(unit_for("SmallData"), "MB");
+    }
+
+    #[test]
+    fn unit_for_unknown_returns_empty() {
+        assert_eq!(unit_for("Unknown"), "");
+        assert_eq!(unit_for(""), "");
+    }
+
+    #[test]
+    fn hw_type_label_cpu_and_gpu() {
+        assert_eq!(hw_type_label("CPU"), "CPU");
+        assert_eq!(hw_type_label("GpuNvidia"), "GPU NVIDIA");
+        assert_eq!(hw_type_label("GpuAmd"), "GPU AMD");
+        assert_eq!(hw_type_label("GpuIntel"), "GPU Intel");
+    }
+
+    #[test]
+    fn hw_type_label_storage() {
+        assert_eq!(hw_type_label("HDD"), "Stockage");
+        assert_eq!(hw_type_label("SSD"), "Stockage");
+        assert_eq!(hw_type_label("NVMe"), "Stockage NVMe");
+    }
+
+    #[test]
+    fn hw_type_label_unknown_returns_autre() {
+        assert_eq!(hw_type_label("SomeFutureSensor"), "Autre");
+        assert_eq!(hw_type_label(""), "Autre");
+    }
+}

@@ -443,3 +443,58 @@ fn collect_motherboard_info(wmi: &WMIConnection) -> Result<MotherboardInfo, NiTr
         model: board.and_then(|b| b.Product.clone()).unwrap_or_default().trim().to_string(),
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detect_interface_nvme_by_model_name() {
+        assert_eq!(detect_interface("Samsung NVMe SSD 970", "", ""), "NVMe");
+        assert_eq!(detect_interface("WD BLACK NVM", "", "IDE"), "NVMe");
+    }
+
+    #[test]
+    fn detect_interface_nvme_by_pnp_id() {
+        assert_eq!(detect_interface("Generic Drive", "NVME\\DISK", ""), "NVMe");
+    }
+
+    #[test]
+    fn detect_interface_usb_by_pnp_id() {
+        assert_eq!(detect_interface("USB Drive", "USBSTOR\\DISK", ""), "USB");
+    }
+
+    #[test]
+    fn detect_interface_sata_ssd_via_ide_wmi() {
+        assert_eq!(detect_interface("Samsung SSD 870 EVO", "", "IDE"), "SATA SSD");
+    }
+
+    #[test]
+    fn detect_interface_sata_hdd_via_ide_wmi() {
+        assert_eq!(detect_interface("WD Blue 1TB HDD", "", "IDE"), "SATA");
+    }
+
+    #[test]
+    fn detect_interface_empty_wmi_defaults_sata() {
+        assert_eq!(detect_interface("Unknown Drive", "", ""), "SATA");
+    }
+
+    #[test]
+    fn detect_interface_usb_by_wmi_flag() {
+        assert_eq!(detect_interface("Lexar USB", "", "USB"), "USB");
+    }
+
+    #[test]
+    fn resolve_vram_falls_back_to_wmi() {
+        let empty: HashMap<String, f64> = HashMap::new();
+        assert_eq!(resolve_vram("Unknown GPU", 4.0, &empty, &empty), 4.0);
+    }
+
+    #[test]
+    fn resolve_vram_nvidia_map_match() {
+        let mut nvidia: HashMap<String, f64> = HashMap::new();
+        nvidia.insert("rtx 3080".to_string(), 10.0);
+        let empty: HashMap<String, f64> = HashMap::new();
+        assert_eq!(resolve_vram("NVIDIA GeForce RTX 3080", 4.0, &nvidia, &empty), 10.0);
+    }
+}
