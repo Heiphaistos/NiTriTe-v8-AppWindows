@@ -224,12 +224,12 @@ onUnmounted(() => { if (scoopUnlisten) scoopUnlisten(); });
 
 async function launchSdi() {
   try {
-    (window as any).__nitrite_sdi_active = true;
-    setTimeout(() => { (window as any).__nitrite_sdi_active = false; }, 60000);
+    window.__nitrite_sdi_active = true;
+    setTimeout(() => { window.__nitrite_sdi_active = false; }, 60000);
     await invoke("launch_sdi");
     notify.success("Snappy Driver Installer lancé");
   } catch (e) {
-    (window as any).__nitrite_sdi_active = false;
+    window.__nitrite_sdi_active = false;
     notify.error("SDI introuvable", String(e));
   }
 }

@@ -65,11 +65,11 @@ const matchedByDevice = computed(() => {
 // ─── Actions ───────────────────────────────────────────────────────────────────
 async function launchSdi() {
   try {
-    (window as any).__nitrite_sdi_active = true;
-    setTimeout(() => { (window as any).__nitrite_sdi_active = false; }, 60000);
+    window.__nitrite_sdi_active = true;
+    setTimeout(() => { window.__nitrite_sdi_active = false; }, 60000);
     await invoke("launch_sdi");
   } catch (e) {
-    (window as any).__nitrite_sdi_active = false;
+    window.__nitrite_sdi_active = false;
     notify.warning("SDI non trouvé sur ce PC", "Redirection vers le site officiel...");
     await invoke("open_url", { url: "https://www.snappy-driver-installer.org/download/" }).catch(() => {});
   }

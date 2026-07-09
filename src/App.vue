@@ -117,7 +117,7 @@ router.onError((err) => {
 onMounted(async () => {
   startAlerts(60000);
   // Masquer le préloader HTML natif dès que Vue est prêt
-  (window as any).__hideNativeBoot?.();
+  window.__hideNativeBoot?.();
 
   await nextTick();
 
@@ -196,7 +196,7 @@ onMounted(async () => {
     const { getCurrentWindow } = await import("@tauri-apps/api/window");
     const win = getCurrentWindow();
     await win.listen("tauri://close-requested", async () => {
-      if ((window as any).__nitrite_sdi_active) { (window as any).__nitrite_sdi_active = false; return; }
+      if (window.__nitrite_sdi_active) { window.__nitrite_sdi_active = false; return; }
       try { if (inv) await inv("cleanup_on_exit"); } catch { await win.destroy(); }
     });
   } catch { /* dev */ }
