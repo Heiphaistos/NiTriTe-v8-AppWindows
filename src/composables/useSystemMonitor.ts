@@ -1,8 +1,6 @@
 import { ref, onUnmounted } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import type { MonitorData } from "@/types/system";
-
-const isTauri = (): boolean => "__TAURI_INTERNALS__" in window;
 
 function generateFakeMonitorData(): MonitorData {
   const rand = (min: number, max: number) =>
@@ -38,7 +36,7 @@ export function useSystemMonitor(intervalMs: number = 2000) {
   async function start() {
     if (isConnected.value) return;
 
-    if (!isTauri()) {
+    if (!isTauriContext()) {
       monitorData.value = generateFakeMonitorData();
       isConnected.value = true;
       devInterval = setInterval(() => {

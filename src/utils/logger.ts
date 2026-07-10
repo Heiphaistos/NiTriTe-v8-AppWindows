@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -35,14 +35,10 @@ export const logStats = ref({ debug: 0, info: 0, warn: 0, error: 0, critical: 0 
 let _seq = 0;
 function nextId(): string { return `${Date.now().toString(36)}-${(++_seq).toString(36)}`; }
 
-// ── Détection Tauri ───────────────────────────────────────────────────────────
-
-function isTauri(): boolean { return "__TAURI_INTERNALS__" in window; }
-
 // ── Envoi vers Rust (fire-and-forget) ────────────────────────────────────────
 
 async function persist(entry: LogEntry): Promise<void> {
-  if (!isTauri()) return;
+  if (!isTauriContext()) return;
   try {
     await invoke("log_entry", { entry });
   } catch { /* le logger ne doit jamais throw */ }
