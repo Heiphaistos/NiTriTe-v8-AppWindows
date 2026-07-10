@@ -14,8 +14,8 @@ export const useSystemStore = defineStore("system", () => {
     error.value = null;
     try {
       info.value = await invoke<SystemInfo>("get_system_info");
-    } catch (e: any) {
-      error.value = e?.toString() ?? "Erreur inconnue";
+    } catch (e: unknown) {
+      error.value = (e instanceof Error ? e.message : String(e)) || "Erreur inconnue";
     } finally {
       loading.value = false;
     }

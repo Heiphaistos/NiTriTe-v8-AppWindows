@@ -18,5 +18,5 @@ export async function exportScanJson(
     });
     useNotificationStore().success("Scan exporté (.json)", filePath);
     await invokeRaw("open_path", { path: filePath }).catch(() => {});
-  } catch (e: any) { useNotificationStore().error("Erreur export", String(e)); }
+  } catch (e: unknown) { useNotificationStore().error("Erreur export", String(e)); }
 }

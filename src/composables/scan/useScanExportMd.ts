@@ -283,5 +283,5 @@ export async function exportScanMd(
     await invoke("save_content_to_path", { path: filePath, content: L.join("\n") });
     useNotificationStore().success("Scan exporté (Markdown)", filePath);
     await invokeRaw("open_path", { path: filePath }).catch(() => {});
-  } catch (e: any) { useNotificationStore().error("Erreur export", String(e)); }
+  } catch (e: unknown) { useNotificationStore().error("Erreur export", String(e)); }
 }

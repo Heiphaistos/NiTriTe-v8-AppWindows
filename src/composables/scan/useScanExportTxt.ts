@@ -295,5 +295,5 @@ export async function exportScanTxt(
     await invoke("save_content_to_path", { path: filePath, content: "\uFEFF" + lines.join("\n") });
     useNotificationStore().success("Scan exporte (.txt)", filePath);
     await invokeRaw("open_path", { path: filePath }).catch(() => {});
-  } catch (e: any) { useNotificationStore().error("Erreur export", String(e)); }
+  } catch (e: unknown) { useNotificationStore().error("Erreur export", String(e)); }
 }

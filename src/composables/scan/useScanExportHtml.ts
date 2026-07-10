@@ -305,5 +305,5 @@ ${p1}${p2}${p3}
     await invoke("save_content_to_path", { path: filePath, content: html });
     useNotificationStore().success("Scan exporté (HTML)", filePath);
     await invokeRaw("open_path", { path: filePath }).catch(() => {});
-  } catch (e: any) { useNotificationStore().error("Erreur export", String(e)); }
+  } catch (e: unknown) { useNotificationStore().error("Erreur export", String(e)); }
 }
