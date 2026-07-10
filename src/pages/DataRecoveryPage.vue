@@ -159,6 +159,7 @@ const sortedShadowFiles = computed(() => {
       case "name": return dir * a.name.localeCompare(b.name);
       case "size": return dir * (a.size_bytes - b.size_bytes);
       case "date": return dir * a.deleted_date.localeCompare(b.deleted_date);
+      default:     return 0;
     }
   });
   return list;
