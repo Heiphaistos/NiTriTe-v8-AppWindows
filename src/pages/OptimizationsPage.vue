@@ -38,9 +38,15 @@ async function emptyRecycleBin() {
     recycleBin.value = { loading: false, done: true, message: result.message };
     notify.success("Corbeille videe", result.message);
     logAction("Vider la corbeille", true);
-  } catch (e: any) {
-    recycleBin.value = { loading: false, done: true, message: "Corbeille videe (demo)" };
-    notify.info("Mode dev", "Simulation : corbeille videe");
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      recycleBin.value = { loading: false, done: true, message: "Corbeille videe (demo)" };
+      notify.info("Mode dev", "Simulation : corbeille videe");
+    } else {
+      const msg = e instanceof Error ? e.message : String(e);
+      recycleBin.value = { loading: false, done: false, message: msg };
+      notify.error("Erreur corbeille", msg.slice(0, 120));
+    }
     logAction("Vider la corbeille", false);
   }
 }
