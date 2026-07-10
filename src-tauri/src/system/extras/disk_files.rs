@@ -160,7 +160,10 @@ $dupes | ConvertTo-Json -Compress
 
 #[tauri::command]
 pub fn delete_file(path: String) -> Result<(), String> {
-    let path_lower = path.to_lowercase().replace('/', "\\");
+    // Canonicalize first to resolve ".." traversal before checking blocked prefixes.
+    let canonical = std::fs::canonicalize(&path)
+        .map_err(|e| format!("Chemin inaccessible {}: {}", path, e))?;
+    let path_lower = canonical.to_string_lossy().to_lowercase().replace('/', "\\");
     let blocked = [
         "c:\\windows\\",
         "c:\\program files\\",
@@ -169,9 +172,9 @@ pub fn delete_file(path: String) -> Result<(), String> {
         "c:\\system volume information\\",
     ];
     if blocked.iter().any(|prefix| path_lower.starts_with(prefix)) {
-        return Err(format!("Suppression interdite dans les répertoires système: {}", path));
+        return Err(format!("Suppression interdite dans les répertoires système: {}", canonical.display()));
     }
-    std::fs::remove_file(&path).map_err(|e| format!("{}: {}", path, e))
+    std::fs::remove_file(&canonical).map_err(|e| format!("{}: {}", canonical.display(), e))
 }
 
 #[tauri::command]
