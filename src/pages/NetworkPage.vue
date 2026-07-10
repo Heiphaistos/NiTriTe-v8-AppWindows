@@ -7,14 +7,13 @@ import NButton from "@/components/ui/NButton.vue";
 import NBadge from "@/components/ui/NBadge.vue";
 import NProgress from "@/components/ui/NProgress.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
-import NCollapse from "@/components/ui/NCollapse.vue";
 import { useNotificationStore } from "@/stores/notifications";
 import { useExportData } from "@/composables/useExportData";
 import NetworkTraceroute from "@/components/shared/NetworkTraceroute.vue";
 import NetworkVpnDetect from "@/components/shared/NetworkVpnDetect.vue";
 import {
   Wifi, Globe, Activity, Zap, RefreshCw, Copy, Check,
-  Network, Server, Shield, ArrowDown, ArrowUp, Route,
+  Network, Server, ArrowDown, ArrowUp, Route,
   Clock, History, Trash2, Stethoscope, CheckCircle, AlertTriangle, XCircle, Info, Wrench,
 } from "lucide-vue-next";
 

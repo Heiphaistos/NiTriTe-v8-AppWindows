@@ -14,8 +14,8 @@ import { useNotificationStore } from "@/stores/notifications";
 import {
   Download, CheckSquare, Square, Package,
   Globe, Shield, Code, Image, MessageSquare,
-  FileText, Music, Video, Wrench, RefreshCw,
-  Cpu, HardDrive, Monitor, Printer, Archive,
+  FileText, Music, Video, Wrench,
+  Cpu, Monitor, Printer, Archive,
   Bot, Users, Cloud, Star, Lock, Play,
   ChevronDown, ChevronRight, Layers, FileCode, Eye,
 } from "lucide-vue-next";

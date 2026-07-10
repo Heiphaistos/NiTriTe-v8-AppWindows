@@ -6,7 +6,7 @@ import NButton from "@/components/ui/NButton.vue";
 import NBadge from "@/components/ui/NBadge.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
 import { useNotificationStore } from "@/stores/notifications";
-import { Network, RefreshCw, Search, Download, Play, Square } from "lucide-vue-next";
+import { Network, Search, Download, Play, Square } from "lucide-vue-next";
 
 const notify = useNotificationStore();
 

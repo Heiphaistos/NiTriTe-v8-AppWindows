@@ -6,7 +6,7 @@ import NButton from "@/components/ui/NButton.vue";
 import NBadge from "@/components/ui/NBadge.vue";
 import NSkeleton from "@/components/ui/NSkeleton.vue";
 import { useNotificationStore } from "@/stores/notifications";
-import { Terminal, RefreshCw, Play, Package, Settings2, CheckCircle2, StopCircle, Upload, ArrowUp, Trash2, ExternalLink } from "lucide-vue-next";
+import { Terminal, RefreshCw, Play, Package, Settings2, StopCircle, Upload, ArrowUp, Trash2, ExternalLink } from "lucide-vue-next";
 
 const notify = useNotificationStore();
 

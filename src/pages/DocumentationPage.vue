@@ -5,7 +5,7 @@ import NSearchBar from "@/components/ui/NSearchBar.vue";
 import {
   BookOpen, ChevronDown, ChevronRight,
   Rocket, Stethoscope, Download, Wrench,
-  Save, Bot, FileCode, Keyboard, Info,
+  Save, Bot, Keyboard, Info,
   Monitor, Globe, Shield, HardDrive, Terminal,
   BarChart3, Lightbulb, AlertTriangle, Zap,
 } from "lucide-vue-next";

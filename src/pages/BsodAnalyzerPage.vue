@@ -8,7 +8,7 @@ import NBadge from "@/components/ui/NBadge.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
 import NSkeleton from "@/components/ui/NSkeleton.vue";
 import { useNotificationStore } from "@/stores/notifications";
-import { AlertTriangle, RefreshCw, FolderOpen, Clock, FileText, Info, ShieldAlert } from "lucide-vue-next";
+import { AlertTriangle, RefreshCw, FolderOpen, Clock, Info, ShieldAlert } from "lucide-vue-next";
 
 const notify = useNotificationStore();
 

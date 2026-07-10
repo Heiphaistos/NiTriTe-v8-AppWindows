@@ -9,8 +9,8 @@ import NBadge from "@/components/ui/NBadge.vue";
 import { useNotificationStore } from "@/stores/notifications";
 import {
   Save, FolderArchive, CheckSquare, Square,
-  RefreshCw, CheckCircle, Clock, Download,
-  AlertTriangle, FolderOpen, Lock,
+  RefreshCw, CheckCircle, Clock,
+  FolderOpen, Lock,
 } from "lucide-vue-next";
 
 const SENSITIVE_ITEMS = new Set(["wifi_passwords","bitlocker_keys","windows_license","ssh_keys","office_license"]);

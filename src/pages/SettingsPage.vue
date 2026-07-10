@@ -10,9 +10,9 @@ import { useAppStore, type ThemeName } from "@/stores/app";
 import { useNotificationStore } from "@/stores/notifications";
 import { useAiStore } from "@/stores/ai";
 import {
-  Settings, Palette, Activity, Bot, Download, Info,
+  Settings, Palette, Bot, Download, Info,
   Save, RotateCcw, Wifi, CheckCircle, XCircle, FolderOpen,
-  Upload, Zap, Bell, Shield, Monitor, Database,
+  Upload, Zap, Bell,
 } from "lucide-vue-next";
 
 const appStore = useAppStore();

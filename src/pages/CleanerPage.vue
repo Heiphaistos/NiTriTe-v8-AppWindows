@@ -9,7 +9,7 @@ import NBadge from "@/components/ui/NBadge.vue";
 import NProgress from "@/components/ui/NProgress.vue";
 import NSkeleton from "@/components/ui/NSkeleton.vue";
 import { useNotificationStore } from "@/stores/notifications";
-import { Trash2, RefreshCw, Search, FileText, CheckSquare, Square, HardDrive, Zap, Shield, RotateCcw, ChevronDown, ChevronRight, Eye } from "lucide-vue-next";
+import { Trash2, RefreshCw, Search, FileText, CheckSquare, Square, HardDrive, Zap, Shield, ChevronDown, Eye } from "lucide-vue-next";
 
 const notify = useNotificationStore();
 

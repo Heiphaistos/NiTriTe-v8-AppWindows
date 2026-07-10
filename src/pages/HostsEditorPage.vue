@@ -9,7 +9,7 @@ import NSkeleton from "@/components/ui/NSkeleton.vue";
 import { useNotificationStore } from "@/stores/notifications";
 import {
   Globe, Plus, Trash2, Eye, EyeOff, Save,
-  RefreshCw, Shield, AlertTriangle, CheckCircle,
+  RefreshCw, AlertTriangle,
 } from "lucide-vue-next";
 
 const notify = useNotificationStore();

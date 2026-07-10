@@ -11,7 +11,7 @@ import NSearchBar from "@/components/ui/NSearchBar.vue";
 import NTabs from "@/components/ui/NTabs.vue";
 import { useNotificationStore } from "@/stores/notifications";
 import {
-  Package, Download, CheckCircle, AlertTriangle,
+  Package, Download, CheckCircle,
   Globe, FileText, Code, Film, MessageSquare,
   Shield, Settings, Wifi, Gamepad2, RefreshCw,
   Trash2, Search, HardDrive,

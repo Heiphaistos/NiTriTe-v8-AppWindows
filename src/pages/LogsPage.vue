@@ -10,8 +10,8 @@ import { useExportData } from "@/composables/useExportData";
 import { logBuffer, logStats as sessionStats } from "@/utils/logger";
 import type { LogEntry, LogLevel, LogSource } from "@/utils/logger";
 import {
-  ScrollText, RefreshCw, Trash2, ArrowDownToLine,
-  Filter, Info, AlertTriangle, XCircle, Download,
+  RefreshCw, Trash2, ArrowDownToLine,
+  Filter, Info, Download,
   ChevronDown, ChevronRight, Zap, Bug, Database,
   FolderArchive, FileText,
 } from "lucide-vue-next";

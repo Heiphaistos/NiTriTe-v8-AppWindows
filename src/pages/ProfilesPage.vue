@@ -14,7 +14,7 @@ import NSpinner from "@/components/ui/NSpinner.vue";
 import NBadge from "@/components/ui/NBadge.vue";
 import {
   User, Plus, Trash2, Download, Upload, Play,
-  Save, Settings, Clock, CheckCircle, FolderOpen,
+  Save, Settings, Clock, CheckCircle,
 } from "lucide-vue-next";
 
 const notify  = useNotificationStore();
