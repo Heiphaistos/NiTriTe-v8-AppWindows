@@ -18,7 +18,7 @@ const deleting    = ref<Set<string>>(new Set());
 const scanPath    = ref("C:\\Users");
 const minSizeKb   = ref(100);
 const confirmAll  = ref(false);
-const scanMode    = ref<"hash" | "name" | "content">("hash");
+const scanMode    = ref<"hash" | "name">("hash");
 const creatingRP  = ref(false);
 const displayCount = ref(20);
 const totalWasted = computed(() => groups.value.reduce((s, g) => s + g.wasted_bytes, 0));
@@ -26,9 +26,8 @@ const dupeFiles   = computed(() => groups.value.reduce((s, g) => s + g.files.len
 const visibleGroups = computed(() => groups.value.slice(0, displayCount.value));
 
 const scanModes = [
-  { value: "hash" as const,    label: "Hash",    icon: "🔑", desc: "Identique bit à bit (SHA256)" },
-  { value: "name" as const,    label: "Nom",     icon: "📝", desc: "Même nom de fichier" },
-  { value: "content" as const, label: "Contenu", icon: "📄", desc: "Même contenu (texte/binaire)" },
+  { value: "hash" as const, label: "Hash", icon: "🔑", desc: "Fichiers identiques bit à bit (MD5)" },
+  { value: "name" as const, label: "Nom",  icon: "📝", desc: "Même nom de fichier (tailles différentes possibles)" },
 ];
 
 function formatSize(bytes: number): string {
@@ -56,12 +55,10 @@ async function createRestorePoint() {
 async function scan() {
   loading.value = true; groups.value = []; confirmAll.value = false; displayCount.value = 20;
   try {
-    // Le mode "content" est mappé côté Rust comme hash de contenu complet
-    const effectiveMode = scanMode.value === "content" ? "hash" : scanMode.value;
     groups.value = await invokeRaw<DuplicateGroup[]>("find_duplicates", {
       path: scanPath.value,
       minSizeKb: minSizeKb.value,
-      mode: effectiveMode,
+      mode: scanMode.value,
     });
     if (groups.value.length === 0) notify.info("Aucun doublon", "Aucun fichier dupliqué trouvé");
     else notify.success("Scan terminé", `${groups.value.length} groupe(s) — ${formatSize(totalWasted.value)} récupérable(s)`);
@@ -141,7 +138,7 @@ async function openFile(path: string) {
     <div class="page-header">
       <div>
         <h1>Détecteur de Doublons</h1>
-        <p class="page-subtitle">Trouvez et supprimez les fichiers dupliqués — hash, nom ou contenu</p>
+        <p class="page-subtitle">Trouvez et supprimez les fichiers dupliqués — par hash (MD5) ou par nom</p>
       </div>
       <div v-if="groups.length" style="display:flex;gap:8px">
         <NButton variant="ghost" size="sm" @click="exportCsv"><Download :size="14" /> CSV</NButton>

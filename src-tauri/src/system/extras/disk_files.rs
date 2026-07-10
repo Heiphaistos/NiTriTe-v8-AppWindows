@@ -114,16 +114,35 @@ pub struct DuplicateGroup {
 }
 
 #[tauri::command]
-pub async fn find_duplicates(path: String, min_size_kb: u64) -> Result<Vec<DuplicateGroup>, String> {
-    tokio::task::spawn_blocking(move || find_duplicates_sync(path, min_size_kb))
+pub async fn find_duplicates(path: String, min_size_kb: u64, mode: Option<String>) -> Result<Vec<DuplicateGroup>, String> {
+    let m = mode.unwrap_or_else(|| "hash".to_string());
+    tokio::task::spawn_blocking(move || find_duplicates_sync(path, min_size_kb, m))
         .await
         .map_err(|e| e.to_string())?
 }
 
-fn find_duplicates_sync(path: String, min_size_kb: u64) -> Result<Vec<DuplicateGroup>, String> {
+fn find_duplicates_sync(path: String, min_size_kb: u64, mode: String) -> Result<Vec<DuplicateGroup>, String> {
     let min_bytes = (min_size_kb * 1024).max(1024);
-    let script = format!(r#"
-$files = Get-ChildItem -Path '{path}' -Recurse -File -ErrorAction SilentlyContinue |
+    let safe_path = path.replace('\'', "''");
+    let script = if mode == "name" {
+        format!(r#"
+$files = Get-ChildItem -Path '{safe_path}' -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object {{ $_.Length -ge {min} }}
+$groups = $files | Group-Object Name | Where-Object {{ $_.Count -gt 1 }}
+$dupes = @()
+foreach ($g in $groups) {{
+    $dupes += [PSCustomObject]@{{
+        hash=$g.Name
+        size=($g.Group | Select-Object -First 1 -ExpandProperty Length)
+        count=$g.Count
+        files=($g.Group | ForEach-Object {{ $_.FullName }}) -join '|'
+    }}
+}}
+$dupes | ConvertTo-Json -Compress
+"#, safe_path = safe_path, min = min_bytes)
+    } else {
+        format!(r#"
+$files = Get-ChildItem -Path '{safe_path}' -Recurse -File -ErrorAction SilentlyContinue |
     Where-Object {{ $_.Length -ge {min} }}
 $groups = $files | Group-Object Length | Where-Object {{ $_.Count -gt 1 }}
 $dupes = @()
@@ -142,7 +161,8 @@ foreach ($g in $groups) {{
     }}
 }}
 $dupes | ConvertTo-Json -Compress
-"#, path = path.replace('\'', "''"), min = min_bytes);
+"#, safe_path = safe_path, min = min_bytes)
+    };
     let out = ps(&script)?;
     if out.is_empty() { return Ok(vec![]); }
     let arr: Vec<serde_json::Value> = parse_json_arr(&out);

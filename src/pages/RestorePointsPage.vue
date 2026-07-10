@@ -206,7 +206,6 @@ onMounted(load);
             </div>
             <div class="point-meta">
               <span class="point-date"><Clock :size="11" /> {{ formatDate(p.creation_time) }}</span>
-              <span v-if="p.size_bytes" class="point-size">{{ formatSize(p.size_bytes) }}</span>
             </div>
           </div>
 
