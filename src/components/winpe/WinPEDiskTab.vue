@@ -32,39 +32,57 @@ async function run(cmd: string, label?: string) {
 const diskpartCmds = [
   { label: "Lister tous les disques",     cmd: "echo list disk | diskpart" },
   { label: "Lister les volumes",           cmd: "echo list volume | diskpart" },
-  { label: "Lister les partitions (disk 0)", cmd: "printf 'select disk 0\nlist partition' | diskpart" },
+  { label: "Partitions disk 0",           cmd: "(echo select disk 0 & echo list partition) | diskpart" },
   { label: "Infos SMART (WMI)",            cmd: "Get-WmiObject -Namespace 'root/WMI' -Class MSStorageDriver_FailurePredictStatus | Select-Object InstanceName,PredictFailure,Reason | Format-Table -AutoSize" },
   { label: "État des disques physiques",   cmd: "Get-PhysicalDisk | Select-Object FriendlyName,MediaType,OperationalStatus,HealthStatus,Size | Format-Table -AutoSize" },
-  { label: "Partitions Windows",           cmd: "Get-Partition | Select-Object PartitionNumber,DriveLetter,Size,Type | Format-Table -AutoSize" },
+  { label: "Partitions Windows",           cmd: "Get-Partition | Select-Object DiskNumber,PartitionNumber,DriveLetter,Size,Type | Format-Table -AutoSize" },
   { label: "Volumes montés",              cmd: "Get-Volume | Select-Object DriveLetter,FileSystem,HealthStatus,SizeRemaining,Size | Format-Table -AutoSize" },
   { label: "Débit disque (3s)",           cmd: "winsat disk -ran -read -drive c" },
   { label: "Test vitesse lecture",         cmd: "winsat disk -read -drive c" },
   { label: "Infos S.M.A.R.T. détaillées", cmd: "Get-WmiObject -Class MSStorageDriver_FailurePredictData -Namespace 'root/WMI' | Select-Object InstanceName,VendorSpecific | Format-List" },
-  { label: "Attribuer lettre D: au vol 1", cmd: "printf 'select volume 1\nassign letter=D' | diskpart" },
-  { label: "Enlever lettre D:",           cmd: "printf 'select volume 1\nremove letter=D' | diskpart" },
-  { label: "Étendre partition (disk 0 part 1)", cmd: "printf 'select disk 0\nselect partition 1\nextend' | diskpart" },
-  { label: "Marquer partition active",    cmd: "printf 'select disk 0\nselect partition 1\nactive' | diskpart" },
+  { label: "Attribuer lettre D: au vol 1", cmd: "(echo select volume 1 & echo assign letter=D) | diskpart" },
+  { label: "Enlever lettre D:",           cmd: "(echo select volume 1 & echo remove letter=D) | diskpart" },
+  { label: "Étendre partition (disk 0 part 1)", cmd: "(echo select disk 0 & echo select partition 1 & echo extend) | diskpart" },
+  { label: "Marquer partition active",    cmd: "(echo select disk 0 & echo select partition 1 & echo active) | diskpart" },
 ];
+
+function isValidDriveLetter(v: string) { return /^[A-Za-z]:?$/.test(v.trim()); }
+function isValidVolumeLabel(v: string) { return v.length <= 32 && /^[A-Za-z0-9_ -]*$/.test(v); }
+function isValidPath(v: string) { return v.length > 0 && !/[";`$<>|]/.test(v); }
+function isValidDiskIndex(v: string) { return /^\d{1,2}$/.test(v.trim()); }
 
 async function formatVolume() {
   if (!formatDrive.value) return;
-  const letter = formatDrive.value.replace(":", "").trim();
-  const label = formatLabel.value || "VOLUME";
+  if (!isValidDriveLetter(formatDrive.value)) { output.value = "Lettre de lecteur invalide (ex: C ou C:)."; lastSuccess.value = false; return; }
+  const letter = formatDrive.value.replace(":", "").trim().toUpperCase();
+  const label = (formatLabel.value || "VOLUME").trim();
+  if (!isValidVolumeLabel(label)) { output.value = "Étiquette invalide — alphanumériques, espaces, tirets, underscores uniquement."; lastSuccess.value = false; return; }
   const cmd = `format ${letter}: /fs:${formatFs.value} /v:${label} /q /y`;
   await run(cmd, `Formater ${letter}: en ${formatFs.value}`);
 }
 
 async function cloneDisk() {
   if (!cloneSrc.value || !cloneDst.value) return;
-  const cmd = `robocopy ${cloneSrc.value} ${cloneDst.value} /E /COPYALL /R:0 /W:0 /LOG+:robocopy_log.txt`;
+  if (!isValidPath(cloneSrc.value)) { output.value = "Chemin source invalide."; lastSuccess.value = false; return; }
+  if (!isValidPath(cloneDst.value)) { output.value = "Chemin destination invalide."; lastSuccess.value = false; return; }
+  const cmd = `robocopy "${cloneSrc.value}" "${cloneDst.value}" /E /COPYALL /R:0 /W:0 /LOG+:robocopy_log.txt`;
   await run(cmd, `Clone ${cloneSrc.value} → ${cloneDst.value}`);
 }
 
 async function cleanDisk() {
   const idx = prompt("Entrez l'index du disque à nettoyer (ex: 0):");
   if (!idx) return;
-  if (!confirm(`⚠️ IRRÉVERSIBLE : effacer toutes les partitions du disque ${idx} ?`)) return;
-  await run(`printf 'select disk ${idx}\nclean' | diskpart`, `Clean disk ${idx}`);
+  if (!isValidDiskIndex(idx)) { alert("Index invalide — entrez un nombre entre 0 et 99."); return; }
+  const diskIndex = parseInt(idx, 10);
+  if (!confirm(`⚠️ IRRÉVERSIBLE : effacer toutes les partitions du disque ${diskIndex} ?`)) return;
+  isLoading.value = true;
+  try {
+    const r = await invoke<RepairResult>("disk_wipe", { diskIndex, method: "quick" });
+    output.value = r.output;
+    lastSuccess.value = r.success;
+    emit("result", { ...r, command: `Clean disk ${diskIndex}` });
+  } catch (e) { output.value = String(e); lastSuccess.value = false; }
+  finally { isLoading.value = false; }
 }
 </script>
 

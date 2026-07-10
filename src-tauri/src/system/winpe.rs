@@ -762,9 +762,23 @@ pub async fn enable_offline_account(windows_dir: String, username: String) -> Re
 /// et qu'aucun métacaractère de chaining shell n'est présent.
 fn validate_winpe_command(command: &str) -> Result<(), NiTriTeError> {
     const ALLOWED_COMMANDS: &[&str] = &[
-        "ipconfig", "ping", "netsh", "wmic", "diskpart", "bcdedit", "bcdboot",
-        "bootrec", "sfc", "dism", "chkdsk", "net", "regedit", "reg", "robocopy",
-        "xcopy", "dir", "attrib", "format", "label", "vol", "mountvol",
+        // Réseau
+        "ipconfig", "ping", "netsh", "wmic",
+        // Disque / Partition
+        "diskpart", "chkdsk", "format", "label", "vol", "mountvol", "winsat",
+        // Boot
+        "bcdedit", "bcdboot", "bootrec",
+        // Système / Fichiers
+        "sfc", "dism", "reg", "regedit", "robocopy", "xcopy", "dir", "attrib",
+        // Processus / Services
+        "net", "tasklist", "taskkill", "sc",
+        // Infos système
+        "systeminfo", "query", "schtasks", "driverquery", "set", "where",
+        // Utilitaire cmd (pour pipage diskpart multi-commandes)
+        "echo",
+        // GUI WinPE
+        "explorer", "taskmgr", "msconfig", "eventvwr", "compmgmt",
+        "diskmgmt", "services", "notepad", "mstsc",
     ];
 
     // Block PowerShell injection patterns and arbitrary file redirection.
@@ -788,7 +802,23 @@ fn validate_winpe_command(command: &str) -> Result<(), NiTriTeError> {
         return Err(NiTriTeError::System("Commande vide.".to_string()));
     }
 
-    let first_token = command
+    // PowerShell cmdlets (Get-*, Set-*, etc.) are routed to powershell.exe -Command,
+    // not cmd.exe /c, so they cannot chain shell commands via metacharacters.
+    // The metacharacter blocking above already covers injection in these commands.
+    const PS_PREFIXES: &[&str] = &[
+        "Get-", "Set-", "Start-", "Stop-", "New-", "Remove-", "Add-",
+        "Invoke-", "Test-", "Write-", "ConvertFrom-", "Format-",
+        "Where-", "Sort-", "Select-",
+    ];
+    if PS_PREFIXES.iter().any(|p| command.starts_with(p)) {
+        return Ok(());
+    }
+
+    // Strip a leading '(' to support grouped diskpart pipe sequences such as
+    // "(echo select disk 0 & echo clean) | diskpart". Parentheses are cmd.exe
+    // grouping operators and introduce no additional injection surface.
+    let stripped = command.trim().trim_start_matches('(');
+    let first_token = stripped
         .split_whitespace()
         .next()
         .unwrap_or("")
@@ -867,6 +897,39 @@ mod tests {
         assert!(validate_winpe_command("diskpart").is_ok());
         assert!(validate_winpe_command("dism /Online /Cleanup-Image /RestoreHealth").is_ok());
         assert!(validate_winpe_command("chkdsk C: /f").is_ok());
+        // Process / service management
+        assert!(validate_winpe_command("tasklist /fo table").is_ok());
+        assert!(validate_winpe_command("taskkill /f /pid 1234").is_ok());
+        assert!(validate_winpe_command("sc query state= all").is_ok());
+        // System info
+        assert!(validate_winpe_command("systeminfo").is_ok());
+        assert!(validate_winpe_command("query user").is_ok());
+        assert!(validate_winpe_command("driverquery /fo table").is_ok());
+        // echo for diskpart piping
+        assert!(validate_winpe_command("echo list disk | diskpart").is_ok());
+        assert!(validate_winpe_command("echo list volume | diskpart").is_ok());
+        // GUI tools
+        assert!(validate_winpe_command("notepad").is_ok());
+        assert!(validate_winpe_command("taskmgr").is_ok());
+        assert!(validate_winpe_command("msconfig").is_ok());
+    }
+
+    #[test]
+    fn winpe_cmd_allows_ps_cmdlets() {
+        // PowerShell cmdlets bypass first-token check (routed to powershell.exe)
+        assert!(validate_winpe_command("Get-Process | Select-Object Name,Id | Format-Table").is_ok());
+        assert!(validate_winpe_command("Get-PhysicalDisk | Select-Object FriendlyName,HealthStatus").is_ok());
+        assert!(validate_winpe_command("Get-Volume | Format-Table").is_ok());
+        assert!(validate_winpe_command("Get-Service | Where-Object { $_.Status -eq 'Running' }").is_ok());
+        assert!(validate_winpe_command("Get-NetAdapter | Format-Table").is_ok());
+    }
+
+    #[test]
+    fn winpe_cmd_allows_grouped_diskpart() {
+        // Parenthetical grouping for multi-command diskpart sequences
+        assert!(validate_winpe_command("(echo select disk 0 & echo list partition) | diskpart").is_ok());
+        assert!(validate_winpe_command("(echo select volume 1 & echo assign letter=D) | diskpart").is_ok());
+        assert!(validate_winpe_command("(echo select disk 0 & echo select partition 1 & echo extend) | diskpart").is_ok());
     }
 
     #[test]
@@ -874,6 +937,7 @@ mod tests {
         assert!(validate_winpe_command("cmd /c del *.*").is_err());
         assert!(validate_winpe_command("powershell -c rm -rf /").is_err());
         assert!(validate_winpe_command("").is_err());
+        assert!(validate_winpe_command("printf 'x' | diskpart").is_err());
     }
 
     #[test]
@@ -893,6 +957,8 @@ mod tests {
         assert!(validate_winpe_command("ipconfig `whoami`").is_err());
         // $( substitution (PowerShell)
         assert!(validate_winpe_command("ipconfig $(calc)").is_err());
+        // PS cmdlets still blocked if metacharacters present
+        assert!(validate_winpe_command("Get-Process; Remove-Item C:\\*").is_err());
     }
 
     #[test]

@@ -33,8 +33,12 @@ async function run(cmd: string, label?: string) {
   finally { isLoading.value = false; }
 }
 
+function isValidRegPath(v: string) { return v.length > 0 && !/[";`$<>|]/.test(v); }
+function isValidFilePath(v: string) { return v.length > 0 && !/[";`$<>|]/.test(v); }
+
 async function loadHive() {
   if (!hiveAlias.value || !hivePath.value) return;
+  // hiveAlias and hivePath are <select> elements with hardcoded values
   await run(`reg load "${hiveAlias.value}" "${hivePath.value}"`, `Charger ruche ${hivePath.value}`);
 }
 
@@ -45,16 +49,22 @@ async function unloadHive() {
 
 async function doExportKey() {
   if (!regExportKey.value || !exportPath.value) return;
+  if (!isValidRegPath(regExportKey.value)) { output.value = "Chemin de clé invalide."; lastSuccess.value = false; return; }
+  if (!isValidFilePath(exportPath.value)) { output.value = "Chemin de fichier invalide."; lastSuccess.value = false; return; }
   await run(`reg export "${regExportKey.value}" "${exportPath.value}" /y`, `Export ${regExportKey.value}`);
 }
 
 async function queryKey() {
   if (!regKey.value) return;
+  if (!isValidRegPath(regKey.value)) { output.value = "Chemin de clé invalide."; lastSuccess.value = false; return; }
   await run(`reg query "${regKey.value}"`, `Query ${regKey.value}`);
 }
 
 async function setValue() {
   if (!regKey.value || !regValue.value) return;
+  if (!isValidRegPath(regKey.value)) { output.value = "Chemin de clé invalide."; lastSuccess.value = false; return; }
+  if (!isValidRegPath(regValue.value)) { output.value = "Nom de valeur invalide."; lastSuccess.value = false; return; }
+  if (regData.value && /[";`$<>|]/.test(regData.value)) { output.value = "Données invalides — caractères interdits."; lastSuccess.value = false; return; }
   await run(`reg add "${regKey.value}" /v "${regValue.value}" /t ${regType.value} /d "${regData.value}" /f`,
     `Set ${regKey.value}\\${regValue.value}`);
 }
