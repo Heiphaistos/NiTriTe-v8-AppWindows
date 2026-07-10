@@ -758,14 +758,37 @@ pub async fn enable_offline_account(windows_dir: String, username: String) -> Re
 
 // ── Whitelist commandes WinPE ─────────────────────────────────────────────────
 
-/// Vérifie que le premier token de la commande est dans la whitelist autorisée.
-/// Retourne Ok(()) si autorisée, Err avec message sinon.
+/// Vérifie que le premier token de la commande est dans la whitelist autorisée
+/// et qu'aucun métacaractère de chaining shell n'est présent.
 fn validate_winpe_command(command: &str) -> Result<(), NiTriTeError> {
     const ALLOWED_COMMANDS: &[&str] = &[
         "ipconfig", "ping", "netsh", "wmic", "diskpart", "bcdedit", "bcdboot",
         "bootrec", "sfc", "dism", "chkdsk", "net", "regedit", "reg", "robocopy",
         "xcopy", "dir", "attrib", "format", "label", "vol", "mountvol",
     ];
+
+    // Block shell metacharacters: && || ; > < ` $( prevent command chaining/injection
+    // even if the first token passes the whitelist (e.g. "ipconfig && del /q C:\*")
+    let blocked_sequences = ["&&", "||", "$("];
+    for seq in &blocked_sequences {
+        if command.contains(seq) {
+            return Err(NiTriTeError::System(format!(
+                "Caractère de contrôle shell interdit '{}' dans la commande.",
+                seq
+            )));
+        }
+    }
+    const BLOCKED_CHARS: &[char] = &[';', '`', '<', '>'];
+    if let Some(c) = command.chars().find(|c| BLOCKED_CHARS.contains(c)) {
+        return Err(NiTriTeError::System(format!(
+            "Caractère interdit '{}' dans la commande.",
+            c
+        )));
+    }
+
+    if command.trim().is_empty() {
+        return Err(NiTriTeError::System("Commande vide.".to_string()));
+    }
 
     let first_token = command
         .split_whitespace()
@@ -852,7 +875,6 @@ mod tests {
     fn winpe_cmd_blocked_unknown() {
         assert!(validate_winpe_command("cmd /c del *.*").is_err());
         assert!(validate_winpe_command("powershell -c rm -rf /").is_err());
-        assert!(validate_winpe_command("inject; whoami").is_err());
         assert!(validate_winpe_command("").is_err());
     }
 
@@ -860,5 +882,22 @@ mod tests {
     fn winpe_cmd_full_path_extracted() {
         // If a full path is provided, only the filename stem is checked
         assert!(validate_winpe_command("C:\\Windows\\System32\\sfc.exe /scannow").is_ok());
+    }
+
+    #[test]
+    fn winpe_cmd_blocks_shell_chaining() {
+        // Semicolon chaining (PowerShell)
+        assert!(validate_winpe_command("ipconfig; del /q C:\\*").is_err());
+        // && chaining (cmd.exe) — passes whitelist on first token but must be blocked
+        assert!(validate_winpe_command("ipconfig && del /q C:\\*").is_err());
+        // || chaining
+        assert!(validate_winpe_command("ipconfig || calc").is_err());
+        // Redirection
+        assert!(validate_winpe_command("ipconfig > C:\\evil.txt").is_err());
+        assert!(validate_winpe_command("ipconfig < C:\\input.txt").is_err());
+        // Backtick (PowerShell command substitution)
+        assert!(validate_winpe_command("ipconfig `whoami`").is_err());
+        // $( substitution
+        assert!(validate_winpe_command("ipconfig $(calc)").is_err());
     }
 }
