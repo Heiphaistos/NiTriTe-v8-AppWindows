@@ -22,6 +22,7 @@ const notify = useNotificationStore();
 interface InstalledApp {
   name: string; version: string; publisher: string;
   uninstall_string: string; source: string;
+  registry_path: string;
   install_size_kb: number; install_date: string;
 }
 
@@ -107,11 +108,19 @@ async function confirmForceRemove() {
   }
   const app = forceRemoveApp.value;
   forceRemoving.value = true;
-  const regKey = app.name.replace(/'/g, "''").replace(/[`$()]/g, "");
+  // Utiliser le vrai chemin registre (PSPath) — app.name est le DisplayName, pas la clé
+  const regPath = (app.registry_path || "").replace(/'/g, "''").replace(/[`$()]/g, "");
+  if (!regPath) {
+    notify.error("Suppression forcée", "Chemin registre non disponible pour cette application.");
+    forceRemoving.value = false;
+    forceRemoveApp.value = null;
+    forceRemoveConfirm.value = 0;
+    return;
+  }
   try {
     await invoke("run_system_command", {
       cmd: "powershell",
-      args: ["-Command", `Remove-Item -Path (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${regKey}').PSPath -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${regKey}' -Recurse -Force -ErrorAction SilentlyContinue`],
+      args: ["-Command", `Remove-Item -Path '${regPath}' -Recurse -Force -ErrorAction SilentlyContinue`],
     });
     notify.success("Suppression forcée", `${app.name} retiré du registre`);
     apps.value = apps.value.filter(a => a.name !== app.name);

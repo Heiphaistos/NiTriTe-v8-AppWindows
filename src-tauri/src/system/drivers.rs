@@ -98,16 +98,30 @@ fn check_registry_key(key_path: &str) -> bool {
 }
 
 fn get_installed_apps_list() -> String {
-    // Utiliser wmic pour lister rapidement les programmes installes
-    let output = Command::new("wmic")
-        .args(["product", "get", "name", "/format:list"])
-        .creation_flags(0x08000000)
-        .output();
-
-    match output {
-        Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
-        Err(_) => String::new(),
+    // Lecture directe du registre — plus rapide et fiable que wmic (déprécié W11)
+    #[cfg(target_os = "windows")]
+    {
+        use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
+        use winreg::RegKey;
+        let uninstall_paths = [
+            (HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
+            (HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
+            (HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
+        ];
+        let mut names = Vec::new();
+        for (hive, path) in &uninstall_paths {
+            let Ok(hive_key) = RegKey::predef(*hive).open_subkey(path) else { continue };
+            for subkey_name in hive_key.enum_keys().flatten() {
+                let Ok(subkey) = hive_key.open_subkey(&subkey_name) else { continue };
+                if let Ok(name) = subkey.get_value::<String, _>("DisplayName") {
+                    names.push(name);
+                }
+            }
+        }
+        return names.join("\n");
     }
+    #[allow(unreachable_code)]
+    String::new()
 }
 
 #[cfg(test)]

@@ -11,6 +11,7 @@ pub struct InstalledApp {
     pub publisher: String,
     pub uninstall_string: String,
     pub source: String,
+    pub registry_path: String,
     pub install_size_kb: u64,
     pub install_date: String,
 }
@@ -41,7 +42,18 @@ $paths = @(
 )
 $apps = Get-ItemProperty $paths -ErrorAction SilentlyContinue |
     Where-Object { $_.DisplayName -and $_.UninstallString -and $_.DisplayName -notmatch '^KB\d+' } |
-    Select-Object DisplayName, DisplayVersion, Publisher, UninstallString, EstimatedSize, InstallDate |
+    ForEach-Object {
+        $rp = ($_.PSPath -replace 'Microsoft\.PowerShell\.Core\\Registry::', '') -replace '^HKEY_LOCAL_MACHINE\\', 'HKLM:\' -replace '^HKEY_CURRENT_USER\\', 'HKCU:\'
+        [PSCustomObject]@{
+            DisplayName = $_.DisplayName
+            DisplayVersion = $_.DisplayVersion
+            Publisher = $_.Publisher
+            UninstallString = $_.UninstallString
+            EstimatedSize = $_.EstimatedSize
+            InstallDate = $_.InstallDate
+            RegistryPath = $rp
+        }
+    } |
     Sort-Object DisplayName
 $apps | ConvertTo-Json -Compress -Depth 2
 "#;
@@ -76,6 +88,7 @@ $apps | ConvertTo-Json -Compress -Depth 2
         Some(InstalledApp {
             name, version, publisher, uninstall_string,
             source: "registry".to_string(),
+            registry_path: v["RegistryPath"].as_str().unwrap_or("").to_string(),
             install_size_kb: v["EstimatedSize"].as_u64().unwrap_or(0),
             install_date,
         })
