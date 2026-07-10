@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import NButton from "@/components/ui/NButton.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
 import { useNotificationStore } from "@/stores/notifications";
@@ -346,8 +346,9 @@ onMounted(async () => {
   loadNtfsDrives();
   try {
     userFolders.value = await invoke<UserFolder[]>("get_user_profile_folders");
-  } catch {
+  } catch (e: unknown) {
     userFolders.value = [];
+    if (isTauriContext()) notify.warning("Dossiers profil", (e instanceof Error ? e.message : String(e)).slice(0, 120));
   }
 });
 </script>

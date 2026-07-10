@@ -156,9 +156,14 @@ async function loadOllamaModels() {
     const list = await invoke<{ name: string; size_gb: number }[]>("ai_list_models");
     ollamaModels.value = list.map(m => ({ value: m.name, label: `${m.name} (${m.size_gb.toFixed(1)} GB)` }));
     if (list.length && !selectedOllama.value) selectedOllama.value = list[0].name;
-  } catch {
-    ollamaModels.value = [{ value: "llama3.2", label: "llama3.2" }];
-    if (!selectedOllama.value) selectedOllama.value = "llama3.2";
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      ollamaModels.value = [{ value: "llama3.2", label: "llama3.2" }];
+      if (!selectedOllama.value) selectedOllama.value = "llama3.2";
+    } else {
+      ollamaModels.value = [];
+      notify.warning("Ollama", "Impossible de lister les modèles — Ollama est-il démarré ?");
+    }
   }
   ollamaModelsLoading.value = false;
 }

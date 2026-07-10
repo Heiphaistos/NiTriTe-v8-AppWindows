@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { invoke, invokeRaw } from "@/utils/invoke";
+import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
@@ -230,8 +230,9 @@ async function loadBackups() {
   backupsLoading.value = true;
   try {
     previousBackups.value = await invoke<BackupEntry[]>("list_backups");
-  } catch {
+  } catch (e: unknown) {
     previousBackups.value = [];
+    if (isTauriContext()) notify.error("Sauvegardes", (e instanceof Error ? e.message : String(e)).slice(0, 120));
   } finally {
     backupsLoading.value = false;
   }
