@@ -19,7 +19,7 @@ const props = defineProps<{
   powerPlans: PowerPlan[];
 }>();
 
-const emit = defineEmits(["reload"]);
+const emit = defineEmits<{ reload: [] }>();
 
 const actionMsg = ref("");
 const actionErr = ref(false);
