@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
+import { sdiAcquire, sdiRelease } from "@/utils/sdiGuard";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
@@ -366,12 +367,11 @@ onUnmounted(() => {
 
 async function launchSdi() {
   try {
-    window.__nitrite_sdi_active = true;
-    setTimeout(() => { window.__nitrite_sdi_active = false; }, 60000);
+    sdiAcquire();
     await invoke("launch_sdi");
     notify.success("Snappy Driver Installer lancé");
   } catch (e) {
-    window.__nitrite_sdi_active = false;
+    sdiRelease();
     notify.error("SDI introuvable", String(e));
   }
 }

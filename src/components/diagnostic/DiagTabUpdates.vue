@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
+import { sdiAcquire, sdiRelease } from "@/utils/sdiGuard";
 import { listen } from "@tauri-apps/api/event";
 import { useNotificationStore } from "@/stores/notifications";
 import { useExportData } from '@/composables/useExportData';
@@ -230,12 +231,11 @@ onUnmounted(() => { if (scoopUnlisten) scoopUnlisten(); });
 
 async function launchSdi() {
   try {
-    window.__nitrite_sdi_active = true;
-    setTimeout(() => { window.__nitrite_sdi_active = false; }, 60000);
+    sdiAcquire();
     await invoke("launch_sdi");
     notify.success("Snappy Driver Installer lancé");
   } catch (e) {
-    window.__nitrite_sdi_active = false;
+    sdiRelease();
     notify.error("SDI introuvable", String(e));
   }
 }

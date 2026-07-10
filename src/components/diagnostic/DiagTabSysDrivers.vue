@@ -314,6 +314,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, shallowRef, defineAsyncComponent } from "vue";
 import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
+import { sdiAcquire, sdiRelease } from "@/utils/sdiGuard";
 import type { DriverInstallResult } from "@/types/diagnostic";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useNotificationStore } from "@/stores/notifications";
@@ -393,11 +394,10 @@ function showMsg(msg: string, err = false) {
 
 async function launchSdi() {
   try {
-    window.__nitrite_sdi_active = true;
-    setTimeout(() => { window.__nitrite_sdi_active = false; }, 60000);
+    sdiAcquire();
     await invoke("launch_sdi");
   } catch (e) {
-    window.__nitrite_sdi_active = false;
+    sdiRelease();
     showMsg("SDI introuvable : " + String(e), true);
   }
 }

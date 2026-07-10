@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import { invokeRaw as invoke, isTauriContext } from "@/utils/invoke";
 import type { DriverInstallResult } from "@/types/diagnostic";
 import { useNotificationStore } from "@/stores/notifications";
+import { sdiAcquire, sdiRelease } from "@/utils/sdiGuard";
 const notify = useNotificationStore();
 import NBadge from "@/components/ui/NBadge.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
@@ -65,11 +66,10 @@ const matchedByDevice = computed(() => {
 // ─── Actions ───────────────────────────────────────────────────────────────────
 async function launchSdi() {
   try {
-    window.__nitrite_sdi_active = true;
-    setTimeout(() => { window.__nitrite_sdi_active = false; }, 60000);
+    sdiAcquire();
     await invoke("launch_sdi");
   } catch (e) {
-    window.__nitrite_sdi_active = false;
+    sdiRelease();
     notify.warning("SDI non trouvé sur ce PC", "Redirection vers le site officiel...");
     await invoke("open_url", { url: "https://www.snappy-driver-installer.org/download/" }).catch(() => {});
   }

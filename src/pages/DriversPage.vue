@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { invoke, isTauriContext } from "@/utils/invoke";
+import { sdiAcquire, sdiRelease } from "@/utils/sdiGuard";
 import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -341,12 +342,11 @@ async function loadRecommended() {
 
 async function launchSdi() {
   try {
-    window.__nitrite_sdi_active = true;
-    setTimeout(() => { window.__nitrite_sdi_active = false; }, 60000);
+    sdiAcquire();
     await invoke("launch_sdi");
     notifications.success("Snappy Driver Installer lancé");
   } catch (e) {
-    window.__nitrite_sdi_active = false;
+    sdiRelease();
     notifications.error("SDI introuvable", String(e));
   }
 }
