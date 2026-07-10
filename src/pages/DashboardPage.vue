@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, type Component } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
+import { useNotificationStore } from "@/stores/notifications";
 import { useRouter } from "vue-router";
 import { useDiagnosticStore } from "@/stores/diagnosticStore";
 import StatsCard from "@/components/shared/StatsCard.vue";
@@ -29,6 +30,8 @@ interface GpuInfo { name: string; usage_percent: number; vram_used_mb: number; v
 interface DiskTemp { name: string; temp_c: number; }
 interface ProcessInfo { pid: number; name: string; cpu_percent: number; memory_mb: number; }
 interface AlertItem { id: number; level: string; message: string; time: string; }
+
+const notify = useNotificationStore();
 
 // --- Seuils alertes ---
 const thresholds = ref<AlertThresholds>({
@@ -240,8 +243,11 @@ onMounted(async () => {
       const hist = await invoke<SystemHistory>("get_system_history");
       uptimeH.value = hist?.current_uptime_hours ?? 0;
     } catch { /* uptime: non critique */ }
-  } catch (e) {
+  } catch (e: unknown) {
     isSimulation.value = true;
+    if (isTauriContext()) {
+      notify.error("Dashboard", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
     cpuUsage.value = 23; ramUsage.value = 45; ramUsedGb.value = 14.4;
     ramTotalGb.value = 32; diskUsage.value = 49; networkDown.value = 120;
     topProcesses.value = [
