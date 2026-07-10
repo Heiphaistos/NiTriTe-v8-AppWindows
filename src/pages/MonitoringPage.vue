@@ -12,7 +12,7 @@ import DiagBanner from "@/components/ui/DiagBanner.vue";
 import { useNotificationStore } from "@/stores/notifications";
 import {
   Cpu, MemoryStick, HardDrive, Wifi,
-  Activity, AlertTriangle, RefreshCw,
+  Activity, AlertTriangle,
   ArrowUp, ArrowDown, Pause, Play, Monitor,
   Thermometer, Flame, Dumbbell,
   Download, PenLine, Circle, Square, Tag,
