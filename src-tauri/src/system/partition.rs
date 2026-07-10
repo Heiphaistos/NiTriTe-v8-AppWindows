@@ -177,11 +177,14 @@ pub fn format_partition(letter: String, fs: String, label: String) -> Result<Str
     if clean == "C" || clean.len() != 1 || !clean.chars().next().map(|c| c.is_ascii_alphabetic()).unwrap_or(false) {
         return Err("Lettre de lecteur invalide ou formatage du lecteur système interdit.".into());
     }
-    // Valider le système de fichiers
-    let allowed_fs = ["NTFS", "FAT32", "exFAT", "ReFS"];
-    if !allowed_fs.contains(&fs.to_uppercase().as_str()) {
-        return Err(format!("Système de fichiers non autorisé: {}", fs));
-    }
+    // Valider le système de fichiers (case-insensitive) et normaliser vers la forme canonique PowerShell
+    let fs_canonical = match fs.to_uppercase().as_str() {
+        "NTFS"  => "NTFS",
+        "FAT32" => "FAT32",
+        "EXFAT" => "exFAT",
+        "REFS"  => "ReFS",
+        _ => return Err(format!("Système de fichiers non autorisé: {}", fs)),
+    };
     // Limiter le label à 32 caractères (limite NTFS) — chars() évite le panic sur UTF-8 multi-octets
     let label: String = label.chars().take(32).collect();
 
@@ -213,7 +216,7 @@ pub fn format_partition(letter: String, fs: String, label: String) -> Result<Str
     let ps = format!(
         r#"Format-Volume -DriveLetter '{}' -FileSystem '{}' -NewFileSystemLabel '{}' -Confirm:$false -Force | Out-Null; 'OK'"#,
         clean,
-        fs.replace('\'', "''"),
+        fs_canonical,
         label.replace('\'', "''")
     );
     run_ps_cmd(&ps)
