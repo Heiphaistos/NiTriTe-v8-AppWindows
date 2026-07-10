@@ -155,7 +155,7 @@ async function runRepair(key: string) {
   repairError.value = "";
   try {
     repairResult.value = await invoke<RepairResult>("run_repair_command", { repairType: key });
-  } catch (e: any) { repairError.value = e?.toString() ?? "Erreur"; }
+  } catch (e: unknown) { repairError.value = (e instanceof Error ? e.message : String(e)) || "Erreur"; }
   finally { repairLoading.value = null; }
 }
 

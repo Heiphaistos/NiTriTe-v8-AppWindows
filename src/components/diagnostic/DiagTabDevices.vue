@@ -55,8 +55,8 @@ async function exportBatteryReportToPC() {
     if (!dest) { loading.value = false; return; }
     await invoke("save_content_to_path", { path: dest, content });
     showMsg("Rapport batterie enregistré !");
-  } catch (e: any) {
-    showMsg(e?.toString() || "Erreur export batterie", true);
+  } catch (e: unknown) {
+    showMsg((e instanceof Error ? e.message : String(e)) || "Erreur export batterie", true);
   } finally { loading.value = false; }
 }
 

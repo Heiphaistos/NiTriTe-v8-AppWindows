@@ -217,8 +217,8 @@ async function runDebloat(btn: DebloatBtn) {
     }
     if (btn.result.success) { notify.success(btn.label, btn.result.message); logAction(btn.label, true); }
     else { notify.warning(btn.label, btn.result.message); logAction(btn.label, false); }
-  } catch (e: any) {
-    btn.result = { action: btn.label, success: false, message: e?.toString() ?? "Erreur" };
+  } catch (e: unknown) {
+    btn.result = { action: btn.label, success: false, message: (e instanceof Error ? e.message : String(e)) || "Erreur" };
     notify.error(btn.label);
     logAction(btn.label, false);
   } finally { btn.loading = false; }

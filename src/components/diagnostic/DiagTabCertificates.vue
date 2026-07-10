@@ -43,7 +43,7 @@ const { exportCSV } = useExportData();
 onMounted(async () => {
   try {
     data.value = await invoke<CertsData>("get_certificates");
-  } catch (e: any) { error.value = e?.toString() ?? "Erreur"; }
+  } catch (e: unknown) { error.value = (e instanceof Error ? e.message : String(e)) || "Erreur"; }
   finally { loading.value = false; }
 });
 

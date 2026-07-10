@@ -26,7 +26,7 @@ const notify = useNotificationStore();
 onMounted(async () => {
   try {
     data.value = await invoke<RegistryPersistence>("get_registry_persistence");
-  } catch (e: any) { error.value = e?.toString() ?? "Erreur"; }
+  } catch (e: unknown) { error.value = (e instanceof Error ? e.message : String(e)) || "Erreur"; }
   finally { loading.value = false; }
 });
 

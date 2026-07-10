@@ -35,7 +35,7 @@ async function load() {
       cpuHistory.value = [...cpuHistory.value, data.value.cpu_percent].slice(-MAX_HISTORY);
       ramHistory.value = [...ramHistory.value, data.value.ram_percent].slice(-MAX_HISTORY);
     }
-  } catch (e: any) { error.value = e?.toString() ?? "Erreur"; }
+  } catch (e: unknown) { error.value = (e instanceof Error ? e.message : String(e)) || "Erreur"; }
   finally { loading.value = false; }
 }
 

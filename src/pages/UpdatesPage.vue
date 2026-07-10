@@ -197,9 +197,9 @@ async function upgradeAllChoco() {
     chocoMsg.value = res.message;
     if (res.success) notify.success("Chocolatey", res.message);
     else notify.warning("Chocolatey", res.message);
-  } catch (e: any) {
+  } catch (e: unknown) {
     chocoStatus.value = "error";
-    chocoMsg.value = e?.toString() ?? "Erreur upgrade";
+    chocoMsg.value = (e instanceof Error ? e.message : String(e)) || "Erreur upgrade";
     notify.error("Chocolatey", chocoMsg.value);
   }
 }

@@ -14,7 +14,7 @@ const error = ref("");
 onMounted(async () => {
   try {
     data.value = await cachedInvoke<SystemHistory>("get_system_history");
-  } catch (e: any) { error.value = e?.toString() ?? "Erreur"; }
+  } catch (e: unknown) { error.value = (e instanceof Error ? e.message : String(e)) || "Erreur"; }
   finally { loading.value = false; }
 });
 

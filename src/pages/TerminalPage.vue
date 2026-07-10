@@ -149,8 +149,8 @@ async function executeCommand(cmd?: string) {
     if (!stdout && !stderr) {
       pushLine("info", "Commande executee (aucune sortie)");
     }
-  } catch (e: any) {
-    pushLine("stderr", `Erreur: ${e?.toString() ?? "Commande echouee"}`);
+  } catch (e: unknown) {
+    pushLine("stderr", `Erreur: ${(e instanceof Error ? e.message : String(e)) || "Commande echouee"}`);
   }
 
   running.value = false;
