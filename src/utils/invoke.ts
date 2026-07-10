@@ -17,7 +17,7 @@ export class InvokeTimeoutError extends Error {
  * invoke() avec timeout. Lance une erreur `InvokeTimeoutError` si le délai est dépassé.
  * @param cmd   - nom de la commande Tauri
  * @param args  - arguments (optionnel)
- * @param ms    - timeout en millisecondes (défaut: 15s)
+ * @param ms    - timeout en millisecondes (défaut: 30s)
  */
 export async function invoke<T>(
   cmd: string,

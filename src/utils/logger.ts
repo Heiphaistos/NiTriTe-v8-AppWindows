@@ -160,10 +160,8 @@ export function setupGlobalErrorHandlers(): void {
     const msg = args.map(a => (a instanceof Error ? a.message : String(a))).join(" ");
     // filtre les messages Vue internes redondants avec onErrorCaptured
     if (!msg.includes("[Vue warn]") && !msg.includes("[Nitrite][Vue error]")) {
-      log("ERROR", "UNCAUGHT", msg,
-        args.find(a => a instanceof Error) instanceof Error
-          ? (args.find(a => a instanceof Error) as Error).stack
-          : undefined);
+      const errArg = args.find(a => a instanceof Error);
+    log("ERROR", "UNCAUGHT", msg, errArg instanceof Error ? errArg.stack : undefined);
     }
   };
 
