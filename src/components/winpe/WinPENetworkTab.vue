@@ -47,12 +47,21 @@ const quickCmds = [
   { label: "Adresses IP actives",    cmd: "Get-NetIPAddress | Where-Object { $_.AddressFamily -eq 'IPv4' } | Select-Object InterfaceAlias,IPAddress,PrefixLength | Format-Table" },
 ];
 
+function isValidNetTarget(v: string) { return /^[a-zA-Z0-9.\-:]+$/.test(v.trim()); }
+function isValidIface(v: string) { return v.length > 0 && !v.includes('"') && !v.includes(';') && !v.includes('`'); }
+
 async function ping() {
-  await run(`ping -n 4 ${pingTarget.value}`, `ping ${pingTarget.value}`);
+  const target = pingTarget.value.trim();
+  if (!isValidNetTarget(target)) { output.value = "Cible invalide — seuls chiffres, lettres, points, tirets et ':' autorisés."; lastSuccess.value = false; return; }
+  await run(`ping -n 4 ${target}`, `ping ${target}`);
 }
 
 async function setStaticIp() {
   if (!selectedIface.value || !staticIp.value) return;
+  if (!isValidIface(selectedIface.value)) { output.value = "Nom d'interface invalide."; lastSuccess.value = false; return; }
+  if (!isValidNetTarget(staticIp.value) || !isValidNetTarget(staticMask.value)) { output.value = "Adresse IP ou masque invalide."; lastSuccess.value = false; return; }
+  if (staticGateway.value && !isValidNetTarget(staticGateway.value)) { output.value = "Passerelle invalide."; lastSuccess.value = false; return; }
+  if (staticDns.value && !isValidNetTarget(staticDns.value)) { output.value = "DNS invalide."; lastSuccess.value = false; return; }
   const cmd = `netsh interface ip set address "${selectedIface.value}" static ${staticIp.value} ${staticMask.value} ${staticGateway.value || ""}`;
   await run(cmd, `Set IP statique ${staticIp.value}`);
   if (staticDns.value) {
@@ -62,6 +71,7 @@ async function setStaticIp() {
 
 async function setDhcp() {
   if (!selectedIface.value) return;
+  if (!isValidIface(selectedIface.value)) { output.value = "Nom d'interface invalide."; lastSuccess.value = false; return; }
   await run(`netsh interface ip set address "${selectedIface.value}" dhcp`, "Set DHCP");
   await run(`netsh interface ip set dns "${selectedIface.value}" dhcp`, "Set DNS DHCP");
 }

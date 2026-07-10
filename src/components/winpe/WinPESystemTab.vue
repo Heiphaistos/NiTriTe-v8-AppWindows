@@ -44,18 +44,24 @@ const processCmds = [
   { label: "Dumps BSOD présents",        cmd: "Get-ChildItem C:\\Windows\\Minidump -ErrorAction SilentlyContinue | Select-Object Name,LastWriteTime | Format-Table" },
 ];
 
+function isValidPid(v: string) { return /^\d{1,6}$/.test(v.trim()); }
+function isValidSvcName(v: string) { return v.length > 0 && v.length <= 80 && /^[a-zA-Z0-9_\- ]+$/.test(v); }
+
 async function killProcess() {
   if (!killPid.value) return;
+  if (!isValidPid(String(killPid.value))) { output.value = "PID invalide — entrez un nombre."; lastSuccess.value = false; return; }
   await run(`taskkill /f /pid ${killPid.value}`, `Terminer PID ${killPid.value}`);
 }
 
 async function startService() {
   if (!svcName.value) return;
+  if (!isValidSvcName(svcName.value)) { output.value = "Nom de service invalide."; lastSuccess.value = false; return; }
   await run(`net start "${svcName.value}"`, `Démarrer service ${svcName.value}`);
 }
 
 async function stopService() {
   if (!svcName.value) return;
+  if (!isValidSvcName(svcName.value)) { output.value = "Nom de service invalide."; lastSuccess.value = false; return; }
   await run(`net stop "${svcName.value}"`, `Arrêter service ${svcName.value}`);
 }
 </script>

@@ -1,11 +1,11 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Nitrite",
-  "version": "7.0.0",
+  "version": "7.1.0",
   "identifier": "com.nitrite.tool",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://127.0.0.1:5175",
+    "devUrl": "http://127.1.0.1:5175",
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev"
   },
