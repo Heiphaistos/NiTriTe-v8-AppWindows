@@ -103,11 +103,10 @@ pub fn run_traceroute(host: String) -> Vec<TracertHop> {
         Ok(h) => h,
         Err(e) => { tracing::warn!("run_traceroute: {}", e); return vec![]; }
     };
-    // Use tracert cmd (more reliable than Test-NetConnection for real ms)
-    let cmd = format!("tracert -h 20 -w 1000 {}", h);
+    // Use tracert directly (avoids cmd.exe shell, better defense-in-depth)
     #[cfg(target_os = "windows")]
     {
-        let o = Command::new("cmd").args(["/C",&cmd]).creation_flags(0x08000000).output();
+        let o = Command::new("tracert").args(["-h", "20", "-w", "1000", &h]).creation_flags(0x08000000).output();
         if let Ok(o) = o {
             let text = String::from_utf8_lossy(&o.stdout);
             let mut hops = Vec::new();
@@ -118,7 +117,12 @@ pub fn run_traceroute(host: String) -> Vec<TracertHop> {
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 if parts.len() >= 2 {
                     if let Ok(hop_num) = parts[0].parse::<u32>() {
-                        let addr = parts.iter().rev().find(|s| s.contains('.') || s.contains(':') || **s == "*").unwrap_or(&"*");
+                        // Reject tokens ending with '.' (e.g. "out." from "Request timed out.")
+                        let addr = parts.iter().rev().find(|s| {
+                            **s == "*" ||
+                            (s.contains(':') && !s.contains(' ')) ||
+                            (s.contains('.') && !s.ends_with('.') && !s.contains(' '))
+                        }).copied().unwrap_or("*");
                         let ms_val = parts.iter().find_map(|s| s.trim_end_matches("ms").parse::<f64>().ok()).unwrap_or(0.0);
                         hops.push(TracertHop { hop: hop_num, address: addr.to_string(), ms: ms_val });
                     }
@@ -587,5 +591,41 @@ mod tests {
         let r = validate_http_url("https://example.com/path'test").unwrap();
         // single quote is doubled for PowerShell safety
         assert!(r.contains("''test"), "Expected '' escaping, got: {}", r);
+    }
+
+    // ── traceroute address parser ──────────────────────────────────────────────
+
+    fn parse_tracert_addr(line: &str) -> String {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        parts.iter().rev().find(|s| {
+            **s == "*" ||
+            (s.contains(':') && !s.contains(' ')) ||
+            (s.contains('.') && !s.ends_with('.') && !s.contains(' '))
+        }).copied().unwrap_or("*").to_string()
+    }
+
+    #[test]
+    fn tracert_normal_hop_extracts_ip() {
+        let line = "  1     1 ms     1 ms     1 ms  192.168.1.1";
+        assert_eq!(parse_tracert_addr(line), "192.168.1.1");
+    }
+
+    #[test]
+    fn tracert_timeout_hop_returns_star_not_out() {
+        let line = "  2     *        *        *     Request timed out.";
+        assert_eq!(parse_tracert_addr(line), "*");
+    }
+
+    #[test]
+    fn tracert_hop_with_hostname_and_ip() {
+        let line = "  3    15 ms    14 ms    15 ms  router.example.net [1.2.3.4]";
+        // Should pick the IP in brackets (last token with dots not ending in .)
+        assert_eq!(parse_tracert_addr(line), "[1.2.3.4]");
+    }
+
+    #[test]
+    fn tracert_unreachable_hop_returns_star() {
+        let line = "  4     *        *        *     Destination host unreachable.";
+        assert_eq!(parse_tracert_addr(line), "*");
     }
 }

@@ -7,7 +7,7 @@ import NBadge from "@/components/ui/NBadge.vue";
 import { useNotificationStore } from "@/stores/notifications";
 import {
   HardDrive, RefreshCw, Thermometer, Clock, Shield,
-  Zap, Trash2, Plus, Edit2, RotateCcw, AlertTriangle, CheckCircle,
+  Zap, Trash2, Plus, Edit2, RotateCcw, AlertTriangle,
   Maximize2, Download, Upload, Search, Activity,
 } from "lucide-vue-next";
 

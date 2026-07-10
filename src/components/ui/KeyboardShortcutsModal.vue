@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import NModal from "@/components/ui/NModal.vue";
-import { Keyboard } from "lucide-vue-next";
 
 defineProps<{ modelValue: boolean }>();
 defineEmits<{ "update:modelValue": [v: boolean] }>();
