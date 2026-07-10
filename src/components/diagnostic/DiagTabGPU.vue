@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import { ref, onMounted, onUnmounted } from "vue";
+import { useNotificationStore } from "@/stores/notifications";
 import { Monitor, Settings, RefreshCw, Cpu, Zap, Thermometer, WifiOff } from "lucide-vue-next";
 import NBadge from "@/components/ui/NBadge.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -20,11 +21,22 @@ interface GpuTemp { name: string; temp_celsius: number; source: string; }
 const gpuTemps      = ref<GpuTemp[]>([]);
 const tempsLoading  = ref(false);
 let   pollTimer: ReturnType<typeof setInterval> | null = null;
+const notify = useNotificationStore();
+const tempsErrorShown = ref(false);
 
 async function loadGpuTemps() {
   tempsLoading.value = true;
-  try { gpuTemps.value = await invoke<GpuTemp[]>("get_gpu_temps"); }
-  catch { gpuTemps.value = []; }
+  try {
+    gpuTemps.value = await invoke<GpuTemp[]>("get_gpu_temps");
+    tempsErrorShown.value = false;
+  }
+  catch (e: unknown) {
+    gpuTemps.value = [];
+    if (isTauriContext() && !tempsErrorShown.value) {
+      tempsErrorShown.value = true;
+      notify.warning("Températures GPU", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
+  }
   finally { tempsLoading.value = false; }
 }
 

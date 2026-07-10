@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { invoke, invokeRaw } from "@/utils/invoke";
+import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
 import { listen } from "@tauri-apps/api/event";
 import { useNotificationStore } from "@/stores/notifications";
 import { useExportData } from '@/composables/useExportData';
@@ -52,7 +52,10 @@ let scoopUnlisten: (() => void) | null = null;
 async function scanWU() {
   scanningWU.value = true; wuScanned.value = false; wuMessage.value = "";
   try { pendingWU.value = await invokeRaw<PendingUpdate[]>("scan_pending_windows_updates"); }
-  catch { pendingWU.value = []; }
+  catch (e: unknown) {
+    pendingWU.value = [];
+    if (isTauriContext()) notify.error("Windows Update", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  }
   wuScanned.value = true; scanningWU.value = false;
 }
 async function triggerWU() {
@@ -68,7 +71,10 @@ async function loadWinget() {
   try {
     wingetOk.value = await invoke<boolean>("check_winget");
     if (wingetOk.value) wingetList.value = await invoke<WingetPackage[]>("list_upgradable");
-  } catch { wingetOk.value = false; }
+  } catch (e: unknown) {
+    wingetOk.value = false;
+    if (isTauriContext()) notify.warning("Winget", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  }
   wingetLoading.value = false;
 }
 async function upgradeWinget() {

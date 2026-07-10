@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import { cachedInvoke } from "@/composables/useCachedInvoke";
+import { useNotificationStore } from "@/stores/notifications";
 import { Key, Shield, ShieldCheck, ShieldOff, ExternalLink, AlertTriangle, CheckCircle } from "lucide-vue-next";
 import NBadge from "@/components/ui/NBadge.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -22,17 +23,23 @@ const statusMsg = ref("");
 const allKeys = ref<ProductKey[]>([]);
 const keysLoading = ref(false);
 const keysLoaded = ref(false);
+const notify = useNotificationStore();
 
 onMounted(async () => {
   try { licenseInfo.value = await cachedInvoke<WinLicense>("get_windows_license"); }
-  catch { /* silencieux */ }
+  catch (e: unknown) {
+    if (isTauriContext()) notify.error("Licence Windows", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  }
   loading.value = false;
 });
 
 async function scanAllKeys() {
   keysLoading.value = true;
   try { allKeys.value = await invoke<ProductKey[]>("get_all_product_keys"); }
-  catch { allKeys.value = []; }
+  catch (e: unknown) {
+    allKeys.value = [];
+    if (isTauriContext()) notify.error("Clés produit", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  }
   finally { keysLoading.value = false; keysLoaded.value = true; }
 }
 

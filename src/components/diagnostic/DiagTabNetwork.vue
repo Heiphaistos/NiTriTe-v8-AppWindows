@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
+import { useNotificationStore } from "@/stores/notifications";
 import type { NetworkAdapter, TcpConnection, WifiInfo, NetworkExtended } from "@/types/diagnostic";
 import {
   Search, Wifi, WifiOff, Globe, Shield, ShieldOff, Router, Share2,
@@ -42,6 +43,8 @@ const stateVariant = (s: string) => {
   return "default";
 };
 
+const notify = useNotificationStore();
+
 // === Extended data (réseau étendu) ===
 const extLoading = ref(false);
 const extData = ref<NetworkExtended | null>(null);
@@ -49,7 +52,10 @@ const extData = ref<NetworkExtended | null>(null);
 async function loadExtended() {
   extLoading.value = true;
   try { extData.value = await invoke<NetworkExtended>("get_network_extended"); }
-  catch { extData.value = null; }
+  catch (e: unknown) {
+    extData.value = null;
+    if (isTauriContext()) notify.error("Réseau étendu", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  }
   extLoading.value = false;
 }
 

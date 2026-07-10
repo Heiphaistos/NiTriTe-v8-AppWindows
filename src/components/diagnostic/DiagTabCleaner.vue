@@ -149,7 +149,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { invoke, invokeRaw } from "@/utils/invoke";
+import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
 import { Trash2, RefreshCw, Search, CheckSquare, Square, Globe } from 'lucide-vue-next'
 import { useNotificationStore } from '@/stores/notifications'
 
@@ -237,7 +237,10 @@ async function findLarge() {
 async function loadBrowserCaches() {
   browserLoading.value = true
   try { browserCaches.value = await invoke<BrowserCacheInfo[]>('get_browser_cache_info') }
-  catch { browserCaches.value = [] }
+  catch (e: unknown) {
+    browserCaches.value = [];
+    if (isTauriContext()) notify.error("Cache navigateurs", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  }
   finally { browserLoading.value = false }
 }
 
