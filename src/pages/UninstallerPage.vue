@@ -120,7 +120,7 @@ async function confirmForceRemove() {
   try {
     await invoke("run_system_command", {
       cmd: "powershell",
-      args: ["-Command", `Remove-Item -Path '${regPath}' -Recurse -Force -ErrorAction SilentlyContinue`],
+      args: ["-Command", `Remove-Item -LiteralPath '${regPath}' -Recurse -Force -ErrorAction SilentlyContinue`],
     });
     notify.success("Suppression forcée", `${app.name} retiré du registre`);
     apps.value = apps.value.filter(a => a.name !== app.name);

@@ -492,17 +492,7 @@ pub fn extract_residuals(paths: Vec<String>, target: String) -> ResidualCleanRes
         return ResidualCleanResult { success: true, deleted_count: 0, failed_count: 0, message: "Rien à extraire.".into() };
     }
 
-    // Valider le répertoire cible : uniquement Documents, Bureau, Téléchargements, Temp
     let target_path = std::path::PathBuf::from(&target);
-    let allowed_roots: Vec<std::path::PathBuf> = [
-        dirs::document_dir(),
-        dirs::desktop_dir(),
-        dirs::download_dir(),
-        Some(std::env::temp_dir()),
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
 
     // Canonicaliser pour éviter le path traversal (../../)
     let canonical_target = match target_path.canonicalize()
@@ -514,11 +504,19 @@ pub fn extract_residuals(paths: Vec<String>, target: String) -> ResidualCleanRes
         },
     };
 
-    if !allowed_roots.iter().any(|root| canonical_target.starts_with(root)) {
-        return ResidualCleanResult {
-            success: false, deleted_count: 0, failed_count: paths.len(),
-            message: format!("Destination hors des répertoires autorisés: {}", target),
-        };
+    // Exiger un chemin absolu sur un lecteur Windows (ex: C:\...)
+    {
+        let s = canonical_target.to_string_lossy();
+        let valid = s.len() >= 3
+            && s.chars().next().map(|c| c.is_ascii_alphabetic()).unwrap_or(false)
+            && s.as_bytes().get(1) == Some(&b':')
+            && (s.as_bytes().get(2) == Some(&b'\\') || s.as_bytes().get(2) == Some(&b'/'));
+        if !valid {
+            return ResidualCleanResult {
+                success: false, deleted_count: 0, failed_count: paths.len(),
+                message: format!("Destination invalide (chemin absolu Windows requis): {}", target),
+            };
+        }
     }
 
     if let Err(e) = std::fs::create_dir_all(&canonical_target) {
@@ -557,7 +555,7 @@ foreach ($item in $fileItems) {{
     $path = if ($payload -like 'Menu:*') {{ ($payload -split ':', 2)[1] }}
             else                          {{ $payload }}
     try {{
-        Copy-Item -Path $path -Destination $target -Recurse -Force -ErrorAction Stop; $ok++
+        Copy-Item -LiteralPath $path -Destination $target -Recurse -Force -ErrorAction Stop; $ok++
     }} catch {{ $fail++ }}
 }}
 
