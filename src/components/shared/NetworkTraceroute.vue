@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
+import { useNotificationStore } from "@/stores/notifications";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
@@ -24,9 +25,16 @@ async function runTraceroute() {
     hops.value = await invoke<TracertHop[]>("run_traceroute", {
       host: tracerouteHost.value.trim(),
     });
-  } catch { /* dev fallback */ }
+    ran.value = true;
+  } catch (e: unknown) {
+    if (isTauriContext()) {
+      const msg = e instanceof Error ? e.message : String(e);
+      useNotificationStore().error("Traceroute", msg.slice(0, 120));
+    } else {
+      ran.value = true;
+    }
+  }
   tracerouting.value = false;
-  ran.value = true;
 }
 </script>
 
