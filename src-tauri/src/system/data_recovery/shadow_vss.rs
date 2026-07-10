@@ -1,5 +1,5 @@
 use serde::Serialize;
-use super::run_ps;
+use super::{run_ps, run_ps_with_args};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ShadowCopy {
@@ -98,28 +98,29 @@ try {
 /// Lister le contenu du dossier dans une Shadow Copy
 pub fn browse_shadow_copy(device_path: String, relative_path: String) -> Vec<RecoveredFile> {
     let path = shadow_path(&device_path, &relative_path);
-    let ps = format!(r#"
-$p = '{}'
-try {{
+    // Chemin passé via $args[0] (arg processus séparé) — aucune interpolation PS possible
+    let ps = r#"
+$p = $args[0]
+try {
     $items = @()
-    Get-ChildItem -LiteralPath $p -Force -ErrorAction SilentlyContinue | Select-Object -First 2000 | ForEach-Object {{
-        try {{
-            $items += @{{
+    Get-ChildItem -LiteralPath $p -Force -ErrorAction SilentlyContinue | Select-Object -First 2000 | ForEach-Object {
+        try {
+            $items += @{
                 name       = $_.Name
                 path       = $_.FullName
-                size_bytes = if ($_.PSIsContainer) {{ 0 }} else {{ try {{ $_.Length }} catch {{ 0 }} }}
+                size_bytes = if ($_.PSIsContainer) { 0 } else { try { $_.Length } catch { 0 } }
                 is_dir     = $_.PSIsContainer
-                modified   = try {{ $_.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss') }} catch {{ '' }}
-            }}
-        }} catch {{}}
-    }}
-    if ($items.Count -eq 0) {{ Write-Output '[]' }}
-    elseif ($items.Count -eq 1) {{ Write-Output "[$($items | ConvertTo-Json -Compress -Depth 2)]" }}
-    else {{ $items | ConvertTo-Json -Compress -Depth 2 }}
-}} catch {{ Write-Output '[]' }}
-"#, path.replace('\'', "''"));
+                modified   = try { $_.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss') } catch { '' }
+            }
+        } catch {}
+    }
+    if ($items.Count -eq 0) { Write-Output '[]' }
+    elseif ($items.Count -eq 1) { Write-Output "[$($items | ConvertTo-Json -Compress -Depth 2)]" }
+    else { $items | ConvertTo-Json -Compress -Depth 2 }
+} catch { Write-Output '[]' }
+"#;
 
-    run_ps(&ps)
+    run_ps_with_args(ps, &[&path])
         .and_then(|t| {
             let t = t.trim();
             let j = if t.starts_with('{') { format!("[{}]", t) } else { t.to_string() };
@@ -141,32 +142,33 @@ try {{
 /// Chercher des fichiers dans une Shadow Copy (récursif, filtre par nom)
 pub fn search_shadow_copy(device_path: String, query: String, base_path: String) -> Vec<RecoveredFile> {
     let shadow_root = shadow_path(&device_path, &base_path);
-    let ps = format!(r#"
-$root = '{}'
-$q = '{}'
-try {{
+    // Chemin et requête passés via $args[0]/$args[1] — aucune interpolation PS possible
+    let ps = r#"
+$root = $args[0]
+$q = $args[1]
+try {
     $items = @()
     Get-ChildItem -LiteralPath $root -Recurse -ErrorAction SilentlyContinue |
-        Where-Object {{ $_.Name -like "*$q*" }} |
+        Where-Object { $_.Name -like "*$q*" } |
         Select-Object -First 500 |
-        ForEach-Object {{
-            try {{
-                $items += @{{
+        ForEach-Object {
+            try {
+                $items += @{
                     name       = $_.Name
                     path       = $_.FullName
-                    size_bytes = if ($_.PSIsContainer) {{ 0 }} else {{ try {{ $_.Length }} catch {{ 0 }} }}
+                    size_bytes = if ($_.PSIsContainer) { 0 } else { try { $_.Length } catch { 0 } }
                     is_dir     = $_.PSIsContainer
-                    modified   = try {{ $_.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss') }} catch {{ '' }}
-                }}
-            }} catch {{}}
-        }}
-    if ($items.Count -eq 0) {{ Write-Output '[]' }}
-    elseif ($items.Count -eq 1) {{ Write-Output "[$($items | ConvertTo-Json -Compress -Depth 2)]" }}
-    else {{ $items | ConvertTo-Json -Compress -Depth 2 }}
-}} catch {{ Write-Output '[]' }}
-"#, shadow_root.replace('\'', "''"), query.replace('\'', "''"));
+                    modified   = try { $_.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss') } catch { '' }
+                }
+            } catch {}
+        }
+    if ($items.Count -eq 0) { Write-Output '[]' }
+    elseif ($items.Count -eq 1) { Write-Output "[$($items | ConvertTo-Json -Compress -Depth 2)]" }
+    else { $items | ConvertTo-Json -Compress -Depth 2 }
+} catch { Write-Output '[]' }
+"#;
 
-    run_ps(&ps)
+    run_ps_with_args(ps, &[&shadow_root, &query])
         .and_then(|t| {
             let t = t.trim();
             let j = if t.starts_with('{') { format!("[{}]", t) } else { t.to_string() };
