@@ -111,6 +111,51 @@ pub async fn create_restore_point_cmd(description: String) -> Result<(), NiTriTe
         .map_err(|e| NiTriTeError::System(e.to_string()))?
 }
 
+#[tauri::command]
+pub async fn delete_restore_point_cmd(sequence_number: u32) -> Result<(), NiTriTeError> {
+    tokio::task::spawn_blocking(move || {
+        // Find the restore point's creation time, then locate its VSS shadow copy
+        // via Win32_ShadowCopy matching by date (within 60s tolerance), and delete it.
+        let ps = format!(
+            r#"
+$seq = {seq}
+$rp = Get-ComputerRestorePoint | Where-Object {{ $_.SequenceNumber -eq $seq }} | Select-Object -First 1
+if (-not $rp) {{ throw "Point de restauration #{seq} introuvable." }}
+$rpDate = $rp.ConvertToDateTime($rp.CreationTime)
+$shadow = Get-WmiObject Win32_ShadowCopy | Where-Object {{
+    try {{
+        $sd = $_.ConvertToDateTime($_.InstallDate)
+        [Math]::Abs(($sd - $rpDate).TotalSeconds) -lt 60
+    }} catch {{ $false }}
+}} | Select-Object -First 1
+if ($shadow) {{
+    $shadow.Delete() | Out-Null
+    Write-Output "OK"
+}} else {{
+    throw "Shadow copy correspondant au point #{seq} introuvable — essayez via l'outil Restauration du système Windows."
+}}
+"#,
+            seq = sequence_number
+        );
+        let output = Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &ps])
+            .creation_flags(0x08000000)
+            .output()
+            .map_err(|e| NiTriTeError::System(e.to_string()))?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            let err = String::from_utf8_lossy(&output.stderr);
+            Err(NiTriTeError::System(format!(
+                "Suppression échouée : {}",
+                err.trim()
+            )))
+        }
+    })
+    .await
+    .map_err(|e| NiTriTeError::System(e.to_string()))?
+}
+
 pub fn rollback_last_windows_update() -> Result<String, NiTriTeError> {
     let ps = r#"
 try {

@@ -434,6 +434,7 @@ pub fn run() {
             // Points de restauration
             system::restore_points::list_restore_points_cmd,
             system::restore_points::create_restore_point_cmd,
+            system::restore_points::delete_restore_point_cmd,
             system::restore_points::rollback_last_windows_update_cmd,
             // Regedit navigation
             open_in_regedit,

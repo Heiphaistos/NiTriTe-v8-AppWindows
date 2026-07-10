@@ -16,8 +16,6 @@ interface RestorePoint {
   description: string;
   creation_time: string;
   restore_type: string;
-  id?: string;
-  size_bytes?: number;
 }
 
 const points = ref<RestorePoint[]>([]);
@@ -127,11 +125,7 @@ async function deletePoint(p: RestorePoint) {
   if (!ok) return;
   deletingId.value = p.sequence_number;
   try {
-    const shadowArg = p.id ? `/shadow=${p.id}` : `/oldest`;
-    await invoke("run_system_command", {
-      cmd: "vssadmin",
-      args: ["delete", "shadows", shadowArg, "/quiet"],
-    });
+    await invoke("delete_restore_point_cmd", { sequenceNumber: p.sequence_number });
     notify.success("Point supprimé", `#${p.sequence_number}`);
     await load();
   } catch (e: unknown) {
