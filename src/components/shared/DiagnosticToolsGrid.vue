@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import { useNotificationStore } from "@/stores/notifications";
 
 const notify = useNotificationStore();
@@ -112,8 +112,10 @@ async function launchTool(tool: ToolDef) {
 onMounted(async () => {
   try {
     portables.value = await invoke<PortableInfo[]>("get_portable_apps");
-  } catch {
-    // dev fallback
+  } catch (e: unknown) {
+    if (isTauriContext()) {
+      notify.error("Portables", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
   }
 });
 </script>
