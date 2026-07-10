@@ -55,7 +55,7 @@ async function runRepair(type: string) {
 async function runChkdsk() {
   loading.value.chkdsk = true;
   try {
-    const res = await invokeRaw<RepairResult>("run_chkdsk", { drive: chkdskDrive.value, fix: chkdskFix.value });
+    const res = await invokeRaw<RepairResult>("run_chkdsk_pe", { drive: chkdskDrive.value, fix: chkdskFix.value });
     emit("result", res);
   } catch (e) { emit("result", { success: false, output: String(e), command: "chkdsk" }); }
   finally { loading.value.chkdsk = false; }
@@ -90,7 +90,7 @@ async function loadOfflineUsers() {
 async function runResetPassword() {
   loading.value.resetPwd = true;
   try {
-    const res = await invoke<RepairResult>("reset_offline_password", { windows_dir: sfcDir.value, username: selectedUser.value, new_password: newPassword.value });
+    const res = await invoke<RepairResult>("reset_user_password", { windows_dir: sfcDir.value, username: selectedUser.value, new_password: newPassword.value });
     emit("result", res);
   } catch (e) { emit("result", { success: false, output: String(e), command: "reset password" }); }
   finally { loading.value.resetPwd = false; }
@@ -136,7 +136,7 @@ async function runWipe() {
   showWipeConfirm.value = false;
   loading.value.wipe = true;
   try {
-    const res = await invoke<RepairResult>("wipe_disk", { disk_index: wipeDiskIndex.value, method: wipeMethod.value });
+    const res = await invoke<RepairResult>("disk_wipe", { disk_index: wipeDiskIndex.value, method: wipeMethod.value });
     emit("result", res);
   } catch (e) { emit("result", { success: false, output: String(e), command: "wipe disk" }); }
   finally { loading.value.wipe = false; }
