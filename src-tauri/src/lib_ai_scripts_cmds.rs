@@ -209,6 +209,22 @@ async fn execute_script(
     .map_err(|e| NiTriTeError::System(e.to_string()))?
 }
 
+/// Exécute un script builtin par nom — bypass validation (script hardcodé côté Rust, non fourni par le frontend)
+#[tauri::command]
+async fn execute_builtin_script(
+    name: String,
+    window: tauri::Window,
+) -> Result<scripts::executor::ScriptResult, NiTriTeError> {
+    let all = scripts::executor::get_builtin_scripts();
+    let entry = all.into_iter().find(|s| s.name == name)
+        .ok_or_else(|| NiTriTeError::System(format!("Script builtin introuvable: {}", name)))?;
+    tokio::task::spawn_blocking(move || {
+        scripts::executor::execute_script_entry(&entry, &window)
+    })
+    .await
+    .map_err(|e| NiTriTeError::System(e.to_string()))?
+}
+
 // === Logs ===
 
 #[derive(serde::Serialize)]

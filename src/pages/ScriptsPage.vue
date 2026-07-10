@@ -213,8 +213,8 @@ async function executeBuiltinScript(script: BuiltinScript) {
   detectedPaths.value = [];
   startElapsed();
   try {
-    const result = await invoke<{ success: boolean; output: string; exit_code: number }>("execute_script", {
-      content: script.content, scriptType: script.script_type,
+    const result = await invoke<{ success: boolean; output: string; exit_code: number }>("execute_builtin_script", {
+      name: script.name,
     });
     outputLines.value.push(result.output);
     outputLines.value.push("", `--- Terminé en ${elapsed.value}s (code: ${result.exit_code}) ---`);

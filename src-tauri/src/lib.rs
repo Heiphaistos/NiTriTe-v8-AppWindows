@@ -162,6 +162,7 @@ pub fn run() {
             // Scripts
             get_builtin_scripts,
             execute_script,
+            execute_builtin_script,
             // Logs
             get_app_logs,
             // Portables
