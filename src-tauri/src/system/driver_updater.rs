@@ -467,8 +467,16 @@ try {
 // ─── Installer une mise à jour pilote via Windows Update ───────────────────────
 #[tauri::command]
 pub fn install_driver_winupdate(update_id: String) -> DriverInstallResult {
-    // Uses Windows Update Agent COM to download + install specific update
-    let uid = update_id.replace(['"', '\''], "");
+    // Validate: WU update IDs are GUIDs (hex digits + hyphens only, max 36 chars)
+    let uid = update_id.trim().to_string();
+    if uid.is_empty() || uid.len() > 36 || !uid.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
+        return DriverInstallResult {
+            inf_path: String::new(),
+            success: false,
+            output: format!("ID de mise à jour invalide : '{}'", uid),
+            duration_secs: 0,
+        };
+    }
     let ps = format!(r#"
 try {{
     $sess = New-Object -ComObject Microsoft.Update.Session

@@ -142,7 +142,10 @@ pub fn run_nslookup(host: String, record_type: String, dns_server: Option<String
         _ => "A".to_string(),
     };
     let server_arg = match &dns_server {
-        Some(s) if !s.is_empty() => format!(" -Server '{}'", s.replace('\'', "")),
+        Some(s) if !s.is_empty() => match validate_host(s) {
+            Ok(validated) => format!(" -Server '{}'", validated),
+            Err(_) => String::new(),
+        },
         _ => String::new(),
     };
     let ps = format!(r#"try {{ $r = Resolve-DnsName '{host}' -Type {rtype}{server_arg} -ErrorAction SilentlyContinue; if ($r) {{ $recs = @($r | ForEach-Object {{ if($_.IPAddress){{[string]$_.IPAddress}}elseif($_.NameHost){{[string]$_.NameHost}}elseif($_.Exchange){{[string]$_.Exchange}}elseif($_.Strings){{$_.Strings -join ' '}}else{{[string]$_.Name}} }}); @{{ok=$true;recs=$recs;qt='{rtype}'}} | ConvertTo-Json -Compress }} else {{ '@{{\"ok\":false,\"recs\":[],\"qt\":\"{rtype}\"}}' }} }} catch {{ '@{{\"ok\":false,\"recs\":[],\"qt\":\"{rtype}\"}}' }}"#, host=h, rtype=rtype, server_arg=server_arg);

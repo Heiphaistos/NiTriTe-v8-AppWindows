@@ -514,7 +514,11 @@ try {{
 /// Crée une nouvelle Shadow Copy VSS
 pub fn create_shadow_copy(volume: String) -> Result<String, String> {
     let v = volume.trim_end_matches('\\').trim_end_matches(':');
-    let vol_path = format!("{}:\\", v.to_uppercase());
+    let drive = v.to_uppercase();
+    if drive.len() != 1 || !drive.chars().next().map(|c| c.is_ascii_alphabetic()).unwrap_or(false) {
+        return Err(format!("Volume invalide : lettre de lecteur requise (ex: C), reçu: '{}'", v));
+    }
+    let vol_path = format!("{}:\\", drive);
     let ps = format!(
         r#"$r = (Get-WmiObject -List Win32_ShadowCopy).Create('{}', 'ClientAccessible'); if ($r.ReturnValue -eq 0) {{ 'OK:' + $r.ShadowID }} else {{ 'ERR:Code ' + $r.ReturnValue }}"#,
         vol_path
