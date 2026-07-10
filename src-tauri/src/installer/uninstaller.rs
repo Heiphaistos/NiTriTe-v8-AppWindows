@@ -451,7 +451,7 @@ foreach ($item in $items) {{
     }} catch {{ $fail++ }}
 }}
 @{{ok=$ok;fail=$fail}} | ConvertTo-Json -Compress
-"#, paths_json.replace('\'', "''"));
+"#, paths_json);
 
     match run_ps(&ps) {
         Some(t) => {
