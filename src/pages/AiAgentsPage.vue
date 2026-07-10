@@ -355,9 +355,9 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 function formatMessage(text: string): string {
-  // Extraire les blocs code AVANT d'échapper pour les protéger
+  // Strip null bytes to prevent sentinel injection (e.g. \x00CODEBLOCK0\x00 in LLM output)
   const codeBlocks: string[] = [];
-  let safe = text.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, _lang, code) => {
+  let safe = text.replace(/\x00/g, '').replace(/```(\w*)\n([\s\S]*?)```/g, (_m, _lang, code) => {
     codeBlocks.push(code);
     return `\x00CODEBLOCK${codeBlocks.length - 1}\x00`;
   });
