@@ -268,13 +268,19 @@ async function startScan(type: "quick" | "full" | "offline" | "custom") {
     scanStatus.value = "Scan termine — aucune menace detectee";
     scanDone.value = true;
     notifications.success("Scan termine");
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
     scanProgress.value = 100;
-    scanStatus.value = `Scan termine (mode dev) — simulation`;
     scanDone.value = true;
-    result = "Simulation (mode dev)";
-    notifications.info("Scan simule en mode dev");
+    if (isTauriContext()) {
+      scanStatus.value = "Erreur pendant le scan";
+      result = "Erreur";
+      notifications.error("Scan", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    } else {
+      scanStatus.value = "Scan termine (mode dev) — simulation";
+      result = "Simulation (mode dev)";
+      notifications.info("Scan simule en mode dev");
+    }
   }
 
   stopScanTimer();
