@@ -129,9 +129,12 @@ pub fn delete_hosts_entry(line_number: u32) -> Result<String, String> {
     if line_number == 0 {
         return Err("Numéro de ligne invalide".to_string());
     }
+    // -SkipIndex n'existe qu'en PowerShell 6+ ; boucle indexée compatible Windows PowerShell 5.1
     let ps = format!(r#"
 $lines = @(Get-Content '{}')
-$new = @($lines | Select-Object -SkipIndex {})
+$idx = {}
+if ($idx -ge $lines.Count) {{ throw "Ligne introuvable" }}
+$new = @(for ($i = 0; $i -lt $lines.Count; $i++) {{ if ($i -ne $idx) {{ $lines[$i] }} }})
 $new | Set-Content '{}' -Encoding UTF8
 "#, HOSTS_PATH, line_number - 1, HOSTS_PATH);
     #[cfg(target_os = "windows")]
