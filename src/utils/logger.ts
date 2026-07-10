@@ -161,7 +161,7 @@ export function setupGlobalErrorHandlers(): void {
     // filtre les messages Vue internes redondants avec onErrorCaptured
     if (!msg.includes("[Vue warn]") && !msg.includes("[Nitrite][Vue error]")) {
       const errArg = args.find(a => a instanceof Error);
-    log("ERROR", "UNCAUGHT", msg, errArg instanceof Error ? errArg.stack : undefined);
+      log("ERROR", "UNCAUGHT", msg, errArg instanceof Error ? errArg.stack : undefined);
     }
   };
 
