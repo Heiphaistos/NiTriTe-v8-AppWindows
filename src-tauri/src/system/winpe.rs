@@ -767,16 +767,14 @@ fn validate_winpe_command(command: &str) -> Result<(), NiTriTeError> {
         "xcopy", "dir", "attrib", "format", "label", "vol", "mountvol",
     ];
 
-    // Block shell metacharacters: && || ; > < ` $( prevent command chaining/injection
-    // even if the first token passes the whitelist (e.g. "ipconfig && del /q C:\*")
-    let blocked_sequences = ["&&", "||", "$("];
-    for seq in &blocked_sequences {
-        if command.contains(seq) {
-            return Err(NiTriTeError::System(format!(
-                "Caractère de contrôle shell interdit '{}' dans la commande.",
-                seq
-            )));
-        }
+    // Block PowerShell injection patterns and arbitrary file redirection.
+    // Note: && and || are NOT blocked here because legitimate quick-commands use
+    // them for service restart sequences (e.g. "net stop X && net start X").
+    // The first-token whitelist below limits which executables can be invoked.
+    if command.contains("$(") {
+        return Err(NiTriTeError::System(
+            "Substitution de commande PowerShell '$(...)' interdite.".to_string()
+        ));
     }
     const BLOCKED_CHARS: &[char] = &[';', '`', '<', '>'];
     if let Some(c) = command.chars().find(|c| BLOCKED_CHARS.contains(c)) {
@@ -885,19 +883,24 @@ mod tests {
     }
 
     #[test]
-    fn winpe_cmd_blocks_shell_chaining() {
-        // Semicolon chaining (PowerShell)
+    fn winpe_cmd_blocks_injection_patterns() {
+        // Semicolon (PowerShell command separator)
         assert!(validate_winpe_command("ipconfig; del /q C:\\*").is_err());
-        // && chaining (cmd.exe) — passes whitelist on first token but must be blocked
-        assert!(validate_winpe_command("ipconfig && del /q C:\\*").is_err());
-        // || chaining
-        assert!(validate_winpe_command("ipconfig || calc").is_err());
-        // Redirection
+        // Redirection — could overwrite arbitrary files
         assert!(validate_winpe_command("ipconfig > C:\\evil.txt").is_err());
         assert!(validate_winpe_command("ipconfig < C:\\input.txt").is_err());
         // Backtick (PowerShell command substitution)
         assert!(validate_winpe_command("ipconfig `whoami`").is_err());
-        // $( substitution
+        // $( substitution (PowerShell)
         assert!(validate_winpe_command("ipconfig $(calc)").is_err());
+    }
+
+    #[test]
+    fn winpe_cmd_allows_legitimate_chaining() {
+        // && is needed for legitimate service restart sequences
+        assert!(validate_winpe_command("net stop spooler && net start spooler").is_ok());
+        assert!(validate_winpe_command("bcdedit /set {current} safeboot network && bcdedit /set {current} safebootalternateshell yes").is_ok());
+        // || is ok too (conditional execution)
+        assert!(validate_winpe_command("net stop wuauserv || echo failed").is_ok());
     }
 }
