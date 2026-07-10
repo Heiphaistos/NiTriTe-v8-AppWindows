@@ -23,7 +23,6 @@ interface InstalledApp {
   name: string; version: string; publisher: string;
   uninstall_string: string; source: string;
   install_size_kb: number; install_date: string;
-  registry_key?: string;
 }
 
 interface UninstallJob {
@@ -108,8 +107,7 @@ async function confirmForceRemove() {
   }
   const app = forceRemoveApp.value;
   forceRemoving.value = true;
-  const rawKey = app.registry_key ?? app.name;
-  const regKey = rawKey.replace(/'/g, "''").replace(/[`$()]/g, "");
+  const regKey = app.name.replace(/'/g, "''").replace(/[`$()]/g, "");
   try {
     await invoke("run_system_command", {
       cmd: "powershell",
@@ -231,6 +229,7 @@ const sorted = computed(() => {
       case "version":   return dir * a.version.localeCompare(b.version);
       case "size":      return dir * (a.install_size_kb - b.install_size_kb);
       case "date":      return dir * a.install_date.localeCompare(b.install_date);
+      default:          return 0;
     }
   });
   return list;

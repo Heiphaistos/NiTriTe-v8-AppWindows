@@ -438,7 +438,7 @@ try {{
             let t = String::from_utf8_lossy(&o.stdout);
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(t.trim()) {
                 return HttpCheckResult {
-                    url: url_clean,
+                    url: url,
                     status_code: v["code"].as_u64().unwrap_or(0) as u32,
                     status_text: v["text"].as_str().unwrap_or("").to_string(),
                     headers: v["hdrs"].as_array().map(|a| a.iter().filter_map(|s| s.as_str().map(|x| x.to_string())).collect()).unwrap_or_default(),
@@ -448,7 +448,7 @@ try {{
             }
         }
     }
-    HttpCheckResult { url: url_clean, ..Default::default() }
+    HttpCheckResult { url, ..Default::default() }
 }
 
 // ─── Partages réseau ───────────────────────────────────────────────────────────
