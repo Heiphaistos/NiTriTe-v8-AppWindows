@@ -389,10 +389,17 @@ pub async fn download_model_file(
     // Validation de l'URL avant toute connexion
     validate_download_url(url).map_err(|e| format!("URL de téléchargement rejetée: {}", e))?;
 
+    // Strip path traversal: ne conserver que le nom de fichier (pas de répertoire parent)
+    let safe_filename = std::path::Path::new(filename)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .filter(|n| !n.is_empty() && !n.contains('\0'))
+        .ok_or_else(|| format!("Nom de fichier invalide: {}", filename))?;
+
     let client = http_client().await;
     let models = models_dir(exe_dir);
     std::fs::create_dir_all(&models).map_err(|e| e.to_string())?;
-    let dest = format!("{}\\{}", models, filename);
+    let dest = format!("{}\\{}", models, safe_filename);
 
     // HEAD pour obtenir la taille
     let total_size = client.head(url).send().await
@@ -402,10 +409,10 @@ pub async fn download_model_file(
             .and_then(|s| s.parse::<u64>().ok()))
         .unwrap_or(0);
 
-    download_with_progress(&client, url, &dest, total_size, filename, &emit_fn).await
+    download_with_progress(&client, url, &dest, total_size, safe_filename, &emit_fn).await
         .map_err(|e| format!("Téléchargement: {}", e))?;
 
-    emit_fn(DownloadProgress { name: filename.into(), downloaded_mb: 0.0, total_mb: 0.0, percent: 100, done: true, error: None });
+    emit_fn(DownloadProgress { name: safe_filename.into(), downloaded_mb: 0.0, total_mb: 0.0, percent: 100, done: true, error: None });
     Ok(dest)
 }
 

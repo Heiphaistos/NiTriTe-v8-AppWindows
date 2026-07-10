@@ -369,7 +369,7 @@ pub fn delete_residuals(paths: Vec<String>) -> ResidualCleanResult {
     if paths.is_empty() {
         return ResidualCleanResult { success: true, deleted_count: 0, failed_count: 0, message: "Rien à supprimer.".into() };
     }
-    let paths_json = serde_json::to_string(&paths).unwrap_or_default();
+    let paths_json = serde_json::to_string(&paths).unwrap_or_default().replace('\'', "''");
     let ps = format!(r#"
 $items = '{}' | ConvertFrom-Json
 $ok = 0; $fail = 0
