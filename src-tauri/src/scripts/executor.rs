@@ -687,15 +687,32 @@ pub fn list_script_files(dir: &str) -> Result<Vec<ScriptFileInfo>, NiTriTeError>
 }
 
 fn is_script_path_allowed(p: &std::path::Path) -> bool {
-    let allowed: Vec<std::path::PathBuf> = [
-        dirs::document_dir(),
-        dirs::desktop_dir(),
-        dirs::download_dir(),
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
-    allowed.iter().any(|root| p.starts_with(root))
+    // WinPE admin context: canonicalize() a déjà résolu symlinks et path traversal.
+    // Accepter tout chemin absolu sous une lettre de lecteur Windows (C:\..., D:\...).
+    // Les répertoires user (Documents/Desktop) peuvent ne pas exister sur WinPE.
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(s) = p.to_str() {
+            let b = s.as_bytes();
+            return b.len() >= 3
+                && b[0].is_ascii_alphabetic()
+                && b[1] == b':'
+                && (b[2] == b'\\' || b[2] == b'/');
+        }
+        return false;
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let allowed: Vec<std::path::PathBuf> = [
+            dirs::document_dir(),
+            dirs::desktop_dir(),
+            dirs::download_dir(),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        allowed.iter().any(|root| p.starts_with(root))
+    }
 }
 
 pub fn read_script_file(path: &str) -> Result<String, NiTriTeError> {
