@@ -4,13 +4,12 @@ import { invoke } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NBadge from "@/components/ui/NBadge.vue";
-import NCollapse from "@/components/ui/NCollapse.vue";
 import { useNotificationStore } from "@/stores/notifications";
 import { useClipboard } from "@/composables/useClipboard";
 import { HardDrive, ExternalLink, Monitor, Info, ChevronDown, ChevronRight, Copy, Check, Cpu, MemoryStick, Database } from "lucide-vue-next";
 
 const notifications = useNotificationStore();
-const { copy, copied } = useClipboard();
+const { copy } = useClipboard();
 
 // Toutes les categories sont rétractées par défaut — remplissage après définition de osSections
 const collapsed = ref<Set<string>>(new Set());
