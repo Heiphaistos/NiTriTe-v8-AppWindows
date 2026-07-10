@@ -261,6 +261,16 @@ async fn create_scheduled_task(task_name: String, command: String, trigger: Stri
                     }
                     format!("New-ScheduledTaskTrigger -Daily -At '{}'", time)
                 }
+                t if t.starts_with("hourly ") => {
+                    let n = t.trim_start_matches("hourly ")
+                        .trim()
+                        .parse::<u32>()
+                        .unwrap_or(1)
+                        .max(1);
+                    format!(
+                        "New-ScheduledTaskTrigger -RepetitionInterval (New-TimeSpan -Hours {n}) -Once -At (Get-Date)"
+                    )
+                }
                 _ => "New-ScheduledTaskTrigger -AtStartup".to_string(),
             };
             let safe_name = task_name.replace('\'', "''");

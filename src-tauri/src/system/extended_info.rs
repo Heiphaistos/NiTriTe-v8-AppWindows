@@ -198,18 +198,21 @@ pub fn get_folder_sizes() -> Result<Vec<FolderSizeEntry>, NiTriTeError> {
 }
 
 fn expand_env_path(path: &str) -> String {
-    let output = Command::new("cmd")
-        .args(["/C", &format!("echo {}", path)])
-        .creation_flags(0x08000000)
-        .output();
-
-    match output {
-        Ok(o) => {
-            let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
-            if s.is_empty() { path.to_string() } else { s }
-        }
-        Err(_) => path.to_string(),
+    let mut result = path.to_string();
+    let mut start = 0;
+    loop {
+        let Some(open) = result[start..].find('%') else { break };
+        let open = start + open;
+        let Some(close_rel) = result[open + 1..].find('%') else { break };
+        let close = open + 1 + close_rel;
+        let var_name = result[open + 1..close].to_string();
+        let value = std::env::var(&var_name)
+            .unwrap_or_else(|_| format!("%{}%", var_name));
+        let value_len = value.len();
+        result = format!("{}{}{}", &result[..open], value, &result[close + 1..]);
+        start = open + value_len;
     }
+    result
 }
 
 fn measure_folder(path: &str) -> (f64, u64) {
