@@ -29,3 +29,15 @@ pub(super) fn ps(script: &str) -> Result<String, String> {
         .map_err(|e| e.to_string())?;
     Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
+
+/// Comme `ps()` mais passe des arguments supplémentaires accessibles via `$args[0]`, `$args[1]`, …
+/// Les valeurs sont transmises comme arguments de processus séparés — aucune interpolation PS possible.
+pub(super) fn ps_with_args(script: &str, extra_args: &[&str]) -> Result<String, String> {
+    let mut cmd = std::process::Command::new("powershell");
+    cmd.args(["-NoProfile", "-NonInteractive", "-Command", script]);
+    for arg in extra_args {
+        cmd.arg(arg);
+    }
+    let out = cmd.creation_flags(0x08000000).output().map_err(|e| e.to_string())?;
+    Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+}

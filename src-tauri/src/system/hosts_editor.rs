@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     fn hostname_with_special_chars_rejected() {
-        // Semicolons, pipes, dollar signs stripped by clean() — but then fails hostname check
+        // clean() ne supprime PAS ;|$ — ils sont bloqués par la whitelist hostname [a-z0-9-._]
         assert!(validate_hosts_input("127.0.0.1", "evil;whoami").is_err());
         assert!(validate_hosts_input("127.0.0.1", "host|cmd").is_err());
     }

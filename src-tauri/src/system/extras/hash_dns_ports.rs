@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 #[cfg(target_os = "windows")]
-use super::{parse_json_arr, ps};
+use super::{parse_json_arr, ps, ps_with_args};
 
 // ─── Hash Fichier ─────────────────────────────────────────────────────────────
 
@@ -20,11 +20,12 @@ pub fn hash_file(path: String, algorithm: String) -> Result<HashResult, String> 
         "SHA256" => "SHA256",
         _ => "SHA256",
     };
+    // Chemin passé via $args[0] (arg processus séparé) — aucune interpolation PS possible
     let script = format!(
-        "Get-FileHash -Path '{}' -Algorithm {} | Select-Object -ExpandProperty Hash",
-        path.replace('\'', "''"), algo
+        "Get-FileHash -LiteralPath $args[0] -Algorithm {} | Select-Object -ExpandProperty Hash",
+        algo
     );
-    let hash = ps(&script)?;
+    let hash = ps_with_args(&script, &[&path])?;
     let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
     Ok(HashResult { path, algorithm: algo.to_string(), hash: hash.trim().to_string(), size_bytes: size })
 }
@@ -38,13 +39,13 @@ pub fn hash_folder(path: String, algorithm: String, max_files: u32) -> Result<Ve
         _        => "SHA256",
     };
     let n = max_files.min(500);
-    let script = format!(r#"
-Get-ChildItem -Path '{path}' -File -ErrorAction SilentlyContinue | Select-Object -First {n} | ForEach-Object {{
+    // Chemin passé via $args[0] (arg processus séparé) — aucune interpolation PS possible
+    let script = format!(r#"Get-ChildItem -LiteralPath $args[0] -File -ErrorAction SilentlyContinue | Select-Object -First {n} | ForEach-Object {{
     $h = (Get-FileHash $_.FullName -Algorithm {algo} -ErrorAction SilentlyContinue).Hash
     if ($h) {{ [PSCustomObject]@{{ path=$_.FullName; size=$_.Length; hash=$h }} }}
 }} | ConvertTo-Json -Compress"#,
-        path = path.replace('\'', "''"), n = n, algo = algo);
-    let out = ps(&script)?;
+        n = n, algo = algo);
+    let out = ps_with_args(&script, &[&path])?;
     if out.is_empty() { return Ok(vec![]); }
     let arr: Vec<serde_json::Value> = parse_json_arr(&out);
     Ok(arr.iter().filter_map(|v| {
@@ -122,17 +123,27 @@ Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | ForEach-Object {
 
 #[tauri::command]
 pub fn switch_dns(adapter: String, primary: String, secondary: String) -> Result<String, String> {
-    let a = adapter.replace('\'', "''");
-    let p = primary.replace('\'', "''");
-    let s = secondary.replace('\'', "''");
-    let script = if p.is_empty() {
-        format!("Set-DnsClientServerAddress -InterfaceAlias '{}' -ResetServerAddresses; 'OK'", a)
-    } else if s.is_empty() {
-        format!("Set-DnsClientServerAddress -InterfaceAlias '{}' -ServerAddresses '{}'; 'OK'", a, p)
+    // Valider les IPs avant usage — après validation, ne contiennent que [0-9.:/]
+    if !primary.is_empty() {
+        primary.parse::<std::net::IpAddr>().map_err(|_| format!("IP DNS primaire invalide : {}", primary))?;
+    }
+    if !secondary.is_empty() {
+        secondary.parse::<std::net::IpAddr>().map_err(|_| format!("IP DNS secondaire invalide : {}", secondary))?;
+    }
+    // Adaptateur passé via $args[0] pour éviter l'injection PS par bypass '''
+    if primary.is_empty() {
+        ps_with_args("Set-DnsClientServerAddress -InterfaceAlias $args[0] -ResetServerAddresses; 'OK'", &[&adapter])
+    } else if secondary.is_empty() {
+        ps_with_args(
+            &format!("Set-DnsClientServerAddress -InterfaceAlias $args[0] -ServerAddresses '{}'; 'OK'", primary),
+            &[&adapter],
+        )
     } else {
-        format!("Set-DnsClientServerAddress -InterfaceAlias '{}' -ServerAddresses '{}','{}'; 'OK'", a, p, s)
-    };
-    ps(&script)
+        ps_with_args(
+            &format!("Set-DnsClientServerAddress -InterfaceAlias $args[0] -ServerAddresses '{}','{}'; 'OK'", primary, secondary),
+            &[&adapter],
+        )
+    }
 }
 
 #[tauri::command]
@@ -142,9 +153,11 @@ pub fn flush_dns_cache() -> Result<String, String> {
 
 #[tauri::command]
 pub fn ping_dns(ip: String) -> Result<i32, String> {
+    // Valider comme IpAddr — après validation, ne contient que [0-9.:/] donc sûr à embarquer
+    ip.parse::<std::net::IpAddr>().map_err(|_| format!("Adresse IP invalide : {}", ip))?;
     let script = format!(
         "try {{ $r = Test-Connection -ComputerName '{}' -Count 2 -ErrorAction Stop; [int]($r | Measure-Object -Property ResponseTime -Average).Average }} catch {{ -1 }}",
-        ip.replace('\'', "''")
+        ip
     );
     let out = ps(&script)?;
     Ok(out.trim().parse::<i32>().unwrap_or(-1))
