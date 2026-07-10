@@ -43,3 +43,6 @@ export async function invoke<T>(
  * (scan total, export, etc.)
  */
 export const invokeRaw = tauriInvoke;
+
+/** Retourne true si le code tourne dans le binaire Tauri (pas dans un navigateur). */
+export const isTauriContext = (): boolean => "__TAURI_INTERNALS__" in window;

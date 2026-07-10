@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NTabs from "@/components/ui/NTabs.vue";
@@ -221,10 +221,17 @@ async function executeBuiltinScript(script: BuiltinScript) {
     detectedPaths.value = [...new Set(extractPaths(result.output))].slice(0, 8);
     pushHistory({ name: script.name, type: script.script_type, ran_at: new Date().toLocaleString("fr-FR"), elapsed_s: elapsed.value, exit_code: result.exit_code, success: result.success });
     notify.success("Script terminé", `${script.name} — ${elapsed.value}s`);
-  } catch {
-    outputLines.value.push("Exécution simulée en mode dev...", "Opération terminée.", "", "--- Terminé (code: 0) ---");
-    pushHistory({ name: script.name, type: script.script_type, ran_at: new Date().toLocaleString("fr-FR"), elapsed_s: elapsed.value, exit_code: 0, success: true });
-    notify.info("Mode dev", `Simulation : ${script.name}`);
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      outputLines.value.push("Exécution simulée en mode dev...", "Opération terminée.", "", "--- Terminé (code: 0) ---");
+      pushHistory({ name: script.name, type: script.script_type, ran_at: new Date().toLocaleString("fr-FR"), elapsed_s: elapsed.value, exit_code: 0, success: true });
+      notify.info("Mode dev", `Simulation : ${script.name}`);
+    } else {
+      const msg = e instanceof Error ? e.message : String(e);
+      outputLines.value.push(`Erreur : ${msg}`, "", "--- Échec ---");
+      pushHistory({ name: script.name, type: script.script_type, ran_at: new Date().toLocaleString("fr-FR"), elapsed_s: elapsed.value, exit_code: 1, success: false });
+      notify.error("Erreur script", msg.slice(0, 120));
+    }
   } finally {
     stopElapsed();
     runningScriptId.value = null;
@@ -309,9 +316,15 @@ async function executeCustomScript() {
     const name = customName.value.trim() || "Script personnalisé";
     pushHistory({ name, type: customType.value, ran_at: new Date().toLocaleString("fr-FR"), elapsed_s: elapsed.value, exit_code: result.exit_code, success: result.success });
     notify.success("Script terminé", `${name} — ${elapsed.value}s`);
-  } catch {
-    outputLines.value.push("Exécution simulée en mode dev...", customScript.value, "", "--- Terminé (code: 0) ---");
-    notify.info("Mode dev", "Simulation : script personnalisé");
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      outputLines.value.push("Exécution simulée en mode dev...", customScript.value, "", "--- Terminé (code: 0) ---");
+      notify.info("Mode dev", "Simulation : script personnalisé");
+    } else {
+      const msg = e instanceof Error ? e.message : String(e);
+      outputLines.value.push(`Erreur : ${msg}`, "", "--- Échec ---");
+      notify.error("Erreur script", msg.slice(0, 120));
+    }
   } finally {
     stopElapsed();
     customRunning.value = false;
@@ -333,18 +346,26 @@ async function loadScriptFiles() {
   scriptFilesLoading.value = true;
   try {
     scriptFiles.value = await invoke<ScriptFile[]>("list_script_files", { dir: scriptBrowseDir.value });
-  } catch {
-    scriptFiles.value = [
-      { name: "cleanup.ps1", path: "C:\\Scripts\\cleanup.ps1", size_bytes: 2048, script_type: "powershell" },
-      { name: "backup.bat",  path: "C:\\Scripts\\backup.bat",  size_bytes: 512,  script_type: "cmd" },
-    ];
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      scriptFiles.value = [
+        { name: "cleanup.ps1", path: "C:\\Scripts\\cleanup.ps1", size_bytes: 2048, script_type: "powershell" },
+        { name: "backup.bat",  path: "C:\\Scripts\\backup.bat",  size_bytes: 512,  script_type: "cmd" },
+      ];
+    } else {
+      scriptFiles.value = [];
+      notify.error("Erreur", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
   } finally { scriptFilesLoading.value = false; }
 }
 
 async function openScriptFile(file: ScriptFile) {
   selectedFile.value = file; fileEdited.value = false;
   try { fileContent.value = await invoke<string>("read_script_file", { path: file.path }); }
-  catch { fileContent.value = `# Contenu simulé de ${file.name}\necho "Hello World"`; }
+  catch (e: unknown) {
+    if (!isTauriContext()) { fileContent.value = `# Contenu simulé de ${file.name}\necho "Hello World"`; }
+    else { fileContent.value = ""; notify.error("Erreur lecture", (e instanceof Error ? e.message : String(e)).slice(0, 120)); }
+  }
 }
 
 async function saveScriptFile() {
@@ -352,7 +373,10 @@ async function saveScriptFile() {
   try {
     await invoke("save_script_file", { path: selectedFile.value.path, content: fileContent.value });
     notify.success("Fichier sauvegardé"); fileEdited.value = false;
-  } catch { notify.info("Mode dev", "Sauvegarde simulée"); fileEdited.value = false; }
+  } catch (e: unknown) {
+    if (!isTauriContext()) { notify.info("Mode dev", "Sauvegarde simulée"); fileEdited.value = false; }
+    else { notify.error("Erreur sauvegarde", (e instanceof Error ? e.message : String(e)).slice(0, 120)); }
+  }
 }
 
 async function runScriptFile() {
@@ -367,9 +391,15 @@ async function runScriptFile() {
     outputLines.value.push(result.output, "", `--- Terminé (code: ${result.exit_code}) ---`);
     pushHistory({ name: selectedFile.value.name, type: st, ran_at: new Date().toLocaleString("fr-FR"), elapsed_s: elapsed.value, exit_code: result.exit_code, success: result.success });
     notify.success("Script terminé");
-  } catch {
-    outputLines.value.push("Exécution simulée en mode dev...", "", "--- Terminé (code: 0) ---");
-    notify.info("Mode dev", "Simulation");
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      outputLines.value.push("Exécution simulée en mode dev...", "", "--- Terminé (code: 0) ---");
+      notify.info("Mode dev", "Simulation");
+    } else {
+      const msg = e instanceof Error ? e.message : String(e);
+      outputLines.value.push(`Erreur : ${msg}`, "", "--- Échec ---");
+      notify.error("Erreur script", msg.slice(0, 120));
+    }
   } finally { stopElapsed(); }
 }
 
