@@ -313,9 +313,8 @@ fn validate_ui_command(cmd: &str, args: &[String]) -> Result<(), NiTriTeError> {
         return Err(NiTriTeError::CommandDenied(format!("Commande interdite: {}", cmd)));
     }
 
-    // Quand cmd.exe ou powershell shell-exécutent des args, vérifier l'injection
+    // Quand cmd.exe shell-exécute des args, vérifier l'injection
     if cmd_base == "cmd" {
-        // Les args /c et /k passent au shell — vérifier que les sous-commandes ne font pas de destruction
         let shell_args: String = args.iter()
             .skip_while(|a| a.to_lowercase() == "/c" || a.to_lowercase() == "/k")
             .cloned().collect::<Vec<_>>().join(" ");
@@ -328,6 +327,23 @@ fn validate_ui_command(cmd: &str, args: &[String]) -> Result<(), NiTriTeError> {
             if shell_lower.contains(pat) {
                 return Err(NiTriTeError::CommandDenied(
                     format!("Argument cmd.exe potentiellement destructif: {}", pat)
+                ));
+            }
+        }
+    }
+
+    // PowerShell — bloquer opérations matérielles destructives
+    if cmd_base == "powershell" || cmd_base == "pwsh" {
+        let ps_args: String = args.iter().cloned().collect::<Vec<_>>().join(" ");
+        let ps_lower = ps_args.to_lowercase();
+        let dangerous_ps = [
+            "format-volume", "clear-disk", "initialize-disk",
+            "stop-computer", "restart-computer",
+        ];
+        for pat in &dangerous_ps {
+            if ps_lower.contains(pat) {
+                return Err(NiTriTeError::CommandDenied(
+                    format!("Argument PowerShell destructif bloqué: {}", pat)
                 ));
             }
         }

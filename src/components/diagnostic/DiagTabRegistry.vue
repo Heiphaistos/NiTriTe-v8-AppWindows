@@ -105,7 +105,8 @@ async function deleteValue(name: string) {
 }
 
 async function openInRegedit(regPath: string) {
-  const ps = `$p="${regPath}".Replace("HKLM:","HKEY_LOCAL_MACHINE").Replace("HKCU:","HKEY_CURRENT_USER").Replace("HKLM\\\\","HKEY_LOCAL_MACHINE\\\\").Replace("HKCU\\\\","HKEY_CURRENT_USER\\\\"); try { Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit' -Name 'LastKey' -Value $p -ErrorAction Stop } catch {}; Start-Process regedit.exe`;
+  const safePath = regPath.replace(/'/g, "''");
+  const ps = `$p='${safePath}'.Replace("HKLM:","HKEY_LOCAL_MACHINE").Replace("HKCU:","HKEY_CURRENT_USER").Replace("HKLM\\\\","HKEY_LOCAL_MACHINE\\\\").Replace("HKCU\\\\","HKEY_CURRENT_USER\\\\"); try { Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit' -Name 'LastKey' -Value $p -ErrorAction Stop } catch {}; Start-Process regedit.exe`;
   await invoke("run_system_command", { cmd: "powershell", args: ["-WindowStyle", "Hidden", "-Command", ps] }).catch(() => {});
 }
 
