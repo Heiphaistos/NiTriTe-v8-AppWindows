@@ -344,25 +344,23 @@ pub fn restore_mbr(disk_index: u32, mbr_path: String) -> Result<String, String> 
         let mbr_data = std::fs::read(&mbr_path)
             .map_err(|e| format!("Lecture fichier MBR: {}", e))?;
 
-        // Validation taille : 512 octets exactement (secteur MBR complet)
-        // ou 446 octets (code MBR seul, sans table de partitions ni signature)
-        if mbr_data.len() != 512 && mbr_data.len() != 446 {
+        // Validation taille : exactement 512 octets (secteur MBR complet).
+        // 446 octets (code boot seul) est rejeté : écrire 446 octets puis [..512]
+        // causerait un panic, et restaurer un MBR partiel corrompt la table de partitions.
+        if mbr_data.len() != 512 {
             return Err(format!(
-                "Fichier MBR invalide ({} octets, 512 ou 446 attendus).",
+                "Fichier MBR invalide ({} octets, exactement 512 attendus).",
                 mbr_data.len()
             ));
         }
 
         // Validation signature MBR : bytes 510-511 doivent être 0x55 0xAA
-        // (uniquement vérifiable si le fichier fait 512 octets)
-        if mbr_data.len() == 512 {
-            let sig = u16::from_le_bytes([mbr_data[510], mbr_data[511]]);
-            if sig != 0xAA55 {
-                return Err(format!(
-                    "Fichier MBR invalide : signature boot absente (attendu 0x55AA, trouvé 0x{:04X}).",
-                    sig
-                ));
-            }
+        let sig = u16::from_le_bytes([mbr_data[510], mbr_data[511]]);
+        if sig != 0xAA55 {
+            return Err(format!(
+                "Fichier MBR invalide : signature boot absente (attendu 0x55AA, trouvé 0x{:04X}).",
+                sig
+            ));
         }
 
         let disk_path = format!(r"\\.\PhysicalDrive{}", disk_index);
