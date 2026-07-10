@@ -158,12 +158,13 @@ $dupes | ConvertTo-Json -Compress
 
 // ─── Delete File ──────────────────────────────────────────────────────────────
 
-#[tauri::command]
-pub fn delete_file(path: String) -> Result<(), String> {
-    // Canonicalize first to resolve ".." traversal before checking blocked prefixes.
-    let canonical = std::fs::canonicalize(&path)
-        .map_err(|e| format!("Chemin inaccessible {}: {}", path, e))?;
-    let path_lower = canonical.to_string_lossy().to_lowercase().replace('/', "\\");
+/// Vérifie si un chemin canonique pointe vers un répertoire système protégé.
+/// Gère le préfixe verbatim `\\?\` que `canonicalize()` retourne sur Windows
+/// via GetFinalPathNameByHandleW — sans strip, la comparaison échoue toujours.
+fn is_system_path_blocked(canonical: &std::path::Path) -> bool {
+    let raw = canonical.to_string_lossy().to_lowercase().replace('/', "\\");
+    // Strip le préfixe verbatim étendu (\\?\C:\... → C:\...)
+    let path_lower = raw.strip_prefix(r"\\?\").unwrap_or(&raw);
     let blocked = [
         "c:\\windows\\",
         "c:\\program files\\",
@@ -171,7 +172,15 @@ pub fn delete_file(path: String) -> Result<(), String> {
         "c:\\programdata\\",
         "c:\\system volume information\\",
     ];
-    if blocked.iter().any(|prefix| path_lower.starts_with(prefix)) {
+    blocked.iter().any(|prefix| path_lower.starts_with(prefix))
+}
+
+#[tauri::command]
+pub fn delete_file(path: String) -> Result<(), String> {
+    // Canonicalize first to resolve ".." traversal before checking blocked prefixes.
+    let canonical = std::fs::canonicalize(&path)
+        .map_err(|e| format!("Chemin inaccessible {}: {}", path, e))?;
+    if is_system_path_blocked(&canonical) {
         return Err(format!("Suppression interdite dans les répertoires système: {}", canonical.display()));
     }
     std::fs::remove_file(&canonical).map_err(|e| format!("{}: {}", canonical.display(), e))
@@ -248,4 +257,69 @@ $after  = (Get-ChildItem '{safe}' -Recurse -ErrorAction SilentlyContinue | Measu
 [math]::Round(($before - $after) / 1MB, 2)"#);
     let out = ps(&script)?;
     Ok(out.trim().parse::<f64>().unwrap_or(0.0))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    // ── is_system_path_blocked ────────────────────────────────────────────────
+
+    #[test]
+    fn blocks_windows_directory() {
+        // Chemin normal (sans préfixe verbatim)
+        assert!(is_system_path_blocked(Path::new(r"C:\Windows\System32\kernel32.dll")));
+    }
+
+    #[test]
+    fn blocks_windows_verbatim_prefix() {
+        // canonicalize() sur Windows retourne \\?\C:\... via GetFinalPathNameByHandleW
+        assert!(is_system_path_blocked(Path::new(r"\\?\C:\Windows\System32\kernel32.dll")));
+    }
+
+    #[test]
+    fn blocks_program_files() {
+        assert!(is_system_path_blocked(Path::new(r"C:\Program Files\SomeApp\file.exe")));
+        assert!(is_system_path_blocked(Path::new(r"\\?\C:\Program Files\SomeApp\file.exe")));
+    }
+
+    #[test]
+    fn blocks_program_files_x86() {
+        assert!(is_system_path_blocked(Path::new(r"C:\Program Files (x86)\App\bin.dll")));
+    }
+
+    #[test]
+    fn blocks_programdata() {
+        assert!(is_system_path_blocked(Path::new(r"C:\ProgramData\Microsoft\file.log")));
+    }
+
+    #[test]
+    fn blocks_system_volume_information() {
+        assert!(is_system_path_blocked(Path::new(r"C:\System Volume Information\WPSettings.dat")));
+    }
+
+    #[test]
+    fn allows_user_documents() {
+        assert!(!is_system_path_blocked(Path::new(r"C:\Users\Momo\Documents\report.docx")));
+    }
+
+    #[test]
+    fn allows_other_drive() {
+        // D:\Windows ne doit pas être bloqué (drive cible en WinPE)
+        assert!(!is_system_path_blocked(Path::new(r"D:\Windows\System32\ntdll.dll")));
+    }
+
+    #[test]
+    fn allows_user_downloads() {
+        assert!(!is_system_path_blocked(Path::new(r"C:\Users\Momo\Downloads\file.zip")));
+        assert!(!is_system_path_blocked(Path::new(r"\\?\C:\Users\Momo\Downloads\file.zip")));
+    }
+
+    #[test]
+    fn case_insensitive() {
+        // La comparaison doit être insensible à la casse
+        assert!(is_system_path_blocked(Path::new(r"c:\WINDOWS\system32\notepad.exe")));
+        assert!(is_system_path_blocked(Path::new(r"C:\windows\SYSTEM32\notepad.exe")));
+    }
 }
