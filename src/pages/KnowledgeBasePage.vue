@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, markRaw, onMounted, type Component } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
+import { useNotificationStore } from "@/stores/notifications";
 import NCard from "@/components/ui/NCard.vue";
 import NSearchBar from "@/components/ui/NSearchBar.vue";
 import { knowledgeBase } from "@/data/knowledgeBase";
@@ -37,6 +38,7 @@ const categories = computed<(KBCategory & { iconComponent: Component })[]>(() =>
   }))
 );
 
+const notify             = useNotificationStore();
 const search             = ref("");
 const expandedCategory   = ref<string | null>(null);
 const expandedItem       = ref<string | null>(null);
@@ -132,7 +134,9 @@ function relatedItems(item: KBItem, catId: string): KBItem[] {
 async function runCommand(cmd: string) {
   try {
     await invoke("run_system_command", { cmd: "cmd", args: ["/C", cmd] });
-  } catch { /* dev */ }
+  } catch (e: unknown) {
+    if (isTauriContext()) notify.error("Commande", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  }
 }
 
 async function copyToClipboard(text: string) {

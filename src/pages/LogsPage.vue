@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
+import { useNotificationStore } from "@/stores/notifications";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NSearchBar from "@/components/ui/NSearchBar.vue";
@@ -16,6 +17,7 @@ import {
 } from "lucide-vue-next";
 
 const { exportTXT } = useExportData();
+const notify = useNotificationStore();
 
 // ── Onglets ───────────────────────────────────────────────────────────────────
 type Tab = "session" | "file" | "windows";
@@ -88,7 +90,10 @@ async function loadFileLogs() {
     fileLogs.value  = await invoke<LogEntry[]>("get_recent_logs", { count: 1000 });
     fileStats.value = await invoke<FileLogStats>("get_log_stats");
     if (autoScroll.value) scrollBottom();
-  } catch { fileLogs.value = []; } finally { fileLoading.value = false; }
+  } catch (e: unknown) {
+    fileLogs.value = [];
+    if (isTauriContext()) notify.error("Logs", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  } finally { fileLoading.value = false; }
 }
 
 async function loadArchives() {
