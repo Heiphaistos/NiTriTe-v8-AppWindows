@@ -70,6 +70,10 @@ export function useSystemMonitor(intervalMs: number = 2000) {
       unlisten = null;
     }
 
+    if (isTauriContext() && isConnected.value) {
+      await invoke("stop_monitoring").catch(() => {});
+    }
+
     isConnected.value = false;
   }
 
