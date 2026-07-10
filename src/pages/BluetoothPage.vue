@@ -97,9 +97,10 @@ async function forgetDevice(d: BluetoothDevice) {
   if (!confirm(`Oublier l'appareil "${d.name || d.address}" ? Cette action supprimera le jumelage.`)) return;
   forgetting.value = d.device_id;
   try {
+    const safeId = d.device_id.replace(/'/g, "''");
     await invoke("run_system_command", {
       cmd: "powershell",
-      args: ["-Command", `Remove-PnpDevice -InstanceId '${d.device_id}' -Confirm:$false`],
+      args: ["-Command", `Remove-PnpDevice -InstanceId '${safeId}' -Confirm:$false`],
     });
     notify.success("Appareil oublié", d.name || d.address);
     await load();

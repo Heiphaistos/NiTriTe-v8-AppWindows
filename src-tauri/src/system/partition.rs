@@ -182,8 +182,8 @@ pub fn format_partition(letter: String, fs: String, label: String) -> Result<Str
     if !allowed_fs.contains(&fs.to_uppercase().as_str()) {
         return Err(format!("Système de fichiers non autorisé: {}", fs));
     }
-    // Limiter le label à 32 caractères (limite NTFS)
-    let label = if label.len() > 32 { label[..32].to_string() } else { label };
+    // Limiter le label à 32 caractères (limite NTFS) — chars() évite le panic sur UTF-8 multi-octets
+    let label: String = label.chars().take(32).collect();
 
     // Vérification WMI : refuser les partitions système, boot, EFI ou Recovery
     // avant tout formatage destructif.
