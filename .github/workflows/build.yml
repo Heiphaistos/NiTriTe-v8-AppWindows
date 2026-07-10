@@ -25,7 +25,7 @@ jobs:
       - run: npm ci
       # Audit npm — bloque si vulnérabilité critique détectée
       - run: npm audit --audit-level=critical
-      - run: npx tsc --noEmit
+      - run: npx vue-tsc --noEmit
 
   test:
     name: Unit Tests
