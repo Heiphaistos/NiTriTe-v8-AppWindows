@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { invoke, invokeRaw } from "@/utils/invoke";
+import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
 import type { CommandResult } from "@/types/diagnostic";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { cachedInvoke, refreshCached } from "@/composables/useCachedInvoke";
@@ -222,9 +222,10 @@ async function loadApps() {
     wingetOk.value = wg;
     const raw = await cachedInvoke<AppInfo[]>("get_apps");
     apps.value = raw.map(a => ({ ...a, category: mapCategory(a.category) }));
-  } catch {
+  } catch (e: unknown) {
     wingetOk.value = false;
-    apps.value = devApps;
+    if (!isTauriContext()) { apps.value = devApps; }
+    else { apps.value = []; notifications.error("Chargement", (e instanceof Error ? e.message : String(e)).slice(0, 120)); }
   }
   loading.value = false;
 }
@@ -237,13 +238,16 @@ async function installApp(app: AppInfo) {
     await invokeRaw("install_app", { wingetId: app.winget_id });
     installedIds.value = new Set([...installedIds.value, app.id]);
     notifications.success(`${app.name} installé`);
-  } catch {
-    // Simulation dev
-    await new Promise((r) => setTimeout(r, 2000));
-    installLogs.value[app.id].push(`Installation de ${app.name}...`);
-    await new Promise((r) => setTimeout(r, 1000));
-    installedIds.value = new Set([...installedIds.value, app.id]);
-    notifications.success(`${app.name} installé`);
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      await new Promise((r) => setTimeout(r, 2000));
+      installLogs.value[app.id].push(`Installation de ${app.name}...`);
+      await new Promise((r) => setTimeout(r, 1000));
+      installedIds.value = new Set([...installedIds.value, app.id]);
+      notifications.success(`${app.name} installé`);
+    } else {
+      notifications.error(`Erreur installation`, (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
   }
   installingIds.value = new Set([...installingIds.value].filter(id => id !== app.id));
 }

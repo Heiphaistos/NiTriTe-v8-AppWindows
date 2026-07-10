@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, type Component } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
@@ -52,9 +52,15 @@ async function cleanTempFiles() {
     tempFiles.value = { loading: false, done: true, message: result.message };
     notify.success("Nettoyage termine", result.message);
     logAction("Nettoyer fichiers temp", true);
-  } catch {
-    tempFiles.value = { loading: false, done: true, message: "247 fichiers supprimes, 1.2 GB liberes (demo)" };
-    notify.info("Mode dev", "Simulation : fichiers temp nettoyes");
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      tempFiles.value = { loading: false, done: true, message: "247 fichiers supprimes, 1.2 GB liberes (demo)" };
+      notify.info("Mode dev", "Simulation : fichiers temp nettoyes");
+    } else {
+      const msg = e instanceof Error ? e.message : String(e);
+      tempFiles.value = { loading: false, done: false, message: msg };
+      notify.error("Nettoyage temp", msg.slice(0, 120));
+    }
     logAction("Nettoyer fichiers temp", false);
   }
 }
@@ -66,9 +72,15 @@ async function runDiskCleanup() {
     diskCleanup.value = { loading: false, done: true, message: result.message };
     notify.success("Nettoyage disque", result.message);
     logAction("Nettoyage de disque", true);
-  } catch {
-    diskCleanup.value = { loading: false, done: true, message: "Nettoyage de disque termine (demo)" };
-    notify.info("Mode dev", "Simulation : nettoyage disque effectue");
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      diskCleanup.value = { loading: false, done: true, message: "Nettoyage de disque termine (demo)" };
+      notify.info("Mode dev", "Simulation : nettoyage disque effectue");
+    } else {
+      const msg = e instanceof Error ? e.message : String(e);
+      diskCleanup.value = { loading: false, done: false, message: msg };
+      notify.error("Nettoyage disque", msg.slice(0, 120));
+    }
     logAction("Nettoyage de disque", false);
   }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -138,8 +138,9 @@ async function updateDefinitions() {
       args: ["-Command", "Update-MpSignature"],
     });
     notifications.success("Definitions mises a jour");
-  } catch {
-    notifications.info("Mode dev", "Simulation mise a jour definitions");
+  } catch (e: unknown) {
+    if (!isTauriContext()) { notifications.info("Mode dev", "Simulation mise a jour definitions"); }
+    else { notifications.error("Mise à jour définitions", (e instanceof Error ? e.message : String(e)).slice(0, 120)); }
   }
 }
 
@@ -164,10 +165,13 @@ async function scheduleWeeklyScan() {
     });
     scheduleSuccess.value = true;
     notifications.success("Planification", "Scan hebdomadaire planifié chaque dimanche à 02h00");
-  } catch {
-    // En mode dev la commande peut échouer silencieusement
-    scheduleSuccess.value = true;
-    notifications.info("Planification simulée", "Mode dev — schtasks non disponible");
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      scheduleSuccess.value = true;
+      notifications.info("Planification simulée", "Mode dev — schtasks non disponible");
+    } else {
+      notifications.error("Planification", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
   }
   schedulingLoading.value = false;
 }
@@ -188,9 +192,10 @@ async function viewQuarantine() {
       const parsed = JSON.parse(raw);
       quarantineData.value = Array.isArray(parsed) ? parsed : [parsed];
     }
-  } catch {
+  } catch (e: unknown) {
     quarantineData.value = [];
-    notifications.info("Quarantaine", "Aucune menace en quarantaine ou mode dev");
+    if (!isTauriContext()) { notifications.info("Quarantaine", "Aucune menace en quarantaine ou mode dev"); }
+    else { notifications.error("Quarantaine", (e instanceof Error ? e.message : String(e)).slice(0, 120)); }
   }
   quarantineLoading.value = false;
 }

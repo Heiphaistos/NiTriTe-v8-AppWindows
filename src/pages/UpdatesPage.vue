@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
-import { invoke, invokeRaw } from "@/utils/invoke";
+import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
@@ -131,10 +131,15 @@ async function checkWinget() {
     if (!wingetOk.value) { wingetStatus.value = "error"; return; }
     wingetPkgs.value = await invoke<WingetPackage[]>("list_upgradable");
     wingetStatus.value = wingetPkgs.value.length > 0 ? "idle" : "done";
-  } catch {
-    wingetOk.value = true;
-    wingetPkgs.value = devWingetPkgs;
-    wingetStatus.value = "idle";
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      wingetOk.value = true;
+      wingetPkgs.value = devWingetPkgs;
+      wingetStatus.value = "idle";
+    } else {
+      wingetOk.value = false; wingetStatus.value = "error";
+      notify.error("WinGet", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
   }
 }
 
@@ -145,12 +150,17 @@ async function upgradeAllWinget() {
     await invokeRaw("upgrade_all", { excluded_ids: excludedIds.value });
     wingetStatus.value = "done"; wingetPkgs.value = [];
     notify.success("WinGet", "Toutes les mises à jour installées");
-  } catch {
-    for (const pkg of wingetPkgs.value) {
-      wingetLogs.value.push(`Mise à jour de ${pkg.name} (${pkg.version} → ${pkg.available})...`);
-      await new Promise(r => setTimeout(r, 500));
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      for (const pkg of wingetPkgs.value) {
+        wingetLogs.value.push(`Mise à jour de ${pkg.name} (${pkg.version} → ${pkg.available})...`);
+        await new Promise(r => setTimeout(r, 500));
+      }
+      wingetStatus.value = "done"; wingetPkgs.value = [];
+    } else {
+      wingetStatus.value = "error";
+      notify.error("WinGet", (e instanceof Error ? e.message : String(e)).slice(0, 120));
     }
-    wingetStatus.value = "done"; wingetPkgs.value = [];
   }
 }
 
@@ -274,13 +284,18 @@ async function checkWindowsUpdates() {
   try {
     winUpdates.value = await invoke<WinUpdate[]>("check_windows_updates");
     winUpdateStatus.value = "done";
-  } catch {
-    winUpdateStatus.value = "done";
-    winUpdates.value = [
-      { hotfix_id: "KB5046617", description: "Mise à jour de sécurité", installed_on: "2024-11-12" },
-      { hotfix_id: "KB5044285", description: "Mise à jour cumulative", installed_on: "2024-10-08" },
-      { hotfix_id: "KB890830", description: "Outil de suppression des logiciels malveillants", installed_on: "2024-10-08" },
-    ];
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      winUpdateStatus.value = "done";
+      winUpdates.value = [
+        { hotfix_id: "KB5046617", description: "Mise à jour de sécurité", installed_on: "2024-11-12" },
+        { hotfix_id: "KB5044285", description: "Mise à jour cumulative", installed_on: "2024-10-08" },
+        { hotfix_id: "KB890830", description: "Outil de suppression des logiciels malveillants", installed_on: "2024-10-08" },
+      ];
+    } else {
+      winUpdateStatus.value = "error";
+      notify.error("Windows Update", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
   }
 }
 
@@ -306,10 +321,16 @@ async function installAllUpdates() {
     const ok = await invokeRaw<boolean>("install_windows_updates");
     if (ok) { notify.success("Windows Update", "Installation terminée"); wuPending.value = []; }
     else notify.warning("Windows Update", "Installation partielle ou erreur");
-  } catch {
-    wuLogs.value.push("[SIMULATION] Chrome: 131.0 → 132.0 ✓");
-    wuLogs.value.push("[SIMULATION] KB5046617 installé ✓");
-    wuLogs.value.push("[TERMINE] Simulation");
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      wuLogs.value.push("[SIMULATION] Chrome: 131.0 → 132.0 ✓");
+      wuLogs.value.push("[SIMULATION] KB5046617 installé ✓");
+      wuLogs.value.push("[TERMINE] Simulation");
+    } else {
+      const msg = e instanceof Error ? e.message : String(e);
+      wuLogs.value.push(`[ERREUR] ${msg}`);
+      notify.error("Windows Update", msg.slice(0, 120));
+    }
   } finally {
     wuInstalling.value = false;
     if (unlistenWu) { unlistenWu(); unlistenWu = null; }

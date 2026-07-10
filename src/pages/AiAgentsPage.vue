@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import NCard from "@/components/ui/NCard.vue";
@@ -333,7 +333,14 @@ async function executeCommand(i: number) {
     const r = await invoke<{ success: boolean; stdout: string; stderr: string }>("ai_execute_command", { command: msg.command });
     msg.commandResult = r.stdout || r.stderr || "Aucune sortie";
     notify.success("Commande exécutée", r.success ? "Succès" : "Échec");
-  } catch { msg.commandResult = "Simulation — OK"; }
+  } catch (e: unknown) {
+    if (!isTauriContext()) { msg.commandResult = "Simulation — OK"; }
+    else {
+      const err = e instanceof Error ? e.message : String(e);
+      msg.commandResult = `Erreur : ${err}`;
+      notify.error("Erreur commande", err.slice(0, 120));
+    }
+  }
   finally { msg.commandRunning = false; scrollChat(); }
 }
 

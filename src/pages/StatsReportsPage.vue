@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
 import type { SysInfo } from "@/types/diagnostic";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NProgress from "@/components/ui/NProgress.vue";
@@ -318,8 +318,9 @@ async function loadReports() {
 async function openReportFolder() {
   try {
     await invoke("run_system_command", { cmd: "explorer", args: ["%USERPROFILE%\\Documents\\NiTriTe"] });
-  } catch {
-    notifications.info("Mode dev", "Ouverture dossier simulee");
+  } catch (e: unknown) {
+    if (!isTauriContext()) { notifications.info("Mode dev", "Ouverture dossier simulee"); }
+    else { notifications.error("Ouverture dossier", (e instanceof Error ? e.message : String(e)).slice(0, 120)); }
   }
 }
 
