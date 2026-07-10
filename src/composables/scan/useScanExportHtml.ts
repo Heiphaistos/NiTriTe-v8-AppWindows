@@ -98,15 +98,15 @@ ${tbl(["Composant","Détail"],[
   [h("Plan d'alim."), h(sr.power_plan||"N/A")],
 ])}
 ${sr.storage_items?.length ? sec("Stockage Physique","💾","s1-storage") + tbl(["Modèle","Type","Interface","Taille","Santé","Heures"],
-  (sr.storage_items||[]).map((s:any)=>[
+  (sr.storage_items||[]).map((s)=>[
     h(s.model||"—"), h(s.media_type), h(s.interface_type), h(s.size_gb+" GB"),
     badge(s.health, s.health?.toLowerCase().includes("health")||s.health==="Sain"?"success":"warning"),
-    s.power_on_hours>0 ? h(s.power_on_hours>=8760?(s.power_on_hours/8760).toFixed(1)+" ans":s.power_on_hours+" h") : "<span class='muted'>—</span>",
+    (s.power_on_hours ?? 0) > 0 ? h(s.power_on_hours! >= 8760 ? (s.power_on_hours!/8760).toFixed(1)+" ans" : s.power_on_hours+" h") : "<span class='muted'>—</span>",
   ])
 ) : ""}
 ${sec("Espace Disque (Volumes)","💽","s1-volumes")}
 ${tbl(["Lecteur","Utilisation","Libre","Total"],
-  (sr.disk_usage||[]).map((d:any)=>[`<code>${h(d.drive)}</code>`, diskBar(d.used_percent), h(d.free_gb.toFixed(1)+" GB"), h(d.total_gb.toFixed(0)+" GB")])
+  (sr.disk_usage||[]).map((d)=>[`<code>${h(d.drive)}</code>`, diskBar(d.used_percent), h(d.free_gb.toFixed(1)+" GB"), h(d.total_gb.toFixed(0)+" GB")])
 )}
 ${sec("Réseau","🌐","s1-net")}
 ${tbl(["Indicateur","Valeur"],[
@@ -126,12 +126,12 @@ ${batteries?.length ? sec("Batterie","🔋","s1-battery") + batteries.map(b => t
   [h("Cycles"),              h(b.cycle_count!=null?String(b.cycle_count):"N/A")],
 ])).join("") : ""}`;
 
-  const bitlockerRows = (sr.bitlocker_volumes||[]).map((bv:any)=>{
+  const bitlockerRows = (sr.bitlocker_volumes||[]).map((bv)=>{
     const prot = bv.protection_status==="On"||bv.protection_status==="1";
     return [h(bv.drive), badge(prot?"Protégé":"Non protégé",prot?"success":"warning"),
       bv.recovery_password?`<code style="font-size:10px">${h(bv.recovery_password)}</code>`:"<span class='muted'>—</span>"];
   });
-  const wingetRows = (sr.winget_upgradable||[]).map((u:any)=>[
+  const wingetRows = (sr.winget_upgradable||[]).map((u)=>[
     h(u.name), `<code>${h(u.id)}</code>`,
     badge(u.current_version||"?","warning"),
     `<span class="ok">${h(u.available_version||"?")}</span>`,
@@ -185,14 +185,14 @@ ${sr.scoop_upgradable?.length ? `<ul style="margin:0 0 10px;padding-left:20px;fo
 <h3 style="font-size:11px;color:#aaa;margin:12px 0 4px;text-transform:uppercase;letter-spacing:.06em">Windows Update</h3>
 ${sr.windows_updates_pending?.length ? `<ul style="margin:0 0 10px;padding-left:20px;font-size:12px">${sr.windows_updates_pending.slice(0,20).map((u:string)=>`<li>${h(u)}</li>`).join("")}${sr.windows_updates_pending.length>20?`<li class="muted">+${sr.windows_updates_pending.length-20} autres</li>`:""}</ul>` : "<p class='muted' style='font-size:12px;padding:4px 0 10px'>Aucune mise à jour en attente</p>"}
 ${(sr.top_cpu?.length||sr.top_ram?.length) ? sec("Top 5 Processus (snapshot)","📊","s2-procs") + `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">`
-  + (sr.top_cpu?.length ? tbl(["PID","Processus","CPU (s)"], sr.top_cpu.map((p:any)=>[h(String(p.pid)),h(p.name),`<code>${h(String(p.value))}</code>`])) : "")
-  + (sr.top_ram?.length ? tbl(["PID","Processus","RAM (MB)"], sr.top_ram.map((p:any)=>[h(String(p.pid)),h(p.name),`<code>${h(String(p.value))}</code>`])) : "")
+  + (sr.top_cpu?.length ? tbl(["PID","Processus","CPU (s)"], sr.top_cpu.map((p)=>[h(String(p.pid)),h(p.name),`<code>${h(String(p.value))}</code>`])) : "")
+  + (sr.top_ram?.length ? tbl(["PID","Processus","RAM (MB)"], sr.top_ram.map((p)=>[h(String(p.pid)),h(p.name),`<code>${h(String(p.value))}</code>`])) : "")
   + `</div>` : ""}`;
 
   const wmiBlock = sr.wmi_subscriptions>0 ? `
 <div class="wmi-block" id="s3-wmi">
   <p style="color:#ef4444;font-weight:600;margin-bottom:8px">⚠ ${sr.wmi_subscriptions} abonnement(s) WMI suspects détectés</p>
-  ${tbl(["Nom","Type WMI","Chemin"],[...(sr.wmi_subscription_details||[]).map((s:any)=>[h(s.name||"(sans nom)"),badge(s.consumer_type,"danger"),`<code style="font-size:10px">${h(s.path)}</code>`])])}
+  ${tbl(["Nom","Type WMI","Chemin"],[...(sr.wmi_subscription_details||[]).map((s)=>[h(s.name||"(sans nom)"),badge(s.consumer_type,"danger"),`<code style="font-size:10px">${h(s.path)}</code>`])])}
   <p style="font-size:11px;color:#aaa;margin-top:6px">Commande de suppression : <code>Get-WmiObject -Namespace root\\subscription -Class __EventConsumer | Remove-WmiObject</code></p>
 </div>` : "";
 
@@ -230,11 +230,11 @@ ${tbl(["Indicateur","Valeur"],[
   [h("Dernier point de restauration"), badge(sr.last_restore_point||"N/A", sr.last_restore_point?.includes("Aucun")?"warning":"success")],
 ])}
 ${wmiBlock}
-${(sr.suspicious_processes||[]).length ? sec(`Processus Hors Chemins Sécurisés (${sr.suspicious_processes.length})`,"🔍","s3-procs") + tbl(["Nom","PID","Raison","Chemin"],(sr.suspicious_processes||[]).map((p:any)=>[h(p.name),h(String(p.pid)),badge(p.reason,"warning"),`<code style="font-size:10px">${h(p.path)}</code>`])) : ""}
-${(sr.suspicious_services||[]).length ? sec(`Services Tiers Actifs (${sr.suspicious_services.length})`,"⚙️","s3-services") + tbl(["Nom","Affichage","État","Chemin"],(sr.suspicious_services||[]).slice(0,20).map((s:any)=>[h(s.name),h(s.display_name),badge(s.state,"info"),`<code style="font-size:10px">${h(s.path)}</code>`])) : ""}
-${(sr.autorun_entries||[]).length ? sec(`Entrées Autorun Tiers (${sr.autorun_entries.length})`,"🚀","s3-autoruns") + tbl(["Nom","Clé Registre","Exécutable"],(sr.autorun_entries||[]).slice(0,30).map((a:any)=>[h(a.name),`<code style="font-size:10px">${h(fullRegPath(a.location, a.name))}</code>`,`<code style="font-size:10px">${h(a.path)}</code>`])) : ""}
-${(sr.susp_tasks||[]).length ? sec(`Tâches Planifiées Suspectes (${sr.susp_tasks_count})`,"📅","s3-tasks") + tbl(["Tâche","Chemin","Exécutable"],(sr.susp_tasks||[]).map((t:any)=>[h(t.name),badge(t.path,"neutral"),`<code style="font-size:10px">${h(t.exec)}</code>`])) : ""}
-${(sr.recent_errors||[]).length ? sec(`Erreurs Récentes (${sr.recent_errors.length} — 48h)`,"🔴","s3-errors") + tbl(["Heure","Niveau","Source","Message"],(sr.recent_errors||[]).slice(0,20).map((e:any)=>[`<code>${h(e.time)}</code>`,badge(e.level, e.level?.toLowerCase().includes("crit")?"danger":"warning"),h(e.source),`<span style="font-size:11px">${h((e.message||"").substring(0,120))}</span>`])) : ""}
+${(sr.suspicious_processes||[]).length ? sec(`Processus Hors Chemins Sécurisés (${sr.suspicious_processes.length})`,"🔍","s3-procs") + tbl(["Nom","PID","Raison","Chemin"],(sr.suspicious_processes||[]).map((p)=>[h(p.name),h(String(p.pid)),badge(p.reason,"warning"),`<code style="font-size:10px">${h(p.path)}</code>`])) : ""}
+${(sr.suspicious_services||[]).length ? sec(`Services Tiers Actifs (${sr.suspicious_services.length})`,"⚙️","s3-services") + tbl(["Nom","Affichage","État","Chemin"],(sr.suspicious_services||[]).slice(0,20).map((s)=>[h(s.name),h(s.display_name),badge(s.state,"info"),`<code style="font-size:10px">${h(s.path)}</code>`])) : ""}
+${(sr.autorun_entries||[]).length ? sec(`Entrées Autorun Tiers (${sr.autorun_entries.length})`,"🚀","s3-autoruns") + tbl(["Nom","Clé Registre","Exécutable"],(sr.autorun_entries||[]).slice(0,30).map((a)=>[h(a.name),`<code style="font-size:10px">${h(fullRegPath(a.location, a.name))}</code>`,`<code style="font-size:10px">${h(a.path)}</code>`])) : ""}
+${(sr.susp_tasks||[]).length ? sec(`Tâches Planifiées Suspectes (${sr.susp_tasks_count})`,"📅","s3-tasks") + tbl(["Tâche","Chemin","Exécutable"],(sr.susp_tasks||[]).map((t)=>[h(t.name),badge(t.path,"neutral"),`<code style="font-size:10px">${h(t.exec)}</code>`])) : ""}
+${(sr.recent_errors||[]).length ? sec(`Erreurs Récentes (${sr.recent_errors.length} — 48h)`,"🔴","s3-errors") + tbl(["Heure","Niveau","Source","Message"],(sr.recent_errors||[]).slice(0,20).map((e)=>[`<code>${h(e.time)}</code>`,badge(e.level, e.level?.toLowerCase().includes("crit")?"danger":"warning"),h(e.source),`<span style="font-size:11px">${h((e.message||"").substring(0,120))}</span>`])) : ""}
 ${(sr.scan_errors||[]).length ? sec(`Erreurs de Scan (${sr.scan_errors.length})`,"⚙️","s3-scan-errors") + `<ul style="margin:0 0 14px;padding-left:20px;font-size:12px">${sr.scan_errors.map((e:string)=>`<li><code style="color:#f59e0b">${h(e)}</code></li>`).join("")}</ul>` : ""}`;
 
 

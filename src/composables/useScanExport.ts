@@ -8,7 +8,6 @@ import { exportScanTxt } from "./scan/useScanExportTxt";
 import { exportScanHtml } from "./scan/useScanExportHtml";
 import { exportScanMd } from "./scan/useScanExportMd";
 import { exportScanJson } from "./scan/useScanExportJson";
-import type { Solution } from "./scan/scanExportHelpers";
 
 export function useScanExport() {
   return { exportScanTxt, exportScanHtml, exportScanMd, exportScanJson };

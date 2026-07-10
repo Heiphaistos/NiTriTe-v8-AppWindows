@@ -25,10 +25,4 @@ app.config.errorHandler = (err, _instance, info) => {
 app.use(pinia);
 app.use(router);
 
-// Capture les échecs de chargement de route
-router.onError((err) => {
-  console.error("[Nitrite][Router error]", err);
-  logger.router(err);
-});
-
 app.mount("#app");
