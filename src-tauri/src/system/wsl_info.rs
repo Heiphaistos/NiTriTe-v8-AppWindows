@@ -119,7 +119,7 @@ try {
 #[tauri::command]
 pub fn wsl_run_command(distro: String, command: String) -> Result<String, String> {
     let dist = distro.replace(['"', '\''], "");
-    let cmd = command.replace('"', "'");
+    let cmd = command.trim().to_string();
     #[cfg(target_os = "windows")]
     {
         let mut args = vec![];
@@ -127,8 +127,11 @@ pub fn wsl_run_command(distro: String, command: String) -> Result<String, String
             args.push("-d".to_string());
             args.push(dist);
         }
+        // Pass via sh -c so pipes, quoted spaces, and shell operators work correctly
         args.push("--".to_string());
-        args.extend(cmd.split_whitespace().map(|s| s.to_string()));
+        args.push("sh".to_string());
+        args.push("-c".to_string());
+        args.push(cmd);
         let o = Command::new("wsl")
             .args(&args)
             .creation_flags(0x08000000)
