@@ -342,6 +342,7 @@ try {{
 
 /// Scan MFT pour fichiers récemment supprimés via fsutil
 pub fn scan_deleted_files(drive: String) -> Vec<RecoveredFile> {
+    let safe_drive = drive.trim_end_matches(':').replace('\'', "''");
     let ps = format!(r#"
 try {{
     $drive = '{}'
@@ -362,8 +363,9 @@ try {{
     }}
     $deleted | Select-Object -First 200 | ConvertTo-Json -Compress
 }} catch {{ Write-Output '[]' }}
-"#, drive.trim_end_matches(':'));
+"#, safe_drive);
 
+    let drive_letter = drive.trim_end_matches(':');
     run_ps(&ps)
         .and_then(|t| {
             let t = t.trim();
@@ -373,7 +375,7 @@ try {{
         .map(|vals| vals.into_iter().filter_map(|v| {
             Some(RecoveredFile {
                 name: v["name"].as_str()?.to_string(),
-                path: format!("{}:\\[supprimé]\\{}", drive.trim_end_matches(':'), v["name"].as_str().unwrap_or("")),
+                path: format!("{}:\\[supprimé]\\{}", drive_letter, v["name"].as_str().unwrap_or("")),
                 size_bytes: 0,
                 deleted_date: v["time"].as_str().unwrap_or("").to_string(),
                 source: "mft_journal".to_string(),
