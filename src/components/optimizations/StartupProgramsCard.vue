@@ -32,7 +32,7 @@ async function disable(prog: StartupProgram) {
     await invoke("disable_startup_program", { name: prog.name, location: prog.location });
     notify.success(`${prog.name} désactivé du démarrage`);
     await load();
-  } catch (e: any) { notify.error(e?.toString() || `Impossible de désactiver ${prog.name}`); }
+  } catch (e: unknown) { notify.error(`Impossible de désactiver ${prog.name}`, (e instanceof Error ? e.message : String(e)).slice(0, 120)); }
 }
 
 onMounted(load);

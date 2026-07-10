@@ -68,8 +68,8 @@ async function killProcess(pid: number, name: string) {
   try {
     await invoke("kill_process", { pid });
     topProcesses.value = topProcesses.value.filter(p => p.pid !== pid);
-  } catch (e: any) {
-    killError.value = `Impossible de tuer ${name}: ${e?.message ?? e}`;
+  } catch (e: unknown) {
+    killError.value = `Impossible de tuer ${name}: ${(e instanceof Error ? e.message : String(e)).slice(0, 120)}`;
     setTimeout(() => { killError.value = null; }, 4000);
   } finally { killingPid.value = null; }
 }

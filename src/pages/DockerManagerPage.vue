@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -97,8 +97,9 @@ async function loadVolumes() {
       const [name, driver, mountpoint, created] = line.split("|");
       return { name: name ?? "", driver: driver ?? "", mountpoint: mountpoint ?? "", created: created?.slice(0, 16) ?? "" };
     });
-  } catch {
+  } catch (e: unknown) {
     volumes.value = [];
+    if (isTauriContext()) notify.warning("Volumes Docker", (e instanceof Error ? e.message : String(e)).slice(0, 120));
   } finally {
     volumesLoading.value = false;
   }

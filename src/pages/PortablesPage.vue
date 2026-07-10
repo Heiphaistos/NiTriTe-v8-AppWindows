@@ -169,8 +169,8 @@ async function launchApp(app: PortableApp) {
     await invoke("launch_portable", { appId: app.id });
     trackRecent(app);
     notify.success(`${app.name} lancé`);
-  } catch (e: any) {
-    notify.error(e?.toString() || `Impossible de lancer ${app.name}`);
+  } catch (e: unknown) {
+    notify.error(`Impossible de lancer ${app.name}`, (e instanceof Error ? e.message : String(e)).slice(0, 120));
   }
 }
 

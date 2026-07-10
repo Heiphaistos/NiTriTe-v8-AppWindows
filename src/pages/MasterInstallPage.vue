@@ -260,9 +260,10 @@ async function installSelection() {
       }
       app.installed = true;
       app.checked = false;
-    } catch (e: any) {
-      installResults.value.push({ name: app.name, success: false, message: e?.toString() ?? "Erreur inconnue" });
-      notifications.error(`Échec: ${app.name}`, e?.toString());
+    } catch (e: unknown) {
+      const errMsg = (e instanceof Error ? e.message : String(e)).slice(0, 120);
+      installResults.value.push({ name: app.name, success: false, message: errMsg });
+      notifications.error(`Échec: ${app.name}`, errMsg);
     }
   }
 

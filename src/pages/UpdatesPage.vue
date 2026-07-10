@@ -305,9 +305,9 @@ async function searchPendingUpdates() {
     wuPending.value = await invoke<WuPendingUpdate[]>("search_pending_updates");
     wuPendingStatus.value = "done";
     if (wuPending.value.length === 0) notify.success("Windows Update", "Système à jour !");
-  } catch (e: any) {
+  } catch (e: unknown) {
     wuPendingStatus.value = "error";
-    notify.error("Windows Update", e?.toString() ?? "Erreur de recherche");
+    notify.error("Windows Update", (e instanceof Error ? e.message : String(e)).slice(0, 120));
   }
 }
 

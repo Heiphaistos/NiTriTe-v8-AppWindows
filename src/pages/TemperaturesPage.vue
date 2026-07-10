@@ -17,8 +17,8 @@ async function launchLhmPortable() {
     await invoke("launch_lhm_portable");
     // Attendre 3s puis re-poll les capteurs
     setTimeout(() => fetchSensors(), 3000);
-  } catch (e: any) {
-    alert("Impossible de lancer LHM : " + (e?.toString() ?? "erreur inconnue"));
+  } catch (e: unknown) {
+    if (isTauriContext()) notify.error("LHM", (e instanceof Error ? e.message : String(e)).slice(0, 120));
   }
   lhmLaunching.value = false;
 }

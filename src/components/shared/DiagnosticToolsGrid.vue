@@ -102,8 +102,8 @@ async function launchTool(tool: ToolDef) {
       await invoke("open_path", { path });
       notify.success("Rapport batterie généré", "Ouverture dans le navigateur...");
     }
-  } catch (e: any) {
-    notify.error(`Erreur: ${tool.label}`, e?.toString());
+  } catch (e: unknown) {
+    notify.error(`Erreur: ${tool.label}`, (e instanceof Error ? e.message : String(e)).slice(0, 120));
   } finally {
     loading.value = null;
   }
