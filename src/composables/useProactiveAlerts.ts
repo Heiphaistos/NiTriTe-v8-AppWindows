@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue';
+import { ref, onUnmounted, getCurrentInstance } from 'vue';
 import { invoke } from "@/utils/invoke";
 import type { SysInfo, SmartDiskInfo } from "@/types/diagnostic";
 
@@ -126,8 +126,7 @@ export function useProactiveAlerts(thresholds: AlertThresholds = DEFAULT_THRESHO
     }
   }
 
-  // Auto-cleanup quand le composant appelant est détruit
-  onUnmounted(() => stop());
+  if (getCurrentInstance()) onUnmounted(() => stop());
 
   return { start, stop, activeAlerts, dismissAlert, dismissAll, checkOnce };
 }
