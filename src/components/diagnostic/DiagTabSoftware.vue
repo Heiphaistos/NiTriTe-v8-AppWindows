@@ -57,7 +57,7 @@ async function deleteEnvVar(e: EnvVar) {
     const r = await invoke<string>("delete_environment_variable", { name: e.name, scope: e.var_type });
     showEnvMsg(r);
     emit("refresh");
-  } catch (err: any) { showEnvMsg(String(err), true); }
+  } catch (err: unknown) { showEnvMsg(String(err), true); }
 }
 
 const filteredSoftware = computed(() => {

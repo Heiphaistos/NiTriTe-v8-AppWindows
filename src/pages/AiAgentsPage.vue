@@ -321,7 +321,7 @@ async function sendMessage() {
     const response = await Promise.race([queryPromise, timeoutPromise]);
     messages.value.push({ role: "assistant", content: response, command: extractCommand(response) ?? undefined });
     saveCurrentConversation();
-  } catch (err: any) {
+  } catch (err: unknown) {
     const isTimeout = String(err).includes("TIMEOUT");
     const hint = isTimeout
       ? "Délai dépassé — le modèle n'a pas répondu dans les 30 secondes. Vérifiez la charge du serveur."

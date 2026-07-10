@@ -59,7 +59,7 @@ async function saveDesc(e: BcdEntry) {
     notify.success("Description mise à jour");
     cancelEdit();
     await load();
-  } catch (err: any) {
+  } catch (err: unknown) {
     notify.error("Erreur", String(err));
   }
   savingDesc.value = false;
