@@ -65,7 +65,7 @@ describe("useExportData — exportCSV quoting", () => {
 // Test de la logique de quoting CSV en isolation
 describe("csvQuoting — règles d'échappement", () => {
   // Reproduit la logique interne de exportCSV pour tests purs
-  function csvCell(v: any): string {
+  function csvCell(v: unknown): string {
     const s = String(v ?? "").replace(/"/g, '""');
     return s.includes(";") || s.includes("\n") || s.includes('"') ? `"${s}"` : s;
   }
