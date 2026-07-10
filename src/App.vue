@@ -14,6 +14,7 @@ import { useLayoutStore } from "@/stores/layoutStore";
 import { useDataCache } from "@/stores/dataCache";
 import { useProactiveAlerts } from "@/composables/useProactiveAlerts";
 import { logger } from "@/utils/logger";
+import { sdiRelease } from "@/utils/sdiGuard";
 
 const { start: startAlerts, stop: stopAlerts } = useProactiveAlerts();
 const appVersion = __APP_VERSION__;
@@ -197,7 +198,7 @@ onMounted(async () => {
     const { getCurrentWindow } = await import("@tauri-apps/api/window");
     const win = getCurrentWindow();
     await win.listen("tauri://close-requested", async () => {
-      if (window.__nitrite_sdi_active) { window.__nitrite_sdi_active = false; return; }
+      if (window.__nitrite_sdi_active) { sdiRelease(); return; }
       try { if (inv) await inv("cleanup_on_exit"); } catch { await win.destroy(); }
     });
   } catch { /* dev */ }
