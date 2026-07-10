@@ -198,12 +198,16 @@ async function loadStats() {
 
     const uptimeHours = sysHistory?.current_uptime_hours ?? 0;
     stats.value.uptime = uptimeHours > 0 ? formatUptime(Math.round(uptimeHours * 3600)) : "N/A";
-  } catch {
-    stats.value = {
-      osName: "Windows", osVersion: "11 (26100)", cpuModel: "AMD Ryzen 7 5800X",
-      cpuUsage: 23, ramTotal: 32, ramUsed: 14.4, ramPercent: 45,
-      diskTotal: 931, diskUsed: 456, diskPercent: 49, uptime: "3j 14h 22min",
-    };
+  } catch (e: unknown) {
+    if (isTauriContext()) {
+      notifications.error("Statistiques système", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    } else {
+      stats.value = {
+        osName: "Windows", osVersion: "11 (26100)", cpuModel: "AMD Ryzen 7 5800X",
+        cpuUsage: 23, ramTotal: 32, ramUsed: 14.4, ramPercent: 45,
+        diskTotal: 931, diskUsed: 456, diskPercent: 49, uptime: "3j 14h 22min",
+      };
+    }
   }
   computeHealth();
   loading.value = false;
@@ -220,14 +224,18 @@ async function loadPerfHistory() {
   perfLoading.value = true;
   try {
     perfHistory.value = await invoke<PerfHistory>("get_perf_history", { samples: 30, intervalSecs: 2 });
-  } catch {
-    const pts: PerfPoint[] = Array.from({ length: 30 }, (_, i) => ({
-      timestamp: `T-${30 - i}`,
-      cpu_percent: 20 + Math.random() * 40,
-      ram_used_mb: 8000 + Math.random() * 6000,
-      ram_total_mb: 32768,
-    }));
-    perfHistory.value = { points: pts, avg_cpu: 35, peak_cpu: 60, avg_ram_mb: 11000 };
+  } catch (e: unknown) {
+    if (isTauriContext()) {
+      notifications.error("Historique perf", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    } else {
+      const pts: PerfPoint[] = Array.from({ length: 30 }, (_, i) => ({
+        timestamp: `T-${30 - i}`,
+        cpu_percent: 20 + Math.random() * 40,
+        ram_used_mb: 8000 + Math.random() * 6000,
+        ram_total_mb: 32768,
+      }));
+      perfHistory.value = { points: pts, avg_cpu: 35, peak_cpu: 60, avg_ram_mb: 11000 };
+    }
   }
   perfLoading.value = false;
 }
@@ -282,11 +290,15 @@ async function loadPartitions() {
     }
     if (parts.length) partitions.value = parts;
     else partitions.value = [{ letter: "C:", total_gb: stats.value.diskTotal, used_gb: stats.value.diskUsed, usage_percent: stats.value.diskPercent }];
-  } catch {
-    partitions.value = [
-      { letter: "C:", total_gb: 931, used_gb: 456, usage_percent: 49, name: "SSD" },
-      { letter: "D:", total_gb: 2000, used_gb: 1200, usage_percent: 60, name: "HDD" },
-    ];
+  } catch (e: unknown) {
+    if (isTauriContext()) {
+      notifications.error("Partitions disque", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    } else {
+      partitions.value = [
+        { letter: "C:", total_gb: 931, used_gb: 456, usage_percent: 49, name: "SSD" },
+        { letter: "D:", total_gb: 2000, used_gb: 1200, usage_percent: 60, name: "HDD" },
+      ];
+    }
   }
 }
 
@@ -305,11 +317,16 @@ async function loadReports() {
   reportsLoading.value = true;
   try {
     reports.value = await invoke<ReportFile[]>("list_reports");
-  } catch {
-    reports.value = [
-      { name: "rapport-systeme-2026-03-01.txt", path: "C:\\NiTriTe\\rapports\\rapport-systeme-2026-03-01.txt", size_bytes: 4096, created: "2026-03-01 10:00" },
-      { name: "backup-info-2026-02-28.txt", path: "C:\\NiTriTe\\rapports\\backup-info-2026-02-28.txt", size_bytes: 8192, created: "2026-02-28 14:30" },
-    ];
+  } catch (e: unknown) {
+    if (isTauriContext()) {
+      reports.value = [];
+      notifications.error("Rapports", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    } else {
+      reports.value = [
+        { name: "rapport-systeme-2026-03-01.txt", path: "C:\\NiTriTe\\rapports\\rapport-systeme-2026-03-01.txt", size_bytes: 4096, created: "2026-03-01 10:00" },
+        { name: "backup-info-2026-02-28.txt", path: "C:\\NiTriTe\\rapports\\backup-info-2026-02-28.txt", size_bytes: 8192, created: "2026-02-28 14:30" },
+      ];
+    }
   } finally {
     reportsLoading.value = false;
   }

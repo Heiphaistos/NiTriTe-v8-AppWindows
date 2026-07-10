@@ -97,13 +97,20 @@ async function loadFileLogs() {
 }
 
 async function loadArchives() {
-  try { fileArchives.value = await invoke<string[]>("list_log_archives"); } catch { fileArchives.value = []; }
+  try { fileArchives.value = await invoke<string[]>("list_log_archives"); }
+  catch (e: unknown) {
+    fileArchives.value = [];
+    if (isTauriContext()) notify.warning("Archives logs", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  }
 }
 
 async function loadWinEvents() {
   winLoading.value = true;
   try { winEvents.value = await invoke<WinEvent[]>("get_event_logs", { logName: winLogName.value, count: 200 }); }
-  catch { winEvents.value = []; } finally { winLoading.value = false; }
+  catch (e: unknown) {
+    winEvents.value = [];
+    if (isTauriContext()) notify.error("Journaux Windows", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  } finally { winLoading.value = false; }
 }
 
 async function clearFileLogs() {

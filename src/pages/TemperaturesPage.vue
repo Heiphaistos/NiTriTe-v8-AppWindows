@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, shallowRef } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
+import { useNotificationStore } from "@/stores/notifications";
 
 const LHM_URL = "https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases/latest";
 const lhmPortableExists = ref(false);
@@ -55,6 +56,8 @@ const sensors  = shallowRef<SensorReading[]>([]);
 const loading  = ref(false);
 const lastUpdate = ref<Date | null>(null);
 let   pollTimer: ReturnType<typeof setInterval> | null = null;
+const notify = useNotificationStore();
+const sensorsErrorShown = ref(false);
 
 const POLL_MS = 3000;
 
@@ -130,8 +133,14 @@ async function fetchSensors() {
   try {
     const data = await invoke<SensorReading[]>("get_all_sensors");
     sensors.value = data;
+    sensorsErrorShown.value = false;
     lastUpdate.value = new Date();
-  } catch { /* silencieux */ }
+  } catch (e: unknown) {
+    if (isTauriContext() && !sensorsErrorShown.value) {
+      sensorsErrorShown.value = true;
+      notify.warning("Capteurs", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
+  }
   loading.value = false;
 }
 
