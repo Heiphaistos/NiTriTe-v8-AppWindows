@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { invoke, isTauriContext } from "@/utils/invoke";
 import type { SystemMonitorPayload } from "@/types/diagnostic";
 import StatsCard from "@/components/shared/StatsCard.vue";
@@ -61,11 +61,6 @@ const recording = ref(false);
 const sessionFrames = ref<SessionFrame[]>([]);
 function clearSession() { sessionFrames.value = []; }
 const sessionStart = ref<Date | null>(null);
-const sessionDuration = computed(() => {
-  if (!sessionStart.value) return "00:00";
-  const s = Math.floor((Date.now() - sessionStart.value.getTime()) / 1000);
-  return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-});
 let durationTick: ReturnType<typeof setInterval> | null = null;
 const durationDisplay = ref("00:00");
 
