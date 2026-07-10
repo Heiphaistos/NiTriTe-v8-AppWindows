@@ -129,7 +129,7 @@ async function setDefault(id: string) {
 async function saveTimeout() {
   savingTimeout.value = true;
   try {
-    await invoke("set_boot_timeout", { secs: newTimeout.value });
+    await invoke("set_boot_timeout", { seconds: newTimeout.value });
     notify.success("Délai de démarrage mis à jour", `${newTimeout.value} secondes`);
     await load();
   } catch (e: unknown) {
