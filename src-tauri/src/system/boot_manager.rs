@@ -118,10 +118,13 @@ pub fn set_boot_timeout(seconds: u32) -> Result<String, String> {
 
 #[tauri::command]
 pub fn set_default_boot(entry_id: String) -> Result<String, String> {
-    let id = entry_id.replace(['"', '\''], "");
-    let out = ps_out(&format!("bcdedit /default {{{}}}", id.trim_matches(|c| c == '{' || c == '}')));
+    let id = entry_id.trim().trim_matches(|c| c == '{' || c == '}').to_string();
+    if id.is_empty() || id.len() > 64 || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return Err(format!("Identifiant BCD invalide : '{}'", id));
+    }
+    let out = ps_out(&format!("bcdedit /default {{{}}}", id));
     if out.to_lowercase().contains("successfully") {
-        Ok(format!("Entrée de démarrage par défaut définie : {}", id))
+        Ok(format!("Entrée de démarrage par défaut définie : {{{}}}", id))
     } else {
         Err(out)
     }

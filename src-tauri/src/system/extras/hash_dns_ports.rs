@@ -122,12 +122,15 @@ Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | ForEach-Object {
 
 #[tauri::command]
 pub fn switch_dns(adapter: String, primary: String, secondary: String) -> Result<String, String> {
-    let script = if primary.is_empty() {
-        format!("Set-DnsClientServerAddress -InterfaceAlias '{}' -ResetServerAddresses; 'OK'", adapter)
-    } else if secondary.is_empty() {
-        format!("Set-DnsClientServerAddress -InterfaceAlias '{}' -ServerAddresses '{}'; 'OK'", adapter, primary)
+    let a = adapter.replace('\'', "''");
+    let p = primary.replace('\'', "''");
+    let s = secondary.replace('\'', "''");
+    let script = if p.is_empty() {
+        format!("Set-DnsClientServerAddress -InterfaceAlias '{}' -ResetServerAddresses; 'OK'", a)
+    } else if s.is_empty() {
+        format!("Set-DnsClientServerAddress -InterfaceAlias '{}' -ServerAddresses '{}'; 'OK'", a, p)
     } else {
-        format!("Set-DnsClientServerAddress -InterfaceAlias '{}' -ServerAddresses '{}','{}'; 'OK'", adapter, primary, secondary)
+        format!("Set-DnsClientServerAddress -InterfaceAlias '{}' -ServerAddresses '{}','{}'; 'OK'", a, p, s)
     };
     ps(&script)
 }
