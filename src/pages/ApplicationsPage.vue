@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, type Component } from "vue";
 import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
 import type { CommandResult } from "@/types/diagnostic";
 import type { UnlistenFn } from "@tauri-apps/api/event";
@@ -61,7 +61,7 @@ const categoryTabs = [
   { id: "gaming", label: "Gaming" },
 ];
 
-const categoryIcons: Record<string, any> = {
+const categoryIcons: Record<string, Component> = {
   navigateurs: Globe,
   bureautique: FileText,
   dev: Code,

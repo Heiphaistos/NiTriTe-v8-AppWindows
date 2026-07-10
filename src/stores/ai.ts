@@ -26,7 +26,7 @@ export const useAiStore = defineStore("ai", () => {
   }
 
   // Sauvegarde dans la config Rust (appelé depuis SettingsPage)
-  async function saveToConfig(extraConfig: Record<string, any> = {}) {
+  async function saveToConfig(extraConfig: Record<string, unknown> = {}) {
     try {
       const currentCfg = await invoke<AppConfig>("get_config");
       await invoke("save_config", {

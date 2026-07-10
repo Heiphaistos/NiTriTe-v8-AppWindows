@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, type Component } from "vue";
 import { invoke } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -63,7 +63,7 @@ function trackRecent(app: PortableApp) {
 const apps = ref<PortableApp[]>(PORTABLE_APPS);
 
 // ── Icônes par catégorie ──────────────────────────────────────
-const CAT_ICONS: Record<string, any> = {
+const CAT_ICONS: Record<string, Component> = {
   Système:       HardDrive,
   Réseau:        Globe,
   Développement: FileCode,

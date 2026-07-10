@@ -16,6 +16,7 @@ import { useProactiveAlerts } from "@/composables/useProactiveAlerts";
 import { logger } from "@/utils/logger";
 
 const { start: startAlerts, stop: stopAlerts } = useProactiveAlerts();
+const appVersion = __APP_VERSION__;
 function handleKeyDown(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); searchOpen.value = !searchOpen.value; }
   if ((e.ctrlKey || e.metaKey) && e.key === "b") { e.preventDefault(); toggleSidebar(); localStorage.setItem("nitrite-sidebar", String(sidebarCollapsed.value)); }
@@ -223,7 +224,7 @@ onMounted(async () => {
           <img :src="logoUrl" class="splash-logo" alt="NiTriTe" />
           <div class="splash-brand-text">
             <div class="splash-title">NiTriTe</div>
-            <div class="splash-version">v{{ __APP_VERSION__ }}</div>
+            <div class="splash-version">v{{ appVersion }}</div>
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, type Component } from "vue";
 import { invoke, isTauriContext } from "@/utils/invoke";
 import type { ToolEntry } from "@/types/diagnostic";
 import NButton from "@/components/ui/NButton.vue";
@@ -114,7 +114,7 @@ const categoryTabs = [
   { id: "drivers", label: "Drivers" },
 ];
 
-const categoryIcons: Record<string, any> = {
+const categoryIcons: Record<string, Component> = {
   reparation: ShieldCheck,
   diagnostics: Stethoscope,
   nettoyage: Trash2,

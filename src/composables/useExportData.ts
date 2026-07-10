@@ -1,6 +1,6 @@
 // Composable utilitaire pour exporter des données en CSV ou JSON
 export function useExportData() {
-  function exportCSV(data: Record<string, any>[], filename: string) {
+  function exportCSV(data: Record<string, unknown>[], filename: string) {
     if (!data.length) return;
     const keys = Object.keys(data[0]);
     const header = keys.join(';');
