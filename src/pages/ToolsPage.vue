@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import type { ToolEntry } from "@/types/diagnostic";
 import NButton from "@/components/ui/NButton.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
@@ -253,8 +253,13 @@ async function loadTools() {
       category: normalizeCategory(t.section || t.category || "", t.name || ""),
       requires_admin: t.requires_admin ?? false,
     }));
-  } catch {
-    tools.value = devTools;
+  } catch (e: unknown) {
+    if (!isTauriContext()) { tools.value = devTools; }
+    else {
+      tools.value = [];
+      const { useNotificationStore } = await import("@/stores/notifications");
+      useNotificationStore().error("Outils", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
   }
   loading.value = false;
 }

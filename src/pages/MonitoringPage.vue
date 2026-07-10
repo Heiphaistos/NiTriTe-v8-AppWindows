@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import type { SystemMonitorPayload } from "@/types/diagnostic";
 import StatsCard from "@/components/shared/StatsCard.vue";
 import NCard from "@/components/ui/NCard.vue";
@@ -230,18 +230,23 @@ onMounted(async () => {
       checkAlerts(d);
       recordFrame(d);
     });
-  } catch {
-    devInterval = setInterval(() => {
-      if (paused.value) return;
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      devInterval = setInterval(() => {
+        if (paused.value) return;
+        const d = generateDevData();
+        d.ram_percent = (d.ram_used_gb / d.ram_total_gb) * 100;
+        data.value = d;
+        checkAlerts(d);
+        recordFrame(d);
+      }, 3000);
       const d = generateDevData();
       d.ram_percent = (d.ram_used_gb / d.ram_total_gb) * 100;
       data.value = d;
-      checkAlerts(d);
-      recordFrame(d);
-    }, 3000);
-    const d = generateDevData();
-    d.ram_percent = (d.ram_used_gb / d.ram_total_gb) * 100;
-    data.value = d;
+    } else {
+      const { useNotificationStore } = await import("@/stores/notifications");
+      useNotificationStore().error("Monitoring", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
   }
   loading.value = false;
 });

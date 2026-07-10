@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import type { ShellResult } from "@/types/diagnostic";
 import NButton from "@/components/ui/NButton.vue";
 import { Terminal, Trash2, Send, Clock, ChevronRight } from "lucide-vue-next";
@@ -76,11 +76,17 @@ async function loadShells() {
     shells.value = await invoke<ShellInfo[]>("detect_shells");
     const available = shells.value.filter(s => s.available);
     if (available.length > 0) activeShell.value = available[0].id;
-  } catch {
-    shells.value = [
-      { id: "cmd", name: "CMD", path: "cmd.exe", available: true },
-      { id: "powershell", name: "PowerShell", path: "powershell.exe", available: true },
-    ];
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      shells.value = [
+        { id: "cmd", name: "CMD", path: "cmd.exe", available: true },
+        { id: "powershell", name: "PowerShell", path: "powershell.exe", available: true },
+      ];
+    } else {
+      shells.value = [];
+      const { useNotificationStore } = await import("@/stores/notifications");
+      useNotificationStore().error("Shells", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
   }
 }
 

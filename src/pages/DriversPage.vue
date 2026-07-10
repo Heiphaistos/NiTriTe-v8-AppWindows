@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -127,30 +127,34 @@ async function loadDrivers() {
     });
     const out = result?.stdout ?? "";
     drivers.value = parseCSV(out);
-  } catch {
-    // Données de démo
-    drivers.value = [
-      { module: "1394ohci", displayName: "1394 OHCI Compliant Host Controller", driverType: "Kernel", linkDate: "21/06/2006", state: "Stopped" },
-      { module: "3ware", displayName: "3ware", driverType: "Kernel", linkDate: "17/05/2015", state: "Stopped" },
-      { module: "ACPI", displayName: "Microsoft ACPI Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
-      { module: "AcpiDev", displayName: "ACPI Devices driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Stopped", provider: "Microsoft" },
-      { module: "acpiex", displayName: "Microsoft ACPIEx Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
-      { module: "AFD", displayName: "Ancillary Function Driver", driverType: "Kernel", linkDate: "11/03/2024", state: "Running", provider: "Microsoft" },
-      { module: "ahcache", displayName: "Application Compatibility Cache", driverType: "Kernel", linkDate: "21/06/2006", state: "Running" },
-      { module: "amdgpio2", displayName: "AMD GPIO Client Driver", driverType: "Kernel", linkDate: "01/09/2023", state: "Running", provider: "AMD" },
-      { module: "amdi2c", displayName: "AMD I2C Controller Driver", driverType: "Kernel", linkDate: "01/09/2023", state: "Stopped", provider: "AMD" },
-      { module: "AmdK8", displayName: "AMD K8 Processor Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Stopped" },
-      { module: "Beep", displayName: "Beep", driverType: "Kernel", linkDate: "21/06/2006", state: "Running" },
-      { module: "BthA2dp", displayName: "Microsoft Bluetooth A2dp driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Stopped", provider: "Microsoft" },
-      { module: "CLFS", displayName: "Common Log (CLFS)", driverType: "Kernel", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
-      { module: "disk", displayName: "Disk Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
-      { module: "HTTP", displayName: "HTTP Service", driverType: "Kernel", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
-      { module: "intelppm", displayName: "Intel Processor Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Stopped", provider: "Intel" },
-      { module: "Ndu", displayName: "Network Data Usage Monitoring Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Running" },
-      { module: "Ntfs", displayName: "Ntfs", driverType: "File System", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
-      { module: "nvlddmkm", displayName: "NVIDIA Windows Kernel Mode Driver", driverType: "Kernel", linkDate: "15/01/2025", state: "Running", provider: "NVIDIA" },
-      { module: "Tcpip", displayName: "TCP/IP Protocol Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
-    ];
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      drivers.value = [
+        { module: "1394ohci", displayName: "1394 OHCI Compliant Host Controller", driverType: "Kernel", linkDate: "21/06/2006", state: "Stopped" },
+        { module: "3ware", displayName: "3ware", driverType: "Kernel", linkDate: "17/05/2015", state: "Stopped" },
+        { module: "ACPI", displayName: "Microsoft ACPI Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
+        { module: "AcpiDev", displayName: "ACPI Devices driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Stopped", provider: "Microsoft" },
+        { module: "acpiex", displayName: "Microsoft ACPIEx Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
+        { module: "AFD", displayName: "Ancillary Function Driver", driverType: "Kernel", linkDate: "11/03/2024", state: "Running", provider: "Microsoft" },
+        { module: "ahcache", displayName: "Application Compatibility Cache", driverType: "Kernel", linkDate: "21/06/2006", state: "Running" },
+        { module: "amdgpio2", displayName: "AMD GPIO Client Driver", driverType: "Kernel", linkDate: "01/09/2023", state: "Running", provider: "AMD" },
+        { module: "amdi2c", displayName: "AMD I2C Controller Driver", driverType: "Kernel", linkDate: "01/09/2023", state: "Stopped", provider: "AMD" },
+        { module: "AmdK8", displayName: "AMD K8 Processor Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Stopped" },
+        { module: "Beep", displayName: "Beep", driverType: "Kernel", linkDate: "21/06/2006", state: "Running" },
+        { module: "BthA2dp", displayName: "Microsoft Bluetooth A2dp driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Stopped", provider: "Microsoft" },
+        { module: "CLFS", displayName: "Common Log (CLFS)", driverType: "Kernel", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
+        { module: "disk", displayName: "Disk Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
+        { module: "HTTP", displayName: "HTTP Service", driverType: "Kernel", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
+        { module: "intelppm", displayName: "Intel Processor Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Stopped", provider: "Intel" },
+        { module: "Ndu", displayName: "Network Data Usage Monitoring Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Running" },
+        { module: "Ntfs", displayName: "Ntfs", driverType: "File System", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
+        { module: "nvlddmkm", displayName: "NVIDIA Windows Kernel Mode Driver", driverType: "Kernel", linkDate: "15/01/2025", state: "Running", provider: "NVIDIA" },
+        { module: "Tcpip", displayName: "TCP/IP Protocol Driver", driverType: "Kernel", linkDate: "21/06/2006", state: "Running", provider: "Microsoft" },
+      ];
+    } else {
+      drivers.value = [];
+      notifications.error("Pilotes", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
   }
   loading.value = false;
 }
@@ -319,12 +323,17 @@ async function loadRecommended() {
   recommendedLoading.value = true;
   try {
     recommended.value = await invoke<RecommendedDriver[]>("get_recommended_drivers");
-  } catch {
-    recommended.value = [
-      { driver: { id: "vcredist-2015-2022", name: "Visual C++ 2015-2022", description: "Runtime requis par la plupart des applications", category: "Runtime", url: "https://aka.ms/vs/17/release/vc_redist.x64.exe" }, installed: true },
-      { driver: { id: "dotnet-8", name: ".NET 8 Runtime", description: "Runtime .NET 8 LTS", category: "Runtime", url: "#" }, installed: false },
-      { driver: { id: "nvidia-drivers", name: "NVIDIA GeForce Drivers", description: "Pilotes GPU NVIDIA", category: "GPU", url: "#" }, installed: true },
-    ];
+  } catch (e: unknown) {
+    if (!isTauriContext()) {
+      recommended.value = [
+        { driver: { id: "vcredist-2015-2022", name: "Visual C++ 2015-2022", description: "Runtime requis par la plupart des applications", category: "Runtime", url: "https://aka.ms/vs/17/release/vc_redist.x64.exe" }, installed: true },
+        { driver: { id: "dotnet-8", name: ".NET 8 Runtime", description: "Runtime .NET 8 LTS", category: "Runtime", url: "#" }, installed: false },
+        { driver: { id: "nvidia-drivers", name: "NVIDIA GeForce Drivers", description: "Pilotes GPU NVIDIA", category: "GPU", url: "#" }, installed: true },
+      ];
+    } else {
+      recommended.value = [];
+      notifications.error("Pilotes recommandés", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    }
   } finally {
     recommendedLoading.value = false;
   }
