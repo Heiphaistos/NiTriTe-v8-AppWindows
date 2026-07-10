@@ -178,8 +178,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
+import { useNotificationStore } from "@/stores/notifications";
 import { Gauge, Cpu, MemoryStick, HardDrive, Play, Activity, BarChart3 } from 'lucide-vue-next'
+const notify = useNotificationStore();
 
 interface BenchResult { name: string; score: number; unit: string; duration_ms: number; details: string }
 interface BenchState { loading: boolean; score: number | null; unit: string; duration_ms: number; details: string }
@@ -240,17 +242,25 @@ function clearHistory() {
 async function runCpu() {
   cpu.value.loading = true
   try { const r = await invoke<BenchResult>('run_cpu_bench'); cpu.value = { loading: false, ...r } }
-  catch { cpu.value.loading = false }
+  catch (e: unknown) {
+    cpu.value.loading = false;
+    if (isTauriContext()) notify.error("Benchmark CPU", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  }
 }
 async function runRam() {
   ram.value.loading = true
   try { const r = await invoke<BenchResult>('run_ram_bench'); ram.value = { loading: false, ...r } }
-  catch { ram.value.loading = false }
+  catch (e: unknown) {
+    ram.value.loading = false;
+    if (isTauriContext()) notify.error("Benchmark RAM", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  }
 }
 async function runDisk() {
   disk.value = { loading: true, results: [] }
   try { disk.value.results = await invoke<BenchResult[]>('run_disk_bench', { drive: drive.value }) }
-  catch {} finally { disk.value.loading = false }
+  catch (e: unknown) {
+    if (isTauriContext()) notify.error("Benchmark Disque", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  } finally { disk.value.loading = false }
 }
 async function runAll() {
   await Promise.all([runCpu(), runRam(), runDisk()]);

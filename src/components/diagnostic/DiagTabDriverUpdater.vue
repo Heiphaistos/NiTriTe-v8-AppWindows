@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { invokeRaw as invoke } from "@/utils/invoke";
+import { invokeRaw as invoke, isTauriContext } from "@/utils/invoke";
 import type { DriverInstallResult } from "@/types/diagnostic";
 import { useNotificationStore } from "@/stores/notifications";
 const notify = useNotificationStore();
@@ -93,8 +93,9 @@ async function loadDevices() {
   devices.value = [];
   try {
     devices.value = await invoke<HardwareDevice[]>("get_hardware_devices");
-  } catch {}
-  finally { devicesLoading.value = false; }
+  } catch (e: unknown) {
+    if (isTauriContext()) notify.warning("Périphériques", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  } finally { devicesLoading.value = false; }
 }
 
 async function selectFolder() {
@@ -136,8 +137,9 @@ async function installDriver(match: DriverMatch) {
   try {
     const result = await invoke<DriverInstallResult>("install_driver", { infPath: match.inf_path });
     installResults.value[match.device_id] = result;
-  } catch {}
-  finally { installing.value = null; }
+  } catch (e: unknown) {
+    notify.error("Installation driver", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  } finally { installing.value = null; }
 }
 
 async function installSelected() {
@@ -153,8 +155,9 @@ async function checkProblems() {
   problemsLoading.value = true;
   try {
     problemDevices.value = await invoke<string[]>("check_driver_updates_winupdate");
-  } catch {}
-  finally { problemsLoading.value = false; }
+  } catch (e: unknown) {
+    if (isTauriContext()) notify.warning("Mises à jour drivers", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  } finally { problemsLoading.value = false; }
 }
 
 function toggleSelect(id: string) {

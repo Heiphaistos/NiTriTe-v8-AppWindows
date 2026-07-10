@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { invokeRaw as invoke } from "@/utils/invoke";
+import { invokeRaw as invoke, isTauriContext } from "@/utils/invoke";
+import { useNotificationStore } from "@/stores/notifications";
+const notify = useNotificationStore();
 import NBadge from "@/components/ui/NBadge.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
@@ -142,8 +144,9 @@ const REPAIR_GROUPS = [
 onMounted(async () => {
   try {
     health.value = await invoke<SystemHealthStatus>("check_system_health");
-  } catch {}
-  finally { healthLoading.value = false; }
+  } catch (e: unknown) {
+    if (isTauriContext()) notify.error("Santé système", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  } finally { healthLoading.value = false; }
 });
 
 async function runRepair(key: string) {

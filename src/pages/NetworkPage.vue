@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -106,8 +106,10 @@ async function loadConnections() {
   connLoading.value = true;
   try {
     connections.value = await invoke<ConnectionInfo[]>("get_connections");
-  } catch { connections.value = []; }
-  finally { connLoading.value = false; }
+  } catch (e: unknown) {
+    connections.value = [];
+    if (isTauriContext()) notify.error("Connexions", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+  } finally { connLoading.value = false; }
 }
 
 // ── Speed test ────────────────────────────────────────────────────────────────

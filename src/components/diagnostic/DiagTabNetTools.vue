@@ -6,8 +6,10 @@ import NButton from "@/components/ui/NButton.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
 import { Globe, Wifi, Search, Server, Activity } from "lucide-vue-next";
 import { useExportData } from '@/composables/useExportData';
-import { invoke, invokeRaw } from "@/utils/invoke";
+import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
+import { useNotificationStore } from "@/stores/notifications";
 const { exportCSV, exportTXT } = useExportData();
+const notify = useNotificationStore();
 
 function exportPingResult(result: PingResult | null) {
   if (!result) return;
@@ -71,7 +73,8 @@ const sharesHost = ref("localhost"); const shares = ref<NetShareEntry[]>([]); co
 const bandwidth = ref<BandwidthResult|null>(null); const bwLoading = ref(false);
 
 onMounted(async () => {
-  try { ipConfig.value = await invoke<IpConfigAdapter[]>("get_ip_config"); } catch {}
+  try { ipConfig.value = await invoke<IpConfigAdapter[]>("get_ip_config"); }
+  catch (e: unknown) { if (isTauriContext()) notify.error("Configuration IP", (e instanceof Error ? e.message : String(e)).slice(0, 120)); }
   finally { ipLoading.value = false; }
 });
 

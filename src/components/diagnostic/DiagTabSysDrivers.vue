@@ -313,11 +313,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, shallowRef, defineAsyncComponent } from "vue";
-import { invoke, invokeRaw } from "@/utils/invoke";
+import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
 import type { DriverInstallResult } from "@/types/diagnostic";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useNotificationStore } from "@/stores/notifications";
 import { Search, AlertTriangle, Shield, RefreshCw, Download, HardDrive, Cpu, FolderOpen, CheckCircle, Zap } from "lucide-vue-next";
 const DiagTabDriverUpdater = defineAsyncComponent(() => import("./DiagTabDriverUpdater.vue"));
+const notify = useNotificationStore();
 
 // ---- Types ----
 interface PnpDriver { name: string; provider: string; version: string; date: string; class: string; inf: string; signed: boolean; status: string; config_error: number }
@@ -373,7 +375,7 @@ const filteredList = computed(() => {
 
 onMounted(async () => {
   try { listData.value = await invoke<SysDriversData>("get_sys_drivers_list") }
-  catch {}
+  catch (e: unknown) { if (isTauriContext()) notify.error("Drivers système", (e instanceof Error ? e.message : String(e)).slice(0, 120)); }
   finally { loadingList.value = false }
 })
 
@@ -436,7 +438,7 @@ const scanResult = ref<DriverScanResult | null>(null)
 async function scanHW() {
   hwLoading.value = true
   try { hwDevices.value = await invoke<HardwareDevice[]>("get_hardware_devices") }
-  catch {}
+  catch (e: unknown) { if (isTauriContext()) notify.warning("Périphériques", (e instanceof Error ? e.message : String(e)).slice(0, 120)); }
   finally { hwLoading.value = false }
 }
 

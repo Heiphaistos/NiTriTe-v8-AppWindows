@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, type Component } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, isTauriContext } from "@/utils/invoke";
 import type { AppConfig } from "@/types/diagnostic";
 import NButton from "@/components/ui/NButton.vue";
 import NInput from "@/components/ui/NInput.vue";
@@ -109,7 +109,9 @@ onMounted(async () => {
       appStore.showAnimations = false;
       document.documentElement.classList.add("no-animations");
     }
-  } catch { /* dev fallback */ }
+  } catch (e: unknown) {
+    if (isTauriContext()) notify.warning("Paramètres", "Impossible de charger la configuration — valeurs par défaut appliquées.");
+  }
 });
 
 // ── Test Ollama ───────────────────────────────────────────────
