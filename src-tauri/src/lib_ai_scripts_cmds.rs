@@ -425,10 +425,12 @@ async fn launch_sdi() -> Result<(), NiTriTeError> {
         use std::os::windows::process::CommandExt;
         // Start-Process cree un processus completement isole de Tauri
         // → fermer SDI n'affecte jamais Nitrite
+        let exe_escaped = exe_path.to_string_lossy().replace('\'', "''");
+        let dir_escaped = sdi_dir.to_string_lossy().replace('\'', "''");
         let cmd = format!(
             "Start-Process -FilePath '{}' -WorkingDirectory '{}'",
-            exe_path.display(),
-            sdi_dir.display()
+            exe_escaped,
+            dir_escaped
         );
         std::process::Command::new("powershell")
             .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &cmd])

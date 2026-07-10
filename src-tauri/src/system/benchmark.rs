@@ -129,10 +129,17 @@ pub async fn run_ram_bench() -> BenchResult {
 #[tauri::command]
 pub async fn run_disk_bench(drive: Option<String>) -> BenchResult {
     tokio::task::spawn_blocking(move || {
-        let d = drive
-            .filter(|s| !s.is_empty())
-            .unwrap_or_else(|| "C:".to_string())
-            .replace(['"', '\''], "");
+        // Valider strictement : lettre de lecteur + ':' uniquement
+        // Empêche l'injection via $() ou backtick dans la PS double-quoted string
+        let raw = drive.filter(|s| !s.is_empty()).unwrap_or_else(|| "C:".to_string());
+        let d = if raw.len() == 2
+            && raw.chars().next().map(|c| c.is_ascii_alphabetic()).unwrap_or(false)
+            && raw.ends_with(':')
+        {
+            raw
+        } else {
+            "C:".to_string()
+        };
 
         let rand_suffix = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
