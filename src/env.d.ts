@@ -7,3 +7,10 @@ interface Window {
   __hideNativeBoot?: () => void;
   __nitrite_sdi_active?: boolean;
 }
+
+// Shim pour que tsc puisse résoudre les imports *.vue sans vue-tsc
+declare module '*.vue' {
+  import type { DefineComponent } from 'vue'
+  const component: DefineComponent
+  export default component
+}
