@@ -169,7 +169,7 @@ async function copyRegPath(path: string) {
 async function openRegedit(location: string) {
   try {
     await invoke("open_in_regedit", { keyPath: location });
-  } catch (e: any) { useNotificationStore().error("Impossible d'ouvrir Regedit", String(e)); }
+  } catch (e: unknown) { useNotificationStore().error("Impossible d'ouvrir Regedit", String(e)); }
 }
 
 function actTypeVariant(t: string): 'success'|'neutral'|'warning'|'danger' {
@@ -190,7 +190,7 @@ async function runRepairCommand(type: "sfc" | "dism") {
       await invoke("run_system_command", { cmd: "cmd", args: ["/c", "start", "cmd", "/k", "DISM /Online /Cleanup-Image /RestoreHealth"] });
       notif.success("DISM RestoreHealth lancé", "Réparation des composants Windows en cours");
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     notif.error("Erreur lancement commande", String(e));
   }
 }

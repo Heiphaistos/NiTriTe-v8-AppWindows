@@ -209,7 +209,7 @@ async function scan(silent = false) {
     networks.value = res;
     if (!silent && res.length === 0) notify.warning("Aucun réseau", "Vérifiez que le Wi-Fi est activé");
     await redrawHeatmaps();
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (!silent) notify.error("Erreur scan WiFi", String(e));
   } finally {
     if (!silent) loading.value = false;

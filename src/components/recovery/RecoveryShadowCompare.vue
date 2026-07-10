@@ -39,7 +39,7 @@ async function compare() {
       livePath: livePath.value,
     });
     done.value = true;
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur comparaison", String(e));
   }
   loading.value = false;
@@ -55,7 +55,7 @@ async function restoreFile(f: ComparedFile) {
     });
     if (r.success) notify.success("Restauré", f.name);
     else notify.error("Échec", r.message);
-  } catch (e: any) { notify.error("Erreur", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur", String(e)); }
 }
 
 function formatSize(b: number) {

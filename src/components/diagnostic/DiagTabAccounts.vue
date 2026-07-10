@@ -26,7 +26,7 @@ async function toggleUser(name: string, enable: boolean) {
     });
     toggleMsg.value = enable ? `${name} : activation demandée` : `${name} : désactivation demandée`;
     setTimeout(() => { toggleMsg.value = ""; }, 4000);
-  } catch (e: any) {
+  } catch (e: unknown) {
     toggleMsg.value = "Erreur : " + String(e);
   }
   togglingUser.value = null;

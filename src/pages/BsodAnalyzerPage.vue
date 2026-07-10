@@ -33,7 +33,7 @@ async function loadReport(forceRefresh = false) {
     report.value = forceRefresh
       ? await refreshCached<BsodReport>("get_bsod_history")
       : await cachedInvoke<BsodReport>("get_bsod_history");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur BSOD", String(e));
   }
   loading.value = false;

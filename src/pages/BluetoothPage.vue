@@ -70,7 +70,7 @@ async function load() {
   loading.value = true;
   try {
     report.value = await cachedInvoke<BluetoothReport>("get_bluetooth_info");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur Bluetooth", String(e));
   }
   loading.value = false;
@@ -83,7 +83,7 @@ async function toggleBt(enable: boolean) {
     await invoke("toggle_bluetooth", { enable });
     notify.success(enable ? "Bluetooth activé" : "Bluetooth désactivé");
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
   toggling.value = false;
@@ -104,7 +104,7 @@ async function forgetDevice(d: BluetoothDevice) {
     });
     notify.success("Appareil oublié", d.name || d.address);
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
   forgetting.value = null;
@@ -113,7 +113,7 @@ async function forgetDevice(d: BluetoothDevice) {
 async function openBtSettings() {
   try {
     await invoke("open_url", { url: "ms-settings:bluetooth" });
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
 }

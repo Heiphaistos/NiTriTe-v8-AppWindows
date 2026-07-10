@@ -57,7 +57,7 @@ async function scan() {
     rootNode.value = node;
     currentNode.value = node;
     breadcrumb.value = [node];
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur scan", String(e));
   } finally {
     loading.value = false;

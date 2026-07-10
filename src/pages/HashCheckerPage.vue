@@ -49,7 +49,7 @@ async function hashPath(path: string) {
     if (idx !== -1) results.value.splice(idx, 1);
     results.value.unshift(r);
     if (results.value.length > 50) results.value.pop();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur hachage", String(e));
   } finally {
     loading.value = false;
@@ -67,7 +67,7 @@ async function hashFolder(path: string) {
     }
     if (results.value.length > 200) results.value.splice(200);
     notify.success("Batch terminé", `${res.length} fichier(s) haché(s)`);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur batch", String(e));
   } finally {
     loading.value = false; batchMode.value = false;
@@ -79,7 +79,7 @@ async function pickFile() {
     const { open } = await import("@tauri-apps/plugin-dialog");
     const p = await open({ title: "Sélectionner un fichier ou dossier", directory: false, multiple: false });
     if (p && typeof p === "string") await hashPath(p);
-  } catch (e: any) { notify.error("Erreur", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur", String(e)); }
 }
 
 async function pickFolder() {
@@ -87,7 +87,7 @@ async function pickFolder() {
     const { open } = await import("@tauri-apps/plugin-dialog");
     const p = await open({ title: "Sélectionner un dossier", directory: true });
     if (p && typeof p === "string") await hashFolder(p);
-  } catch (e: any) { notify.error("Erreur", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur", String(e)); }
 }
 
 function onDrop(e: DragEvent) {
@@ -137,9 +137,9 @@ async function checkVirusTotal(r: HashResult) {
       queried: true,
       loading: false,
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     delete vtResults.value[key];
-    const msg = (e as Error)?.name === "AbortError" ? "Délai dépassé (15s)" : String(e);
+    const msg = e instanceof Error && e.name === "AbortError" ? "Délai dépassé (15s)" : (e instanceof Error ? e.message : String(e)).slice(0, 120);
     notify.error("Erreur VT", msg);
   } finally {
     clearTimeout(vtTimeout);

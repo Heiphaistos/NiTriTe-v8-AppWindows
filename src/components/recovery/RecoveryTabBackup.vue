@@ -32,7 +32,7 @@ async function loadUserFolders(force = false) {
         userFolders.value.filter(f => ["Documents", "Bureau"].includes(f.name)).map(f => f.path)
       );
     }
-  } catch (e: any) { notify.error("Erreur profil", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur profil", String(e)); }
   loadingFolders.value = false;
 }
 
@@ -86,7 +86,7 @@ async function startProfileBackup() {
     });
     if (backupResult.value.success) notify.success("Sauvegarde terminée", backupResult.value.message);
     else notify.error("Échec", backupResult.value.message);
-  } catch (e: any) { notify.error("Erreur sauvegarde", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur sauvegarde", String(e)); }
   unlisten();
   backingUp.value = false;
 }

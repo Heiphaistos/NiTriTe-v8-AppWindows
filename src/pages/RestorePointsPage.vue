@@ -82,7 +82,7 @@ async function load() {
   try {
     points.value = await cachedInvoke<RestorePoint[]>("list_restore_points_cmd");
     points.value.sort((a, b) => b.sequence_number - a.sequence_number);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
   loading.value = false;
@@ -96,7 +96,7 @@ async function create() {
     notify.success("Point créé", desc);
     newDesc.value = "";
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur création", String(e));
   }
   creating.value = false;
@@ -114,7 +114,7 @@ async function restorePoint(p: RestorePoint) {
       args: ["-Command", `Restore-Computer -RestorePoint ${p.sequence_number} -Confirm:$false`],
     });
     notify.success("Restauration lancée", "Le système va redémarrer.");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur restauration", String(e));
   }
   restoringId.value = null;
@@ -134,7 +134,7 @@ async function deletePoint(p: RestorePoint) {
     });
     notify.success("Point supprimé", `#${p.sequence_number}`);
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur suppression", String(e));
   }
   deletingId.value = null;

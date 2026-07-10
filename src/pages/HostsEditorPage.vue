@@ -38,7 +38,7 @@ async function loadEntries() {
   loading.value = true;
   try {
     entries.value = await invoke<HostsEntry[]>("get_hosts_entries");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Lecture hosts échouée", String(e));
   }
   loading.value = false;
@@ -75,7 +75,7 @@ async function addEntry() {
     notify.success("Entrée ajoutée", msg);
     newIp.value = ""; newHostname.value = ""; newComment.value = "";
     await loadEntries();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
   adding.value = false;
@@ -87,7 +87,7 @@ async function deleteEntry(line: number, hostname: string) {
     await invoke<string>("delete_hosts_entry", { lineNumber: line });
     notify.success("Supprimé", hostname);
     await loadEntries();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur suppression", String(e));
   }
 }
@@ -98,7 +98,7 @@ async function toggleEntry(line: number, enable: boolean) {
     await invoke<string>("toggle_hosts_entry", { lineNumber: line, enable });
     notify.success(enable ? "Activé" : "Désactivé");
     await loadEntries();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
 }
@@ -107,7 +107,7 @@ async function backupHosts() {
   try {
     const msg = await invoke<string>("backup_hosts");
     notify.success("Sauvegarde créée", msg);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur sauvegarde", String(e));
   }
 }

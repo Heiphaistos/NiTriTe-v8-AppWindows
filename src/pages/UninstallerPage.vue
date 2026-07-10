@@ -85,7 +85,7 @@ async function undoLastUninstall() {
   try {
     await invoke("run_system_command", { cmd: "cmd", args: ["/c", "start", "ms-settings:appsfeatures"] });
     notify.success("Paramètres ouverts", "Réinstallez l'application depuis le Microsoft Store ou son installeur d'origine.");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
 }
@@ -118,7 +118,7 @@ async function confirmForceRemove() {
     notify.success("Suppression forcée", `${app.name} retiré du registre`);
     apps.value = apps.value.filter(a => a.name !== app.name);
     saveLastUninstall(app.name);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Suppression forcée échouée", String(e));
   }
   forceRemoving.value = false;
@@ -189,7 +189,7 @@ async function showPreview(app: InstalledApp) {
   previewApp.value = app; previewItems.value = []; loadingPreview.value = true;
   try {
     previewItems.value = await invoke<string[]>("preview_residuals", { appName: app.name, publisher: app.publisher });
-  } catch (e: any) { notify.error("Erreur preview", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur preview", String(e)); }
   loadingPreview.value = false;
 }
 
@@ -257,7 +257,7 @@ async function loadApps() {
   loading.value = true; apps.value = []; selected.value = new Set();
   try {
     apps.value = await invoke<InstalledApp[]>("list_installed_apps_for_uninstall");
-  } catch (e: any) { notify.error("Chargement échoué", String(e)); }
+  } catch (e: unknown) { notify.error("Chargement échoué", String(e)); }
   loading.value = false;
 }
 
@@ -301,7 +301,7 @@ async function startUninstall() {
         saveLastUninstall(job.app.name);
         showTips(job.app.name);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       job.status = "error";
       job.message = String(e);
     }
@@ -329,7 +329,7 @@ async function deleteJobResiduals(job: UninstallJob) {
     if (r.success) notify.success("Résidus supprimés", r.message);
     else notify.error("Suppression partielle", r.message);
     job.residualsHandled = true;
-  } catch (e: any) { notify.error("Erreur", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur", String(e)); }
   handlingResiduals.value[job.app.name] = false;
 }
 
@@ -343,7 +343,7 @@ async function extractJobResiduals(job: UninstallJob) {
     if (r.success) notify.success("Résidus extraits + supprimés", r.message);
     else notify.error("Extraction partielle", r.message);
     job.residualsHandled = true;
-  } catch (e: any) { notify.error("Erreur", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur", String(e)); }
   handlingResiduals.value[job.app.name] = false;
 }
 

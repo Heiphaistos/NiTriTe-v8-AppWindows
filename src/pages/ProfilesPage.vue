@@ -47,7 +47,7 @@ const detailProfile = ref<Profile | null>(null);
 async function loadProfiles() {
   loading.value = true;
   try { profiles.value = await invoke<Profile[]>("list_profiles"); }
-  catch (e: any) { notify.error("Profils", String(e)); }
+  catch (e: unknown) { notify.error("Profils", String(e)); }
   loading.value = false;
 }
 
@@ -77,7 +77,7 @@ async function createProfile() {
     newName.value = "";
     newDesc.value = "";
     await loadProfiles();
-  } catch (e: any) { notify.error("Erreur", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur", String(e)); }
   creating.value = false;
 }
 
@@ -102,7 +102,7 @@ async function applyProfile(profile: Profile) {
     if (cfg.ollama_model)       aiStore.ollamaModel = cfg.ollama_model;
     if (cfg.ollama_temperature) aiStore.temperature = cfg.ollama_temperature;
     notify.success("Profil appliqué", `Configuration "${profile.name}" chargée`);
-  } catch (e: any) { notify.error("Erreur", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur", String(e)); }
   applying.value = null;
 }
 
@@ -112,7 +112,7 @@ async function deleteProfile(name: string) {
     await invoke("delete_profile_cmd", { name });
     notify.success("Supprimé", `Profil "${name}" supprimé`);
     await loadProfiles();
-  } catch (e: any) { notify.error("Erreur", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur", String(e)); }
   deleting.value = null;
 }
 
@@ -128,7 +128,7 @@ async function exportProfile(name: string) {
       await writeTextFile(path, json);
       notify.success("Exporté", `Profil sauvegardé dans ${path}`);
     }
-  } catch (e: any) { notify.error("Export", String(e)); }
+  } catch (e: unknown) { notify.error("Export", String(e)); }
 }
 
 async function importProfile() {
@@ -143,7 +143,7 @@ async function importProfile() {
     await invoke("save_profile_cmd", { profile });
     notify.success("Importé", `Profil "${profile.name}" importé`);
     await loadProfiles();
-  } catch (e: any) { notify.error("Import", String(e)); }
+  } catch (e: unknown) { notify.error("Import", String(e)); }
 }
 
 function openDetail(profile: Profile) {

@@ -63,7 +63,7 @@ async function downloadServer() {
     const path = await invoke<string>("ai_download_server");
     serverBin.value = path;
     notify.success("llama-server", "Installé dans logiciel/AI/");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Téléchargement échoué", String(e));
   }
   downloadingServer.value = false;
@@ -76,7 +76,7 @@ async function downloadModel(entry: CatalogEntry) {
     await scanGgufModels();
     selectedGguf.value = path;
     notify.success(entry.name, "Modèle téléchargé dans models/");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Téléchargement échoué", String(e));
   }
   downloadingModel.value = null;
@@ -129,7 +129,7 @@ async function startServer() {
     }
     if (!serverRunning.value && !serverStartCancelled.value)
       notify.warning("llama.cpp", "Serveur démarré — attente du chargement du modèle.");
-  } catch (e: any) { if (!serverStartCancelled.value) notify.error("llama.cpp", String(e)); }
+  } catch (e: unknown) { if (!serverStartCancelled.value) notify.error("llama.cpp", String(e)); }
   startingServer.value = false;
 }
 async function stopServer() {

@@ -44,7 +44,7 @@ async function loadDisks() {
     if (disks.value.length > 0 && selectedDisk.value === null) {
       selectedDisk.value = disks.value[0].disk_index;
     }
-  } catch (e: any) { notify.error("Chargement disques", String(e)); }
+  } catch (e: unknown) { notify.error("Chargement disques", String(e)); }
   loadingDisks.value = false;
 }
 
@@ -79,7 +79,7 @@ async function startImaging() {
     } else {
       notify.error("Échec", res.message);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   } finally {
     running.value = false;

@@ -186,7 +186,7 @@ async function doBackup() {
     const { writeTextFile } = await import('@tauri-apps/plugin-fs');
     await writeTextFile(filePath, content);
     showMsg('Sauvegarde enregistrée : ' + filePath);
-  } catch (e: any) { showMsg('Erreur sauvegarde : ' + String(e), true); }
+  } catch (e: unknown) { showMsg('Erreur sauvegarde : ' + String(e), true); }
 }
 
 function ipClass(ip: string) { if (ip.startsWith('127.')) return 'ip-localhost'; if (ip.startsWith('::1') || ip === '0.0.0.0') return 'ip-special'; return 'ip-normal'; }
@@ -243,7 +243,7 @@ async function importBlocklist(bl: Blocklist) {
     const result = await invoke<string>("import_hosts_blocklist", { url: bl.url, listName: bl.name });
     importMsg.value = result || `Import "${bl.name}" terminé ✓`;
     await loadEntries();
-  } catch (e: any) {
+  } catch (e: unknown) {
     importMsg.value = "Erreur import : " + String(e);
   }
   importingList.value = null;
@@ -262,7 +262,7 @@ async function testResolution() {
   try {
     const result = await invoke<string>("resolve_hostname", { hostname: testHostname.value.trim() });
     testResult.value = result || "Résolu";
-  } catch (e: any) {
+  } catch (e: unknown) {
     testResult.value = "Erreur : " + String(e);
   }
   testLoading.value = false;
@@ -279,7 +279,7 @@ async function exportHosts() {
     a.download = "hosts_backup_" + new Date().toISOString().slice(0, 10) + ".txt";
     a.click();
     URL.revokeObjectURL(url);
-  } catch (e: any) {
+  } catch (e: unknown) {
     showMsg("Erreur export : " + String(e), true);
   }
 }

@@ -80,7 +80,7 @@ async function load() {
   loading.value = true;
   try {
     info.value = await invoke<DockerInfo>("get_docker_info");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur Docker", String(e));
   } finally {
     loading.value = false;
@@ -112,7 +112,7 @@ async function containerAction(id: string, action: string, name: string) {
     await invoke("docker_container_action", { containerId: id, action });
     notify.success(`Container ${action}`, name);
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error(`Erreur ${action}`, String(e));
   } finally {
     actionLoading.value = null;
@@ -125,7 +125,7 @@ async function removeImage(id: string, repo: string) {
     await invoke("docker_image_remove", { imageId: id });
     notify.success("Image supprimee", repo);
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur suppression", String(e));
   } finally {
     actionLoading.value = null;
@@ -139,7 +139,7 @@ async function openLogs(c: DockerContainer) {
   logsLoading.value = true;
   try {
     logsText.value = await invoke<string>("docker_container_logs", { containerId: c.id, lines: logsLines.value });
-  } catch (e: any) {
+  } catch (e: unknown) {
     logsText.value = `Erreur : ${String(e)}`;
   } finally {
     logsLoading.value = false;
@@ -163,7 +163,7 @@ async function inspectContainer(c: DockerContainer) {
       cmd: "docker", args: ["inspect", c.id],
     });
     inspectData.value = { ...inspectData.value, [c.id]: raw?.stdout ?? "" };
-  } catch (e: any) {
+  } catch (e: unknown) {
     inspectData.value = { ...inspectData.value, [c.id]: `Erreur : ${String(e)}` };
   } finally {
     inspectLoading.value = null;
@@ -179,7 +179,7 @@ async function fetchStats(c: DockerContainer) {
       args: ["stats", c.id, "--no-stream", "--format", "{{.CPUPerc}} {{.MemUsage}}"],
     });
     statsData.value = { ...statsData.value, [c.id]: (raw?.stdout ?? "").trim() };
-  } catch (e: any) {
+  } catch (e: unknown) {
     statsData.value = { ...statsData.value, [c.id]: `Erreur : ${String(e)}` };
   } finally {
     statsLoading.value = null;
@@ -201,7 +201,7 @@ async function pruneImages() {
     });
     notify.success("Nettoyage OK", (result?.stdout ?? "").trim().slice(0, 80) || "Images orphelines supprimees");
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur prune", String(e));
   } finally {
     pruneImgLoading.value = false;
@@ -216,7 +216,7 @@ async function pruneVolumes() {
     await invoke<CommandResult>("run_system_command", { cmd: "docker", args: ["volume", "prune", "-f"] });
     notify.success("Volumes pruned", "Volumes inutilises supprimes");
     await loadVolumes();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur prune volumes", String(e));
   } finally {
     pruneVolLoading.value = false;

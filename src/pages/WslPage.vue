@@ -42,7 +42,7 @@ async function load() {
       const def = info.value.distros.find(d => d.is_default);
       cmdDistro.value = def?.name ?? info.value.distros[0].name;
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur WSL", String(e));
   }
   loading.value = false;
@@ -58,7 +58,7 @@ async function runCmd() {
       command: cmdInput.value,
     });
     cmdOutput.value = result;
-  } catch (e: any) {
+  } catch (e: unknown) {
     cmdOutput.value = `Erreur : ${String(e)}`;
   }
   runningCmd.value = false;
@@ -70,7 +70,7 @@ async function setDefaultVersion(v: number) {
     await invoke("wsl_set_default_version", { version: v });
     notify.success("Version WSL modifiée", `WSL ${v} défini par défaut`);
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
   settingVersion.value = false;
@@ -82,7 +82,7 @@ async function startDistro(d: WslDistro) {
     await invoke("run_system_command", { cmd: "wsl", args: ["-d", d.name] });
     notify.success("Distro démarrée", d.name);
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur démarrage", String(e));
   }
   startingDistro.value = null;
@@ -94,7 +94,7 @@ async function stopDistro(d: WslDistro) {
     await invoke("run_system_command", { cmd: "wsl", args: ["--terminate", d.name] });
     notify.success("Distro arrêtée", d.name);
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur arrêt", String(e));
   }
   stoppingDistro.value = null;
@@ -119,7 +119,7 @@ async function exportDistro(d: WslDistro) {
   try {
     await invokeRaw("run_system_command", { cmd: "wsl", args: ["--export", d.name, exportPath] });
     notify.success("Export terminé", exportPath);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur export", String(e));
   }
   exportingDistro.value = null;
@@ -132,7 +132,7 @@ async function convertToWsl2(d: WslDistro) {
     await invoke("run_system_command", { cmd: "wsl", args: ["--set-version", d.name, "2"] });
     notify.success("Conversion en cours", `${d.name} → WSL 2`);
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur conversion", String(e));
   }
   convertingDistro.value = null;
@@ -145,7 +145,7 @@ async function unregisterDistro(d: WslDistro) {
     await invoke("run_system_command", { cmd: "wsl", args: ["--unregister", d.name] });
     notify.success("Distribution supprimée", d.name);
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur suppression", String(e));
   }
   unregisteringDistro.value = null;
@@ -157,7 +157,7 @@ async function openInTerminal(d: WslDistro) {
   } catch {
     try {
       await invoke("run_system_command", { cmd: "wsl", args: ["-d", d.name] });
-    } catch (e: any) {
+    } catch (e: unknown) {
       notify.error("Erreur terminal", String(e));
     }
   }

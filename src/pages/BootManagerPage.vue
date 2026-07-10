@@ -75,7 +75,7 @@ async function enableSafeMode() {
     });
     notify.success("Safe Mode activé", "Prendra effet au prochain démarrage");
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
   togglingMode.value = false;
@@ -91,7 +91,7 @@ async function disableSafeMode() {
     });
     notify.success("Safe Mode désactivé");
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
   togglingMode.value = false;
@@ -100,7 +100,7 @@ async function disableSafeMode() {
 async function openMsconfig() {
   try {
     await invoke("run_system_command", { cmd: "cmd", args: ["/c", "start", "msconfig"] });
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
 }
@@ -110,7 +110,7 @@ async function load() {
   try {
     config.value = await invoke<BootConfig>("get_boot_config");
     if (config.value) newTimeout.value = config.value.timeout_secs;
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur BCD", String(e));
   }
   loading.value = false;
@@ -121,7 +121,7 @@ async function setDefault(id: string) {
     await invoke("set_default_boot", { id });
     notify.success("Entrée de démarrage modifiée");
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
 }
@@ -132,7 +132,7 @@ async function saveTimeout() {
     await invoke("set_boot_timeout", { secs: newTimeout.value });
     notify.success("Délai de démarrage mis à jour", `${newTimeout.value} secondes`);
     await load();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
   savingTimeout.value = false;
@@ -143,7 +143,7 @@ async function bootToRecovery() {
   try {
     await invoke("boot_to_recovery");
     notify.info("Redémarrage", "Le système va redémarrer en mode récupération...");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
   booting.value = false;

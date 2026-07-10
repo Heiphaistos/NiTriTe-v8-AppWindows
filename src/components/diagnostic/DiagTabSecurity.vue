@@ -52,7 +52,7 @@ async function toggleDefender(enable: boolean) {
     await invoke("toggle_defender_realtime", { enable });
     notify.success(`Defender ${enable ? "activé" : "désactivé"}`, "Protection temps réel modifiée");
     emit("refresh");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur Defender", String(e));
   } finally { togglingDefender.value = false; }
 }
@@ -63,7 +63,7 @@ async function enableFirewall() {
     await invoke("enable_firewall_all_profiles");
     notify.success("Pare-feu activé", "Tous les profils ont été activés");
     emit("refresh");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur Pare-feu", String(e));
   } finally { togglingFirewall.value = false; }
 }
@@ -75,7 +75,7 @@ async function updateDefenderDefs() {
     const r = await invoke<string>("update_defender_signatures");
     notify.success("Defender mis à jour", r);
     emit("refresh");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur mise à jour", String(e));
   } finally { updatingDefs.value = false; }
 }
@@ -104,7 +104,7 @@ async function fixIssue(action: string) {
         await invoke('open_url', { url: 'ms-settings:windowsdefender' });
         break;
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Action échouée", String(e));
   }
 }

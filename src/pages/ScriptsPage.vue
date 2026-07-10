@@ -202,7 +202,7 @@ async function exportScriptAsBat(script: BuiltinScript) {
     }
     await writeTextFile(path, content);
     notify.success("Script exporté", path);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur export", String(e));
   }
 }

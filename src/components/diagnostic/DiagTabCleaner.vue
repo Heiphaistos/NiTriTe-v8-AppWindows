@@ -250,7 +250,7 @@ async function cleanBrowserCache(b: BrowserCacheInfo) {
     const freed = await invoke<number>('clean_browser_cache_path', { browserPath: b.path })
     notify.success(`Cache ${b.browser} vidé`, `${freed.toFixed(0)} MB libérés`)
     await loadBrowserCaches()
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error(`Erreur ${b.browser}`, String(e))
   } finally { cleaningBrowser.value = null }
 }

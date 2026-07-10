@@ -114,7 +114,7 @@ async function applyMode(modeId: string) {
 
     if (r.errors.length === 0) notify.success("Mode appliqué", `${r.actions_done.length} optimisations effectuées`);
     else notify.warning("Mode appliqué (partiel)", `${r.errors.length} action(s) échouée(s)`);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   } finally {
     applying.value = false;
@@ -157,7 +157,7 @@ async function runQuickOpt(opt: QuickOpt) {
     const out = await invoke<string>("run_quick_optimization", { optId: opt.id });
     quickResults.value[opt.id] = { ok: true, msg: String(out).trim() || 'Effectué' };
     notify.success(opt.label, String(out).trim() || 'Optimisation effectuée');
-  } catch (e: any) {
+  } catch (e: unknown) {
     quickResults.value[opt.id] = { ok: false, msg: String(e) };
     notify.error(opt.label, String(e));
   } finally {

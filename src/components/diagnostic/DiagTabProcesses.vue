@@ -74,8 +74,8 @@ async function killProc(pid: number, name: string) {
     const r = await invoke<string>("kill_process", { pid });
     showMsg(r);
     setTimeout(props.onRefresh, 800);
-  } catch (e: any) {
-    showMsg(e || "Erreur", true);
+  } catch (e: unknown) {
+    showMsg((e instanceof Error ? e.message : String(e)) || "Erreur", true);
   } finally { busyPid.value = null; }
 }
 
@@ -85,8 +85,8 @@ async function ctrlService(name: string, action: string) {
     const r = await invoke<string>("control_service", { name, action });
     showMsg(r);
     setTimeout(props.onRefresh, 1000);
-  } catch (e: any) {
-    showMsg(e || "Erreur service", true);
+  } catch (e: unknown) {
+    showMsg((e instanceof Error ? e.message : String(e)) || "Erreur service", true);
   } finally { busySvc.value = null; }
 }
 
@@ -100,8 +100,8 @@ async function toggleStartup(item: StartupProgram, enable: boolean) {
     });
     showMsg(r);
     setTimeout(props.onRefresh, 500);
-  } catch (e: any) {
-    showMsg(e || "Erreur démarrage", true);
+  } catch (e: unknown) {
+    showMsg((e instanceof Error ? e.message : String(e)) || "Erreur démarrage", true);
   }
 }
 
@@ -111,8 +111,8 @@ async function removeStartup(item: StartupProgram) {
     const r = await invoke<string>("remove_startup_program", { name: item.name, location: item.location });
     showMsg(r);
     setTimeout(props.onRefresh, 500);
-  } catch (e: any) {
-    showMsg(e || "Erreur", true);
+  } catch (e: unknown) {
+    showMsg((e instanceof Error ? e.message : String(e)) || "Erreur", true);
   }
 }
 
@@ -123,8 +123,8 @@ async function deleteTask(t: ScheduledTask) {
     const r = await invoke<string>("delete_scheduled_task", { taskName: t.name, taskPath: t.path || "" });
     showMsg(r);
     setTimeout(props.onRefresh, 800);
-  } catch (e: any) {
-    showMsg(e || "Erreur", true);
+  } catch (e: unknown) {
+    showMsg((e instanceof Error ? e.message : String(e)) || "Erreur", true);
   } finally { busyTask.value = null; }
 }
 
@@ -134,8 +134,8 @@ async function runTaskNow(t: ScheduledTask) {
     const fullName = t.path && t.path !== "\\" ? t.path.replace(/\\$/, "") + "\\" + t.name : t.name;
     const r = await invoke<string>("run_scheduled_task_now", { taskName: fullName });
     showMsg(r);
-  } catch (e: any) {
-    showMsg(e || "Erreur", true);
+  } catch (e: unknown) {
+    showMsg((e instanceof Error ? e.message : String(e)) || "Erreur", true);
   } finally { busyTask.value = null; }
 }
 

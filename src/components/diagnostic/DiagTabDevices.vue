@@ -39,8 +39,8 @@ async function openBatteryReport() {
   try {
     await invoke("open_battery_report_html");
     showMsg("Rapport batterie généré et ouvert !");
-  } catch (e: any) {
-    showMsg(e || "Erreur rapport batterie", true);
+  } catch (e: unknown) {
+    showMsg((e instanceof Error ? e.message : String(e)) || "Erreur rapport batterie", true);
   } finally { loading.value = false; }
 }
 
@@ -66,8 +66,8 @@ async function activatePlan(guid: string, name: string) {
     await invoke("set_power_plan", { guid });
     showMsg(`Plan "${name}" activé !`);
     emit("reload");
-  } catch (e: any) {
-    showMsg(e || "Erreur activation plan", true);
+  } catch (e: unknown) {
+    showMsg((e instanceof Error ? e.message : String(e)) || "Erreur activation plan", true);
   } finally { loading.value = false; }
 }
 
@@ -77,8 +77,8 @@ async function setDefaultPrinter(printerName: string) {
     await invoke("set_default_printer", { printerName });
     showMsg(`Imprimante "${printerName}" définie par défaut !`);
     emit("reload");
-  } catch (e: any) {
-    showMsg(e || "Erreur imprimante par défaut", true);
+  } catch (e: unknown) {
+    showMsg((e instanceof Error ? e.message : String(e)) || "Erreur imprimante par défaut", true);
   } finally { loading.value = false; }
 }
 
@@ -90,8 +90,8 @@ async function openDeviceManager() {
     try {
       await invoke("run_system_command", { cmd: "cmd", args: ["/c", "start", "devmgmt.msc"] });
       showMsg("Gestionnaire de périphériques ouvert !");
-    } catch (e: any) {
-      showMsg(e || "Erreur ouverture gestionnaire", true);
+    } catch (e: unknown) {
+      showMsg((e instanceof Error ? e.message : String(e)) || "Erreur ouverture gestionnaire", true);
     }
   }
 }
@@ -110,8 +110,8 @@ async function scanUsbProblems() {
     showMsg(usbProblemDevices.value.length > 0
       ? `${usbProblemDevices.value.length} périphérique(s) avec problème de pilote détecté(s)`
       : "Aucun problème de pilote USB détecté ✓");
-  } catch (e: any) {
-    showMsg(e || "Erreur scan pilotes", true);
+  } catch (e: unknown) {
+    showMsg((e instanceof Error ? e.message : String(e)) || "Erreur scan pilotes", true);
   } finally {
     usbScanLoading.value = false;
   }
@@ -127,8 +127,8 @@ async function addUltimatePlan() {
     } else {
       showMsg(results[0]?.message || "Plan non disponible sur cette édition Windows", true);
     }
-  } catch (e: any) {
-    showMsg(e || "Erreur activation plan caché", true);
+  } catch (e: unknown) {
+    showMsg((e instanceof Error ? e.message : String(e)) || "Erreur activation plan caché", true);
   } finally {
     loading.value = false;
   }

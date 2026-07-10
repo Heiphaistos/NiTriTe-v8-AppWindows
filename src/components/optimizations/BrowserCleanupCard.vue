@@ -43,7 +43,7 @@ async function clean() {
     cleanResult.value = { freed, deleted };
     notify.success("Nettoyage terminé", `${freed.toFixed(1)} MB libérés, ${deleted} fichiers`);
     await load();
-  } catch (e: any) { notify.error("Erreur nettoyage", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur nettoyage", String(e)); }
   finally { cleaning.value = false; }
 }
 

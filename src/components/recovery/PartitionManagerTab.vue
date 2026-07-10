@@ -62,7 +62,7 @@ async function loadAll() {
       invoke<DiskSmartInfo[]>("get_disks_smart"),
       invoke<PartitionDetail[]>("get_partition_list"),
     ]);
-  } catch (e: any) { notify.error("Erreur chargement", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur chargement", String(e)); }
   loading.value = false;
 }
 
@@ -94,7 +94,7 @@ async function doFormat() {
     await invoke("format_partition_cmd", { letter: targetPart.value.letter, fs: fmtFs.value, label: fmtLabel.value });
     notify.success("Formatage terminé", `${targetPart.value.letter} formaté en ${fmtFs.value}`);
     modalFormat.value = false; await loadAll();
-  } catch (e: any) { notify.error("Erreur formatage", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur formatage", String(e)); }
   finally { opLoading.value = false; }
 }
 
@@ -105,7 +105,7 @@ async function doAssignLetter() {
     await invoke("assign_drive_letter_cmd", { diskIndex: targetPart.value.disk_index, partIndex: targetPart.value.part_index, letter: newLetter.value });
     notify.success("Lettre assignée", `${newLetter.value.toUpperCase()}: attribuée`);
     modalLetter.value = false; await loadAll();
-  } catch (e: any) { notify.error("Erreur", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur", String(e)); }
   finally { opLoading.value = false; }
 }
 
@@ -116,7 +116,7 @@ async function doCreate() {
     await invoke("create_partition_cmd", { diskIndex: targetPart.value.disk_index, sizeMb: newSizeMb.value ?? null });
     notify.success("Partition créée", "NTFS — lettre assignée automatiquement");
     modalCreate.value = false; await loadAll();
-  } catch (e: any) { notify.error("Erreur création", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur création", String(e)); }
   finally { opLoading.value = false; }
 }
 
@@ -127,7 +127,7 @@ async function doDelete() {
     await invoke("delete_partition_cmd", { diskIndex: targetPart.value.disk_index, partIndex: targetPart.value.part_index });
     notify.success("Partition supprimée", `Disque ${targetPart.value.disk_index} — partition ${targetPart.value.part_index}`);
     modalDelete.value = false; await loadAll();
-  } catch (e: any) { notify.error("Erreur suppression", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur suppression", String(e)); }
   finally { opLoading.value = false; }
 }
 
@@ -138,7 +138,7 @@ async function doInit() {
     await invoke("initialize_disk_cmd", { diskIndex: targetPart.value.disk_index, style: initStyle.value });
     notify.success("Disque initialisé", `Disque ${targetPart.value.disk_index} — ${initStyle.value}`);
     modalInit.value = false; await loadAll();
-  } catch (e: any) { notify.error("Erreur init", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur init", String(e)); }
   finally { opLoading.value = false; }
 }
 
@@ -156,7 +156,7 @@ async function openResize(p: PartitionDetail) {
     });
     resizeSizeMb.value = Math.round((resizeLimits.value.current_bytes) / (1024 * 1024));
     modalResize.value = true;
-  } catch (e: any) { notify.error("Limites de resize", String(e)); }
+  } catch (e: unknown) { notify.error("Limites de resize", String(e)); }
   opLoading.value = false;
 }
 async function doResize() {
@@ -170,7 +170,7 @@ async function doResize() {
     });
     notify.success("Partition redimensionnée", `${targetPart.value.letter} → ${resizeSizeMb.value} Mo`);
     modalResize.value = false; await loadAll();
-  } catch (e: any) { notify.error("Erreur resize", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur resize", String(e)); }
   finally { opLoading.value = false; }
 }
 
@@ -199,7 +199,7 @@ async function doMbrOp() {
       notify.success("MBR restauré", res);
     }
     modalMbr.value = false;
-  } catch (e: any) { notify.error("Erreur MBR", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur MBR", String(e)); }
   finally { opLoading.value = false; }
 }
 
@@ -215,7 +215,7 @@ async function doScanLost(diskIdx: number) {
     lostPartitions.value = await invoke<LostPartition[]>("scan_lost_partitions_cmd", { diskIndex: diskIdx });
     if (lostPartitions.value.length === 0) notify.info("Aucune partition perdue", "Aucune région récupérable détectée sur ce disque.");
     else notify.warning("Partitions perdues détectées", `${lostPartitions.value.length} région(s) trouvée(s).`);
-  } catch (e: any) { notify.error("Erreur scan", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur scan", String(e)); }
   finally { scanningLost.value = false; }
 }
 

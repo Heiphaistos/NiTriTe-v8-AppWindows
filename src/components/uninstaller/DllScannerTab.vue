@@ -74,7 +74,7 @@ async function scan() {
   try {
     dlls.value = await invokeRaw<DllEntry[]>("scan_dlls");
     notify.success("DLL scannées", `${dlls.value.length} DLL trouvées`);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur scan DLL", String(e));
   }
   loading.value = false;
@@ -88,7 +88,7 @@ async function deleteDll(path: string) {
     dlls.value = dlls.value.filter(d => d.path !== path);
     selected.value.delete(path);
     notify.success("DLL supprimée", path);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur suppression", String(e));
   }
   const next = new Set(deleting.value);

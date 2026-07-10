@@ -114,7 +114,7 @@ async function run() {
       topProcs.value = procs;
       notify.success("Analyse terminée", `${hist.points.length} points collectés`);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (!aborted) notify.error("Erreur", String(e));
   }
   if (!aborted) loading.value = false;

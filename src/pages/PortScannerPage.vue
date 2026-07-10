@@ -80,7 +80,7 @@ async function scan(silent = false) {
     }
     prevPorts.value = freshKeys;
     ports.value = fresh;
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (!silent) notify.error("Erreur scan", String(e));
   } finally {
     if (!silent) loading.value = false;

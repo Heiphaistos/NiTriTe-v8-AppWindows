@@ -25,7 +25,7 @@ async function loadDisks() {
   loadingDisks.value = true; disks.value = [];
   try {
     disks.value = await invoke<DiskInfo[]>("list_connected_disks");
-  } catch (e: any) { notify.error("Erreur disques", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur disques", String(e)); }
   loadingDisks.value = false;
 }
 
@@ -60,7 +60,7 @@ async function browsePath(path: string) {
     entries.value = await invoke<DiskEntry[]>("browse_disk_path", { path });
     // Dossiers en premier
     entries.value.sort((a, b) => (b.is_dir ? 1 : 0) - (a.is_dir ? 1 : 0) || a.name.localeCompare(b.name));
-  } catch (e: any) { notify.error("Erreur lecture", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur lecture", String(e)); }
   loadingPath.value = false;
 }
 
@@ -116,7 +116,7 @@ async function startRecover() {
       notify.success(`${recoverResult.value.restored_count} élément(s) récupéré(s)`, recoverResult.value.message);
     else
       notify.error("Récupération partielle", recoverResult.value.message);
-  } catch (e: any) { notify.error("Erreur", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur", String(e)); }
   unlisten();
   recovering.value = false;
 }

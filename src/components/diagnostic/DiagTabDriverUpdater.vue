@@ -83,7 +83,7 @@ async function chooseSdiLocation() {
       await invoke("run_system_command", { cmd: result, args: [] });
       notify.success("SDI lancé !", result);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur lancement SDI", String(e));
   }
 }

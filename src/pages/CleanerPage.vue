@@ -75,7 +75,7 @@ async function clearQuarantineEntry(name: string | null) {
     await invoke("clear_quarantine", { entryName: name });
     await loadQuarantine();
     notify.success("Quarantaine vidée");
-  } catch (e: any) { notify.error("Erreur", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur", String(e)); }
 }
 
 let unlistenCleaner: (() => void) | null = null;
@@ -133,7 +133,7 @@ async function loadLargeFiles() {
       folder: "C:\\Users",
       minSizeMb: largeMinMb.value,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
   loadingLarge.value = false;

@@ -34,7 +34,7 @@ async function disconnectAllSessions() {
     });
     actionMsg.value = "Sessions SMB déconnectées ✓";
     setTimeout(() => data.value && (data.value.smb_sessions = []), 500);
-  } catch (e: any) {
+  } catch (e: unknown) {
     actionMsg.value = "Erreur : " + String(e);
   } finally {
     actionLoading.value = false;

@@ -97,7 +97,7 @@ onMounted(async () => {
       invoke<AdapterInfo[]>("get_network_adapters_for_dns"),
     ]);
     if (adapters.value.length > 0) selectedAdapter.value = adapters.value[0].name;
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur chargement", String(e));
   } finally {
     loading.value = false;
@@ -153,7 +153,7 @@ async function testDnsReal() {
         success: result.success,
         latency_ms: elapsed,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       const elapsed = Date.now() - before;
       dnsTestResults.value.push({
         server: srv.name,
@@ -203,7 +203,7 @@ async function applyDns() {
       adapter: selectedAdapter.value,
       dns: dnsLabel,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur DNS", String(e));
   } finally { applying.value = false; }
 }
@@ -219,7 +219,7 @@ async function flush() {
       adapter: selectedAdapter.value || "—",
       dns: "—",
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur flush", String(e));
   } finally { flushing.value = false; }
 }

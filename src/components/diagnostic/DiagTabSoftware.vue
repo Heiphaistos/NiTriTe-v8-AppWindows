@@ -48,7 +48,7 @@ async function addEnvVar() {
     showEnvMsg(r);
     newVarName.value = ""; newVarValue.value = ""; showAddForm.value = false;
     emit("refresh");
-  } catch (e: any) { showEnvMsg(String(e), true); }
+  } catch (e: unknown) { showEnvMsg(String(e), true); }
 }
 
 async function deleteEnvVar(e: EnvVar) {
@@ -95,7 +95,7 @@ async function uninstallSoftware(name: string) {
     const r = await invoke<string>("quick_uninstall_software", { name });
     notify.success("Désinstallation lancée", r);
     emit("refresh");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur désinstallation", String(e));
   } finally {
     uninstallingName.value = null;

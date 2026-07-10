@@ -92,7 +92,7 @@ async function scan() {
     });
     if (files.value.length === 0) notify.info("Aucun fichier", "Aucun gros fichier trouvé");
     else notify.success("Scan terminé", `${files.value.length} fichier(s) — ${formatSize(totalSize.value)} au total`);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur scan", String(e));
   } finally {
     loading.value = false;
@@ -131,7 +131,7 @@ async function deleteFile(f: BigFile) {
       notify.success("Supprimé définitivement", f.name);
     }
     files.value = files.value.filter(x => x.path !== f.path);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur suppression", String(e));
   } finally {
     deleting.value = null;

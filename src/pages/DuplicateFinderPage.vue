@@ -46,7 +46,7 @@ async function createRestorePoint() {
   try {
     await invoke("create_restore_point_cmd", { description: "Avant suppression doublons Nitrite" });
     notify.success("Point de restauration créé", "Vous pouvez annuler la suppression depuis la restauration système");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", "Impossible de créer le point de restauration : " + String(e));
   } finally {
     creatingRP.value = false;
@@ -65,7 +65,7 @@ async function scan() {
     });
     if (groups.value.length === 0) notify.info("Aucun doublon", "Aucun fichier dupliqué trouvé");
     else notify.success("Scan terminé", `${groups.value.length} groupe(s) — ${formatSize(totalWasted.value)} récupérable(s)`);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur scan", String(e));
   } finally {
     loading.value = false;
@@ -89,7 +89,7 @@ async function deleteFile(path: string, group: DuplicateGroup) {
       groups.value[gi].wasted_bytes -= groups.value[gi].size_bytes;
       if (groups.value[gi].files.length <= 1) groups.value.splice(gi, 1);
       notify.success("Supprimé", filename(path));
-    } catch (e: any) {
+    } catch (e: unknown) {
       notify.error("Erreur suppression", String(e));
     }
   } finally {
@@ -107,7 +107,7 @@ async function deleteAllDupes() {
         catch { await invoke("delete_file", { path: g.files[fi] }); }
         freed += g.size_bytes; count++;
         g.files.splice(fi, 1);
-      } catch (e: any) {
+      } catch (e: unknown) {
         notify.error("Suppression échouée", String(e));
       }
     }

@@ -136,7 +136,7 @@ async function exportConfig() {
     const { writeTextFile } = await import("@tauri-apps/plugin-fs");
     const path = await save({ defaultPath: "nitrite-config.json", filters: [{ name: "JSON", extensions: ["json"] }] });
     if (path) { await writeTextFile(path, payload); notify.success("Config exportée", path); }
-  } catch (e: any) { notify.error("Export config", String(e)); }
+  } catch (e: unknown) { notify.error("Export config", String(e)); }
 }
 
 async function importConfig() {
@@ -159,7 +159,7 @@ async function importConfig() {
     if (cfg.monitor_interval_ms) monitorInterval.value = cfg.monitor_interval_ms;
     if (cfg.process_count)  processCount.value  = cfg.process_count;
     notify.success("Config importée", "Paramètres rechargés depuis le fichier");
-  } catch (e: any) { notify.error("Import config", String(e)); }
+  } catch (e: unknown) { notify.error("Import config", String(e)); }
 }
 
 // ── Ouvrir dossier exports ────────────────────────────────────
@@ -167,7 +167,7 @@ async function openExportFolder() {
   try {
     const dir = await invoke<string>("get_export_dir");
     await invoke("open_path", { path: dir });
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Impossible d'ouvrir le dossier", String(e));
   }
 }
@@ -207,7 +207,7 @@ async function saveSettings() {
     });
     notify.success("Paramètres sauvegardés");
     changed.value = false;
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur sauvegarde", String(e));
   }
   saving.value = false;

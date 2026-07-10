@@ -167,7 +167,7 @@ async function runCpu() {
   try {
     cpuResult.value = await invoke<BenchResult>("run_cpu_bench");
     notify.success("CPU terminé", `Score : ${cpuResult.value.score} pts`);
-  } catch (e: any) { notify.error("Erreur CPU", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur CPU", String(e)); }
   stopTimer("cpu");
   runningCpu.value = false;
 }
@@ -179,7 +179,7 @@ async function runCpuMt() {
   try {
     cpuMtResult.value = await invoke<BenchResult>("run_cpu_mt_bench");
     notify.success("CPU MT terminé", `Score : ${cpuMtResult.value.score} pts`);
-  } catch (e: any) { notify.error("Erreur CPU MT", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur CPU MT", String(e)); }
   stopTimer("cpuMt");
   runningCpuMt.value = false;
 }
@@ -191,7 +191,7 @@ async function runRam() {
   try {
     ramResult.value = await invoke<BenchResult>("run_ram_bench");
     notify.success("RAM terminé", `Score : ${ramResult.value.score} pts`);
-  } catch (e: any) { notify.error("Erreur RAM", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur RAM", String(e)); }
   stopTimer("ram");
   runningRam.value = false;
 }
@@ -203,7 +203,7 @@ async function runDisk() {
   try {
     diskResult.value = await invoke<BenchResult>("run_disk_bench", { drive: null });
     notify.success("Disque terminé", `Score : ${diskResult.value.score} pts`);
-  } catch (e: any) { notify.error("Erreur Disque", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur Disque", String(e)); }
   stopTimer("disk");
   runningDisk.value = false;
 }
@@ -215,7 +215,7 @@ async function runCrypto() {
   try {
     cryptoResult.value = await invoke<BenchResult>("run_crypto_bench");
     notify.success("Crypto terminé", `Score : ${cryptoResult.value.score} pts`);
-  } catch (e: any) { notify.error("Erreur Crypto", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur Crypto", String(e)); }
   stopTimer("crypto");
   runningCrypto.value = false;
 }
@@ -227,7 +227,7 @@ async function runCompression() {
   try {
     compressionResult.value = await invoke<BenchResult>("run_compression_bench");
     notify.success("Compression terminée", `Score : ${compressionResult.value.score} pts`);
-  } catch (e: any) { notify.error("Erreur Compression", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur Compression", String(e)); }
   stopTimer("compression");
   runningCompression.value = false;
 }

@@ -33,7 +33,7 @@ async function pickBackupFolder() {
       customBackupPath.value = dir;
       useCustomPath.value = true;
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error('Erreur sélection dossier', String(e));
   }
 }
@@ -206,7 +206,7 @@ async function createBackup() {
       `Backup créé — ${selected.length} élément(s) sauvegardé(s)`,
       result.path
     );
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Sauvegarde échouée", String(e));
     backupProgress.value = 0;
   } finally {

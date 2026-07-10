@@ -92,7 +92,7 @@ async function runSnippet(s: Snippet) {
     });
     runOutput.value[s.id] = res.output || "(pas de sortie)";
     notify.success("Script terminé");
-  } catch (e: any) { runOutput.value[s.id] = String(e); notify.error("Erreur", String(e)); }
+  } catch (e: unknown) { runOutput.value[s.id] = String(e); notify.error("Erreur", String(e)); }
 }
 </script>
 

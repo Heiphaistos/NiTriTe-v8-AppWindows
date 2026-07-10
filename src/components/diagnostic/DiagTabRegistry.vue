@@ -64,7 +64,7 @@ async function browseTo(path: string) {
   browsing.value = true;
   try {
     browseResult.value = await invoke<RegBrowseResult>("registry_browse", { path });
-  } catch (e: any) {
+  } catch (e: unknown) {
     browseResult.value = { path, subkeys: [], values: [], error: String(e) };
   }
   browsing.value = false;
@@ -92,7 +92,7 @@ async function saveEdit() {
     await invoke("registry_set_value", { path: browsePath.value, name: editName.value, data: editData.value });
     editModal.value = false;
     await browseTo(browsePath.value);
-  } catch (e: any) { notify.error("Erreur registre", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur registre", String(e)); }
   editSaving.value = false;
 }
 
@@ -101,7 +101,7 @@ async function deleteValue(name: string) {
   try {
     await invoke("registry_delete_value", { path: browsePath.value, name });
     await browseTo(browsePath.value);
-  } catch (e: any) { notify.error("Erreur registre", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur registre", String(e)); }
 }
 
 async function openInRegedit(regPath: string) {
@@ -137,7 +137,7 @@ async function searchRegistry() {
       .filter(v => v.name.toLowerCase().includes(q) || v.data.toLowerCase().includes(q))
       .map(v => ({ path: browsePath.value, name: v.name, kind: v.kind, data: v.data }));
     searchResults.value = matches;
-  } catch (e: any) {
+  } catch (e: unknown) {
     searchResults.value = [];
   }
   searching.value = false;

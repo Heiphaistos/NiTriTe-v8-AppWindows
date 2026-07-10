@@ -132,7 +132,7 @@ async function installDep(dep: Dependency) {
     const msg = await invokeRaw<string>("install_dependency", { wingetId: dep.winget_id });
     notify.success(dep.name, msg);
     await checkAll();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error(dep.name, String(e));
     // Fallback manuel si WinGet échoue
     if (dep.download_url) {

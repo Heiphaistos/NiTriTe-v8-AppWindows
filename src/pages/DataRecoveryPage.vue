@@ -35,7 +35,7 @@ async function createShadow() {
     const id = await invoke<string>("create_shadow_copy_cmd", { volume: createShadowVolume.value });
     notify.success("Shadow copy créée", `ID : ${id}`);
     await loadShadows();
-  } catch (e: any) { notify.error("Erreur création", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur création", String(e)); }
   creatingShadow.value = false;
 }
 
@@ -45,13 +45,13 @@ async function deleteShadow(s: ShadowCopy) {
     notify.success("Shadow copy supprimée", "");
     shadows.value = shadows.value.filter(x => x.id !== s.id);
     if (selectedShadow.value?.id === s.id) { selectedShadow.value = null; shadowFiles.value = []; }
-  } catch (e: any) { notify.error("Erreur suppression", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur suppression", String(e)); }
 }
 
 // ── Ouvrir dossier restauration ────────────────────────────────────────────────
 async function openRestoreFolder(path: string) {
   try { await invoke("open_in_explorer", { path }); }
-  catch (e: any) { notify.error("Erreur", String(e)); }
+  catch (e: unknown) { notify.error("Erreur", String(e)); }
 }
 
 interface ShadowCopy {
@@ -79,7 +79,7 @@ async function runDeepScan() {
   scanningDeep.value = true; deepFiles.value = [];
   try {
     deepFiles.value = await invoke<DeepMftFile[]>("deep_mft_scan_advanced_cmd", { drive: deepDrive.value });
-  } catch (e: any) { notify.error("Erreur scan MFT", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur scan MFT", String(e)); }
   scanningDeep.value = false;
 }
 async function makeReport() {
@@ -94,7 +94,7 @@ async function makeReport() {
     });
     reportPath.value = path;
     notify.success("Rapport généré", path);
-  } catch (e: any) { notify.error("Erreur rapport", String(e)); }
+  } catch (e: unknown) { notify.error("Erreur rapport", String(e)); }
   generatingReport.value = false;
 }
 async function openReport() {
@@ -179,7 +179,7 @@ async function loadShadows() {
   loadingShadows.value = true; shadows.value = [];
   try {
     shadows.value = await invoke<ShadowCopy[]>("list_shadow_copies");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur Shadow Copy", String(e));
   }
   loadingShadows.value = false;
@@ -220,7 +220,7 @@ async function browseShadow(shadow: ShadowCopy, path: string = "") {
       devicePath: shadow.device_path,
       relativePath: fullPath,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur navigation", String(e));
   }
   loadingBrowse.value = false;
@@ -248,7 +248,7 @@ async function searchInShadow() {
       query: searchQuery.value.trim(),
       basePath: browsingPath.value,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur recherche", String(e));
   }
   isSearching.value = false;
@@ -279,7 +279,7 @@ async function batchRestore() {
     if (result.success) notify.success(`${result.restored_count} fichier(s) restauré(s)`, result.message);
     else notify.error(`Échec (${result.failed_count} erreur(s))`, result.message);
     selectedFiles.value = new Set();
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur restauration", String(e));
   }
   batchRestoring.value = false;
@@ -293,7 +293,7 @@ async function restoreFromShadow(file: RecoveredFile) {
     });
     if (result.success) notify.success("Restauré", `→ ${result.restored_path}`);
     else notify.error("Échec restauration", result.message);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
 }
@@ -306,7 +306,7 @@ async function loadRecycleBin() {
   loadingRecycle.value = true; recycleFiles.value = [];
   try {
     recycleFiles.value = await invoke<RecoveredFile[]>("scan_recycle_bin");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur Corbeille", String(e));
   }
   loadingRecycle.value = false;
@@ -323,7 +323,7 @@ async function restoreRecycle(file: RecoveredFile) {
     } else {
       notify.error("Échec", result.message);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
 }

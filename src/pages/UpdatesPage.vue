@@ -76,7 +76,7 @@ async function createRestorePoint(description: string) {
   try {
     await invoke("create_restore_point_cmd", { description });
     notify.success("Point de restauration créé", description);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.warning("Point de restauration", "Impossible de créer (droits admin ?)");
   }
 }
@@ -96,7 +96,7 @@ async function rollbackLastWindowsUpdate() {
   try {
     const kbId = await invoke<string>("rollback_last_windows_update_cmd");
     notify.success("Rollback lancé", `Désinstallation de ${kbId || "la dernière MAJ Windows"} en cours (redémarrage requis)`);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Rollback échoué", String(e));
   }
   rollbackRunning.value = false;
@@ -244,8 +244,8 @@ async function upgradeAllScoop() {
   });
   try {
     await invokeRaw("upgrade_scoop_all");
-  } catch (e: any) {
-    scoopMsg.value = "Erreur : " + e;
+  } catch (e: unknown) {
+    scoopMsg.value = `Erreur : ${String(e)}`;
     scoopStatus.value = "error";
   }
 }
@@ -257,7 +257,7 @@ async function installScoop() {
     const msg = await invokeRaw<string>("install_package_manager", { manager: "scoop" });
     scoopInstallMsg.value = msg || "Scoop installé — rechargez pour détecter.";
     setTimeout(() => checkScoop(), 6000);
-  } catch (e: any) {
+  } catch (e: unknown) {
     scoopInstallMsg.value = "Erreur : " + String(e);
     notify.error("Scoop", String(e));
   }

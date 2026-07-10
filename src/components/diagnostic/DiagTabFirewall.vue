@@ -22,7 +22,7 @@ async function enableAllProfiles() {
   try {
     await invoke("enable_firewall_all_profiles");
     showFwMsg("Pare-feu activé sur tous les profils ✓");
-  } catch (e: any) { showFwMsg("Erreur : " + String(e), true); }
+  } catch (e: unknown) { showFwMsg("Erreur : " + String(e), true); }
   fwActionLoading.value = false;
 }
 
@@ -35,7 +35,7 @@ async function disableAllProfiles() {
       args: ["/c", "netsh advfirewall set allprofiles state off"]
     });
     showFwMsg("Pare-feu désactivé sur tous les profils");
-  } catch (e: any) { showFwMsg("Erreur : " + String(e), true); }
+  } catch (e: unknown) { showFwMsg("Erreur : " + String(e), true); }
   fwActionLoading.value = false;
 }
 

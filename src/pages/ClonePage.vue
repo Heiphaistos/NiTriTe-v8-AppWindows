@@ -69,7 +69,7 @@ async function loadDisks() {
   try {
     disks.value = await invoke<DiskInfo[]>("get_disks_for_clone");
     if (systemDrive.value) sourceDrive.value = systemDrive.value.letter.replace(":", "");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
   loadingDisks.value = false;
@@ -108,7 +108,7 @@ async function startSystemImage() {
     progressStep.value = 4;
     if (result.value.success) notify.success("Image système créée", result.value.message);
     else notify.error("Clonage échoué", result.value.message);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
   stopTimer();
@@ -129,7 +129,7 @@ async function startRobocopy() {
     progressStep.value = 4;
     if (result.value.success) notify.success("Clonage terminé", result.value.message);
     else notify.error("Erreur Robocopy", result.value.message);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur", String(e));
   }
   stopTimer();

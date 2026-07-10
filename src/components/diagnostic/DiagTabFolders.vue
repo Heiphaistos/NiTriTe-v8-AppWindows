@@ -60,7 +60,7 @@ async function cleanFolder(folder: FolderEntry) {
     const r = await invoke<RepairResult>("run_repair_command", { repairType: key });
     cleaned.value = new Set([...cleaned.value, folder.label]);
     cleanResults.value[folder.label] = r?.success ? "OK" : (r?.output || "Terminé");
-  } catch (e: any) {
+  } catch (e: unknown) {
     cleanResults.value[folder.label] = "Erreur: " + String(e);
   } finally {
     cleaning.value = null;

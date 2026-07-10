@@ -83,7 +83,7 @@ async function upgradeWinget() {
     await invokeRaw("upgrade_all");
     wingetMsg.value = "Mise à jour winget terminée ✓";
     await loadWinget();
-  } catch (e: any) { wingetMsg.value = "Erreur : " + e; }
+  } catch (e: unknown) { wingetMsg.value = `Erreur : ${String(e)}`; }
   wingetUpgrading.value = false;
 }
 
@@ -102,7 +102,7 @@ async function upgradeChoco() {
     const r = await invokeRaw<{ success: boolean; upgraded_count: number; message: string }>("upgrade_chocolatey_all");
     chocoMsg.value = r?.success ? `${r.upgraded_count} paquet(s) mis à jour ✓` : `Erreur : ${r?.message || "inconnue"}`;
     await loadChoco();
-  } catch (e: any) { chocoMsg.value = "Erreur : " + e; }
+  } catch (e: unknown) { chocoMsg.value = `Erreur : ${String(e)}`; }
   chocoUpgrading.value = false;
 }
 
@@ -129,8 +129,8 @@ async function upgradeScoop() {
   });
   try {
     await invokeRaw("upgrade_scoop_all");
-  } catch (e: any) {
-    scoopMsg.value = "Erreur : " + e;
+  } catch (e: unknown) {
+    scoopMsg.value = `Erreur : ${String(e)}`;
     scoopUpgrading.value = false;
   }
 }
@@ -143,7 +143,7 @@ const scoopInstallMsg  = ref("");
 async function installWinget() {
   try {
     await invoke("open_url", { url: "ms-windows-store://pdp/?productid=9NBLGGH4NNS1" });
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Impossible d'ouvrir le Microsoft Store", String(e));
   }
 }
@@ -155,7 +155,7 @@ async function installChoco() {
     const msg = await invokeRaw<string>("install_package_manager", { manager: "chocolatey" });
     chocoInstallMsg.value = msg || "Chocolatey installé — relancez l'outil pour le détecter.";
     setTimeout(() => loadChoco(), 6000);
-  } catch (e: any) {
+  } catch (e: unknown) {
     chocoInstallMsg.value = "Erreur : " + String(e);
     notify.error("Installation Chocolatey échouée", String(e));
   }
@@ -169,7 +169,7 @@ async function installScoop() {
     const msg = await invokeRaw<string>("install_package_manager", { manager: "scoop" });
     scoopInstallMsg.value = msg || "Scoop installé — relancez l'outil pour le détecter.";
     setTimeout(() => loadScoop(), 6000);
-  } catch (e: any) {
+  } catch (e: unknown) {
     scoopInstallMsg.value = "Erreur : " + String(e);
     notify.error("Installation Scoop échouée", String(e));
   }

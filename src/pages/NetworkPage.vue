@@ -86,7 +86,7 @@ async function loadOverview() {
     overview.value = await invoke<NetworkOverview>("get_network_overview");
     // Fetch IP publique séparément (non bloquant)
     fetchPublicIp();
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = String(e);
     notify.error("Erreur réseau", String(e));
   } finally { loading.value = false; }
@@ -145,7 +145,7 @@ async function runSpeedTest() {
     speedResult.value = { download_mbps: dlMbps, upload_mbps: ulMbps, ping_ms: pingMs };
     saveSpeedResult(speedResult.value);
     notify.success("Speed test terminé", `↓ ${dlMbps} Mbps | ↑ ${ulMbps} Mbps`);
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Speed test échoué", `${String(e)} — Vérifiez votre connexion Internet`);
   } finally { speedLoading.value = false; speedProgress.value = 0; }
 }
@@ -324,7 +324,7 @@ async function runFix(id: string, cmd: string, args: string[]) {
   try {
     await invoke("run_system_command", { cmd, args });
     notify.success("Correctif appliqué", "Relancez le diagnostic pour vérifier.");
-  } catch (e: any) {
+  } catch (e: unknown) {
     notify.error("Erreur correctif", String(e));
   } finally {
     fixing.value[id] = false;
