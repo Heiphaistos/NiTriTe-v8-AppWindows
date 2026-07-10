@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CheckCircle, AlertTriangle, Thermometer, HardDrive, Layers } from "lucide-vue-next";
+import { CheckCircle, AlertTriangle, Thermometer, HardDrive } from "lucide-vue-next";
 import type { StoragePhysical, VolumeInfo, SmartDiskInfo } from "@/types/diagnostic";
 import NBadge from "@/components/ui/NBadge.vue";
 import NProgress from "@/components/ui/NProgress.vue";

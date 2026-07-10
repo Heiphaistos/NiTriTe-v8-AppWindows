@@ -6,7 +6,7 @@ import NBadge from "@/components/ui/NBadge.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
-import { FolderOpen, Trash2, RefreshCw, CheckCircle } from "lucide-vue-next";
+import { FolderOpen, Trash2, CheckCircle } from "lucide-vue-next";
 
 import type { FolderEntry } from "@/types/diagnostic";
 

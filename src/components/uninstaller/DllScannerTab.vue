@@ -4,7 +4,7 @@ import { invoke, invokeRaw } from "@/utils/invoke";
 import NButton from "@/components/ui/NButton.vue";
 import NBadge from "@/components/ui/NBadge.vue";
 import { useNotificationStore } from "@/stores/notifications";
-import { Search, Trash2, RefreshCw, Filter, AlertTriangle } from "lucide-vue-next";
+import { Search, Trash2, AlertTriangle } from "lucide-vue-next";
 
 interface DllEntry {
   name: string;

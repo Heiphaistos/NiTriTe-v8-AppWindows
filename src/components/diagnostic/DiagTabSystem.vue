@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CheckCircle, AlertTriangle, Monitor, Cpu, CircuitBoard, Shield, Lock } from "lucide-vue-next";
+import { Monitor, Cpu, CircuitBoard, Shield, Lock } from "lucide-vue-next";
 import NBadge from "@/components/ui/NBadge.vue";
 import NProgress from "@/components/ui/NProgress.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";

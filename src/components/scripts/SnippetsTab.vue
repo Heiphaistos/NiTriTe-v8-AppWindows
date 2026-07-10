@@ -7,7 +7,7 @@ import NModal from "@/components/ui/NModal.vue";
 import NInput from "@/components/ui/NInput.vue";
 import NBadge from "@/components/ui/NBadge.vue";
 import { useNotificationStore } from "@/stores/notifications";
-import { Plus, Pencil, Trash2, Copy, Play, Search, Check, Code } from "lucide-vue-next";
+import { Plus, Pencil, Trash2, Copy, Play, Search, Check } from "lucide-vue-next";
 
 const notify = useNotificationStore();
 const STORAGE_KEY = "nitrite-snippets-v2";

@@ -5,7 +5,7 @@ import NBadge from "@/components/ui/NBadge.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
 import NButton from "@/components/ui/NButton.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
-import { Shield, CheckCircle, AlertTriangle, ArrowRight, ArrowLeft, Settings, ExternalLink, RefreshCw } from "lucide-vue-next";
+import { Shield, CheckCircle, AlertTriangle, ArrowRight, ArrowLeft, Settings, ExternalLink } from "lucide-vue-next";
 import { useExportData } from "@/composables/useExportData";
 
 const fwActionLoading = ref(false);

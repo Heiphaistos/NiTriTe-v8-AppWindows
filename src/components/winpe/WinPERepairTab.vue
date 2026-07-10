@@ -3,7 +3,7 @@ import { ref } from "vue";
 import { invoke, invokeRaw } from "@/utils/invoke";
 import NButton from "@/components/ui/NButton.vue";
 import NModal from "@/components/ui/NModal.vue";
-import { Wrench, Search, Shield, KeyRound, Trash2, CheckCircle, XCircle, AlertTriangle, Lock } from "lucide-vue-next";
+import { Wrench, Search, Shield, KeyRound, Trash2, AlertTriangle, Lock } from "lucide-vue-next";
 
 interface RepairResult { success: boolean; output: string; command: string; }
 interface PeDrive { letter: string; label: string; size_gb: number; free_gb: number; fs: string; is_system: boolean; }

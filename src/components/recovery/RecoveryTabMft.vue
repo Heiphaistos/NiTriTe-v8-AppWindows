@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { invoke, isTauriContext } from "@/utils/invoke";
-import { Search, Database, RefreshCw } from "lucide-vue-next";
+import { Search, Database } from "lucide-vue-next";
 import NSpinner from "@/components/ui/NSpinner.vue";
 import NButton from "@/components/ui/NButton.vue";
 import { useNotificationStore } from "@/stores/notifications";

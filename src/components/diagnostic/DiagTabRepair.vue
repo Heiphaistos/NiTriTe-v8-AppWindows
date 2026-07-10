@@ -6,7 +6,7 @@ const notify = useNotificationStore();
 import NBadge from "@/components/ui/NBadge.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
-import { Wrench, AlertTriangle, CheckCircle, RefreshCw } from "lucide-vue-next";
+import { Wrench, AlertTriangle, CheckCircle } from "lucide-vue-next";
 
 interface SystemHealthStatus {
   dism_health: string; sfc_last_run: string; sfc_result: string;

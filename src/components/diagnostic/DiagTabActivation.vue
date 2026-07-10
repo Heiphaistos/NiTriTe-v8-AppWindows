@@ -3,7 +3,7 @@ import { ref, onMounted } from "vue";
 import { invoke, isTauriContext } from "@/utils/invoke";
 import { cachedInvoke } from "@/composables/useCachedInvoke";
 import { useNotificationStore } from "@/stores/notifications";
-import { Key, Shield, ShieldCheck, ShieldOff, ExternalLink, AlertTriangle, CheckCircle } from "lucide-vue-next";
+import { Key, Shield, ShieldCheck, ExternalLink, AlertTriangle, CheckCircle } from "lucide-vue-next";
 import NBadge from "@/components/ui/NBadge.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";

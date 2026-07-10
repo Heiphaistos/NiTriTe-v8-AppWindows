@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { Search, RefreshCw, Cpu, Server, Play, Clock, X, SquarePlay, Square, RotateCcw, Trash2, Monitor } from "lucide-vue-next";
+import { Search, RefreshCw, Cpu, Server, Play, Clock, X, SquarePlay, Square, RotateCcw, Trash2 } from "lucide-vue-next";
 import { invoke } from "@/utils/invoke";
 import NBadge from "@/components/ui/NBadge.vue";
 import NProgress from "@/components/ui/NProgress.vue";

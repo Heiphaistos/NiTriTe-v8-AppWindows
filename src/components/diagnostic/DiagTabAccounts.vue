@@ -6,7 +6,7 @@ import NBadge from "@/components/ui/NBadge.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
 import NButton from "@/components/ui/NButton.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
-import { Users, Shield, Lock, UserX, Key, Settings, AlertTriangle, CheckCircle, ExternalLink } from "lucide-vue-next";
+import { Users, Shield, Lock, Key, Settings, AlertTriangle, CheckCircle, ExternalLink } from "lucide-vue-next";
 import { useExportData } from "@/composables/useExportData";
 
 const togglingUser = ref<string | null>(null);

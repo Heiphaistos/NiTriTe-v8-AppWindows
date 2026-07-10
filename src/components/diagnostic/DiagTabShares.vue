@@ -5,7 +5,7 @@ import NBadge from "@/components/ui/NBadge.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
 import NButton from "@/components/ui/NButton.vue";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
-import { Share2, FolderOpen, HardDrive, Globe, Lock, Settings, RefreshCw, XCircle } from "lucide-vue-next";
+import { Share2, FolderOpen, HardDrive, Globe, Lock, Settings, XCircle } from "lucide-vue-next";
 
 const actionMsg = ref("");
 const actionLoading = ref(false);
