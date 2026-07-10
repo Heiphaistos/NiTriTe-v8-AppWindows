@@ -194,11 +194,11 @@ async fn get_builtin_scripts() -> Result<Vec<scripts::executor::ScriptEntry>, Ni
 async fn execute_script(
     content: String,
     script_type: String,
-    is_builtin: Option<bool>,
     requires_interactive: Option<bool>,
     window: tauri::Window,
 ) -> Result<scripts::executor::ScriptResult, NiTriTeError> {
-    let builtin = is_builtin.unwrap_or(false);
+    // is_builtin is never trusted from the frontend — always validate user-submitted scripts
+    let builtin = false;
     let interactive = requires_interactive.unwrap_or(false);
     tokio::task::spawn_blocking(move || {
         scripts::executor::execute_script_with_flags(
