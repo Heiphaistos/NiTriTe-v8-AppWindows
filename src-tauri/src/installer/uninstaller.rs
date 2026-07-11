@@ -266,15 +266,18 @@ pub fn preview_residuals(app_name: String, publisher: String) -> Vec<String> {
         "software", "corp", "inc", "ltd", "llc", "gmbh",
         "technologies", "solutions", "systems", "group", "the", "and",
     ];
+    // Vec::dedup ne retire que les doublons CONSÉCUTIFS ; app_name et publisher
+    // partagent souvent un mot (« Adobe Photoshop » + « Adobe Inc »), non adjacent
+    // ici → un HashSet garde l'unicité tout en préservant l'ordre d'apparition.
+    let mut seen = std::collections::HashSet::new();
     let mut keywords: Vec<String> = Vec::new();
     for word in app_name.split_whitespace().chain(publisher.split_whitespace()) {
         let w = word.to_lowercase();
         let w = w.trim_matches(|c: char| !c.is_alphanumeric());
-        if w.len() >= 4 && !generic.contains(&w) {
+        if w.len() >= 4 && !generic.contains(&w) && seen.insert(w.to_string()) {
             keywords.push(w.to_string());
         }
     }
-    keywords.dedup();
     keywords.truncate(4);
     if keywords.is_empty() { return vec![]; }
 
@@ -538,20 +541,21 @@ $items = '{}' | ConvertFrom-Json
 $target = {} | ConvertFrom-Json
 $ok = 0; $fail = 0
 
-# Export des clés registre en .reg
+# Export des clés registre en .reg — un fichier PAR clé.
+# `reg export` réécrit tout le fichier à chaque appel (pas d'append) : un seul
+# .reg partagé ne garderait que la DERNIÈRE clé. On numérote donc les fichiers.
 # Préfixes ASCII : RK: (registry key), FS: (filesystem), LN: (link), EX: (Run entry)
-$regItems = $items | Where-Object {{ ($_ -split ':', 2)[0] -eq 'RK' }}
-if ($regItems) {{
-    $regFile = Join-Path $target 'residuals_registry.reg'
-    "Windows Registry Editor Version 5.00`r`n" | Out-File $regFile -Encoding Unicode
-    foreach ($r in $regItems) {{
-        $path = ($r -split ':', 2)[1]
-        try {{
-            $path2 = $path -replace '^.*::', ''
-            & reg export "$path2" "$regFile" /y 2>$null
-            $ok++
-        }} catch {{ $fail++ }}
-    }}
+$regItems = @($items | Where-Object {{ ($_ -split ':', 2)[0] -eq 'RK' }})
+$regIdx = 0
+foreach ($r in $regItems) {{
+    $path = ($r -split ':', 2)[1]
+    try {{
+        $path2 = $path -replace '^.*::', ''
+        $regIdx++
+        $regFile = Join-Path $target ("residuals_registry_{{0}}.reg" -f $regIdx)
+        & reg export "$path2" "$regFile" /y 2>$null
+        if ($LASTEXITCODE -eq 0) {{ $ok++ }} else {{ $fail++ }}
+    }} catch {{ $fail++ }}
 }}
 
 # Copie des fichiers
@@ -581,7 +585,11 @@ foreach ($item in $fileItems) {{
         success: del.success,
         deleted_count: del.deleted_count,
         failed_count: del.failed_count,
-        message: format!("{} copié(s) dans «{}», {} supprimé(s)", copied + copy_fail, target, del.deleted_count),
+        message: if copy_fail > 0 {
+            format!("{} copié(s) ({} échec), {} supprimé(s) dans «{}»", copied, copy_fail, del.deleted_count, target)
+        } else {
+            format!("{} copié(s) dans «{}», {} supprimé(s)", copied, target, del.deleted_count)
+        },
     }
 }
 
