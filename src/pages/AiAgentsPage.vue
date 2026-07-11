@@ -344,7 +344,10 @@ async function executeCommand(i: number) {
   try {
     const r = await invoke<{ success: boolean; stdout: string; stderr: string }>("ai_execute_command", { command: msg.command });
     msg.commandResult = r.stdout || r.stderr || "Aucune sortie";
-    notify.success("Commande exécutée", r.success ? "Succès" : "Échec");
+    // Toast selon le vrai résultat : un toast « succès » vert pour une commande
+    // échouée serait un faux signal.
+    if (r.success) notify.success("Commande exécutée", "Succès");
+    else notify.warning("Commande terminée", "Échec (voir la sortie)");
   } catch (e: unknown) {
     if (!isTauriContext()) { msg.commandResult = "Simulation — OK"; }
     else {
