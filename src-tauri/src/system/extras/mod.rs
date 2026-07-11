@@ -21,13 +21,17 @@ pub(super) fn parse_json_arr(s: &str) -> Vec<serde_json::Value> {
     serde_json::from_str(&json).unwrap_or_default()
 }
 
+/// Décode via `decode_output` (UTF-8 d'abord, repli codepage OEM) comme
+/// `utils/ps.rs::ps()` : les sorties texte FR accentuées (noms de capteurs,
+/// libellés netsh/docker) arrivaient en mojibake avec `from_utf8_lossy`.
+/// Le fast path UTF-8 laisse les sorties JSON/ASCII inchangées.
 pub(super) fn ps(script: &str) -> Result<String, String> {
     let out = std::process::Command::new("powershell")
         .args(["-NoProfile", "-NonInteractive", "-Command", script])
         .creation_flags(0x08000000)
         .output()
         .map_err(|e| e.to_string())?;
-    Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+    Ok(crate::maintenance::commands::decode_output(&out.stdout).trim().to_string())
 }
 
 /// Comme `ps()` mais tient compte du code de sortie : `Err` si le script sort
@@ -63,5 +67,5 @@ pub(super) fn ps_with_args(script: &str, extra_args: &[&str]) -> Result<String, 
         cmd.arg(arg);
     }
     let out = cmd.creation_flags(0x08000000).output().map_err(|e| e.to_string())?;
-    Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+    Ok(crate::maintenance::commands::decode_output(&out.stdout).trim().to_string())
 }
