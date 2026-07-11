@@ -71,9 +71,13 @@ const bestChannel24 = computed(() => {
 });
 
 const bestChannel5 = computed(() => {
-  const all5 = Object.keys(channels5.value).map(Number);
-  if (!all5.length) return null;
-  return all5.sort((a, b) => (channels5.value[a]?.length || 0) - (channels5.value[b]?.length || 0))[0];
+  // Pas de 5G détecté → pas de reco.
+  if (!Object.keys(channels5.value).length) return null;
+  // Évaluer les canaux 5G STANDARD non-recouvrants, pas seulement les canaux
+  // occupés : sinon un canal réellement libre (0 réseau) n'était jamais proposé
+  // et la reco « canal 5 GHz libre » restait du code mort.
+  const std5 = [36, 40, 44, 48, 149, 153, 157, 161];
+  return std5.slice().sort((a, b) => (channels5.value[a]?.length || 0) - (channels5.value[b]?.length || 0))[0];
 });
 
 // Congestion globale 2.4 GHz (score 0–100)
