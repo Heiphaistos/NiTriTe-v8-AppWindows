@@ -215,9 +215,18 @@ async function exportTxt() {
   await writeToExports("drivers.txt", [header, sep, ...rows].join("\n"));
 }
 
+// driverquery localise l'état : "Running/Stopped" en EN, "En cours d'exécution/
+// Arrêté" en FR (et le codepage OEM mangle les accents, mais "cours d"/"arr"
+// restent ASCII). On matche les deux langues.
+function driverIsRunning(state: string): boolean {
+  const s = state.toLowerCase();
+  return s.includes("running") || s.includes("cours d");
+}
+
 function stateVariant(state: string): "success" | "warning" | "neutral" | "danger" {
-  if (state.toLowerCase().includes("running")) return "success";
-  if (state.toLowerCase().includes("stopped")) return "neutral";
+  const s = state.toLowerCase();
+  if (driverIsRunning(state)) return "success";
+  if (s.includes("stopped") || s.includes("arr")) return "neutral";
   if (/error|degraded/i.test(state)) return "danger";
   return "warning";
 }
@@ -242,7 +251,7 @@ function driverKey(d: DriverEntry): string {
 }
 
 function isRunning(d: DriverEntry): boolean {
-  return d.state.toLowerCase().includes("running");
+  return driverIsRunning(d.state);
 }
 
 async function rollbackDriver(d: DriverEntry) {
