@@ -27,7 +27,13 @@ fn run_ps_temp(script: &str) -> Result<String, NiTriTeError> {
         "$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8;\n{}",
         script
     );
-    std::fs::write(&tmp, full_script.as_bytes())
+    // BOM UTF-8 (EF BB BF) obligatoire : PowerShell 5.1 lit un fichier -File SANS
+    // BOM en ANSI (Windows-1252), pas en UTF-8. Sans lui, les caractères
+    // accentués du script (regex « Contenu de la clé », libellés « Périphérique »…)
+    // sont corrompus → extraction WiFi FR cassée et libellés en mojibake.
+    let mut bytes = vec![0xEF, 0xBB, 0xBF];
+    bytes.extend_from_slice(full_script.as_bytes());
+    std::fs::write(&tmp, &bytes)
         .map_err(|e| NiTriTeError::System(format!("Écriture script temp: {}", e)))?;
 
     let tmp_str = tmp.to_str()
