@@ -48,9 +48,12 @@ fn disk_build_node(p: &std::path::Path, depth: u32, max: u32) -> DiskNode {
     let mut children: Vec<DiskNode> = std::fs::read_dir(p).ok().map(|rd| {
         rd.filter_map(|e| e.ok()).map(|e| disk_build_node(&e.path(), depth + 1, max)).collect()
     }).unwrap_or_default();
+    // Somme sur TOUS les enfants AVANT la troncature d'affichage : sinon la
+    // taille du dossier n'inclurait que ses 20 plus gros enfants (sous-estimation
+    // qui se propage à chaque niveau de l'arbre).
+    let size: u64 = children.iter().map(|c| c.size_bytes).sum();
     children.sort_by_key(|a| std::cmp::Reverse(a.size_bytes));
     children.truncate(20);
-    let size: u64 = children.iter().map(|c| c.size_bytes).sum();
     DiskNode { name, path: p.to_string_lossy().to_string(), size_bytes: size, is_dir: true, children }
 }
 
