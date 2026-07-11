@@ -68,7 +68,13 @@ foreach ($group in $all) {
 
 pub fn collect_network_config() -> Result<String, NiTriTeError> {
     let output = Command::new("ipconfig").arg("/all").creation_flags(0x08000000).output()?;
-    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    // ipconfig écrit en codepage OEM (CP850 sur Windows FR) : from_utf8_lossy
+    // transformerait « Carte réseau », « Passerelle par défaut »… en mojibake
+    // dans le fichier de sauvegarde.
+    #[cfg(target_os = "windows")]
+    { Ok(crate::maintenance::commands::decode_output(&output.stdout)) }
+    #[cfg(not(target_os = "windows"))]
+    { Ok(String::from_utf8_lossy(&output.stdout).to_string()) }
 }
 
 pub fn collect_startup() -> Result<String, NiTriTeError> {
