@@ -23,6 +23,29 @@ pub struct InstallResult {
     pub message: String,
 }
 
+/// Découpe une ligne de table winget en colonnes. winget sépare les colonnes
+/// par 2 espaces ou plus ; un nom de paquet peut contenir un espace simple,
+/// d'où ce parsing par double-espace plutôt qu'un `split_whitespace` qui
+/// éclaterait les noms composés. L'indexation ASCII est sûre : la coupe ne se
+/// fait que sur des espaces (frontières de caractères valides).
+fn split_winget_columns(line: &str) -> Vec<&str> {
+    let mut parts = Vec::new();
+    let bytes = line.as_bytes();
+    let mut start = 0;
+    let mut i = 0;
+    while i < bytes.len() {
+        if i + 1 < bytes.len() && bytes[i] == b' ' && bytes[i + 1] == b' ' {
+            let p = line[start..i].trim();
+            if !p.is_empty() { parts.push(p); }
+            while i < bytes.len() && bytes[i] == b' ' { i += 1; }
+            start = i;
+        } else { i += 1; }
+    }
+    let last = line[start..].trim();
+    if !last.is_empty() { parts.push(last); }
+    parts
+}
+
 pub fn check_winget() -> bool {
     Command::new("winget").arg("--version")
         .stdout(Stdio::null()).stderr(Stdio::null())
@@ -48,23 +71,7 @@ pub fn list_upgradable() -> Result<Vec<WingetPackage>, NiTriTeError> {
         }
         let lower = t.to_lowercase();
         if lower.contains("package") || lower.contains("paquet") || lower.starts_with("upgrades available") { break; }
-        // Parsing par colonnes (double espace) — plus fiable que split_whitespace pour les noms avec espaces
-        let parts: Vec<&str> = {
-            let mut parts = Vec::new();
-            let bytes = t.as_bytes();
-            let mut start = 0; let mut i = 0;
-            while i < bytes.len() {
-                if i + 1 < bytes.len() && bytes[i] == b' ' && bytes[i + 1] == b' ' {
-                    let p = t[start..i].trim();
-                    if !p.is_empty() { parts.push(p); }
-                    while i < bytes.len() && bytes[i] == b' ' { i += 1; }
-                    start = i;
-                } else { i += 1; }
-            }
-            let last = t[start..].trim();
-            if !last.is_empty() { parts.push(last); }
-            parts
-        };
+        let parts = split_winget_columns(t);
         if parts.len() >= 3 {
             packages.push(WingetPackage {
                 name: parts[0].to_string(),
@@ -156,14 +163,17 @@ pub fn search_packages(query: &str) -> Result<Vec<WingetPackage>, NiTriTeError> 
         for line in &lines[idx + 1..] {
             let trimmed = line.trim();
             if trimmed.is_empty() { continue; }
-            let parts: Vec<&str> = trimmed.split_whitespace().collect();
+            // Colonnes winget search : Name | Id | Version | [Match] | Source.
+            // On indexe par le DÉBUT : Name/Id/Version sont toujours les 3
+            // premières, quelles que soient les colonnes de fin (Match/Source).
+            let parts = split_winget_columns(trimmed);
             if parts.len() >= 3 {
                 packages.push(WingetPackage {
-                    name: parts[..parts.len()-2].join(" "),
-                    id: parts[parts.len()-2].to_string(),
-                    version: parts[parts.len()-1].to_string(),
+                    name: parts[0].to_string(),
+                    id: parts[1].to_string(),
+                    version: parts[2].to_string(),
                     available: String::new(),
-                    source: "winget".to_string(),
+                    source: parts.get(parts.len() - 1).filter(|_| parts.len() > 3).map_or_else(|| "winget".to_string(), |s| s.to_string()),
                 });
             }
         }
