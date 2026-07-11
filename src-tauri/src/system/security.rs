@@ -76,6 +76,10 @@ pub fn collect_security_status() -> SecurityStatus {
     {
         // PowerShell mega-query
         let ps = r#"
+# Sortie UTF-8 : ce script renvoie des libellés FR accentués (« Activé »,
+# « désactivé », « Non à jour »…) ; sans ça run_ps (from_utf8_lossy) les
+# recevrait en codepage OEM → mojibake dans la vue Sécurité.
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $out = @{}
 
 # Secure Boot
