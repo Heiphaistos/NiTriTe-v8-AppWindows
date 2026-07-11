@@ -98,10 +98,12 @@ async function forgetDevice(d: BluetoothDevice) {
   forgetting.value = d.device_id;
   try {
     const safeId = d.device_id.replace(/'/g, "''");
-    await invoke("run_system_command", {
+    // -ErrorAction Stop : sans ça un échec non-terminant sort en exit 0 → faux succès.
+    const r = await invoke<{ success: boolean; stderr: string }>("run_system_command", {
       cmd: "powershell",
-      args: ["-Command", `Remove-PnpDevice -InstanceId '${safeId}' -Confirm:$false`],
+      args: ["-Command", `Remove-PnpDevice -InstanceId '${safeId}' -Confirm:$false -ErrorAction Stop`],
     });
+    if (!r.success) throw new Error(r.stderr?.trim() || "La suppression du périphérique a échoué");
     notify.success("Appareil oublié", d.name || d.address);
     await load();
   } catch (e: unknown) {
