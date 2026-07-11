@@ -216,10 +216,14 @@ onMounted(async () => {
         net_upload_kbs: raw.network_up_kbs ?? raw.net_upload_kbs ?? 0,
         net_download_kbs: raw.network_down_kbs ?? raw.net_download_kbs ?? 0,
         gpu_data: raw.gpu_data ?? [],
-        top_processes: (raw.top_processes ?? []).map(p => ({
-          name: p.name, pid: p.pid, cpu_percent: p.cpu_percent,
-          ram_percent: p.ram_percent ?? 0,
-        })),
+        top_processes: (raw.top_processes ?? []).map(p => {
+          // Le backend envoie memory_mb (absolu), pas ram_percent : sans ce calcul
+          // la colonne RAM% des processus restait à 0. Total RAM (Mo) = Go × 1024.
+          const totalMb = (raw.ram_total_gb ?? 0) * 1024;
+          const ramPct = p.ram_percent
+            ?? (totalMb > 0 && p.memory_mb ? (p.memory_mb / totalMb) * 100 : 0);
+          return { name: p.name, pid: p.pid, cpu_percent: p.cpu_percent, ram_percent: ramPct };
+        }),
       };
       data.value = d;
       checkAlerts(d);
