@@ -58,16 +58,21 @@ for ($i = 0; $i -lt $n; $i++) {{
 
     $diskRead = 0; $diskWrite = 0
     try {{
-        $dc = Get-Counter '\PhysicalDisk(_Total)\Disk Read Bytes/sec','\PhysicalDisk(_Total)\Disk Write Bytes/sec' -EA Stop
-        $diskRead  = [math]::Round($dc.CounterSamples[0].CookedValue / 1MB, 2)
-        $diskWrite = [math]::Round($dc.CounterSamples[1].CookedValue / 1MB, 2)
+        # Classes WMI perf : noms de propriétés INVARIANTS. Get-Counter utilise
+        # des chemins de compteurs LOCALISÉS (échec silencieux sur Windows FR →
+        # I/O toujours à 0), d'où le passage à WMI.
+        $d = Get-WmiObject Win32_PerfFormattedData_PerfDisk_PhysicalDisk -EA Stop | Where-Object {{ $_.Name -eq '_Total' }} | Select-Object -First 1
+        if ($d) {{
+            $diskRead  = [math]::Round([double]$d.DiskReadBytesPersec / 1MB, 2)
+            $diskWrite = [math]::Round([double]$d.DiskWriteBytesPersec / 1MB, 2)
+        }}
     }} catch {{}}
 
     $netRecv = 0; $netSend = 0
     try {{
-        $nc = Get-Counter '\Network Interface(*)\Bytes Received/sec','\Network Interface(*)\Bytes Sent/sec' -EA Stop
-        $netRecv = [math]::Round(($nc.CounterSamples | Where-Object {{$_.Path -match 'Bytes Received'}} | Measure-Object CookedValue -Sum).Sum / 1MB, 3)
-        $netSend = [math]::Round(($nc.CounterSamples | Where-Object {{$_.Path -match 'Bytes Sent'}} | Measure-Object CookedValue -Sum).Sum / 1MB, 3)
+        $nets = Get-WmiObject Win32_PerfFormattedData_Tcpip_NetworkInterface -EA Stop
+        $netRecv = [math]::Round(($nets | Measure-Object BytesReceivedPersec -Sum).Sum / 1MB, 3)
+        $netSend = [math]::Round(($nets | Measure-Object BytesSentPersec -Sum).Sum / 1MB, 3)
     }} catch {{}}
 
     $points += @{{
