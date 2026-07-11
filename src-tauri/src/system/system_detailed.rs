@@ -315,6 +315,10 @@ pub async fn get_battery_detailed() -> Result<Vec<BatteryDetailed>, String> {
         #[cfg(target_os = "windows")]
         {
             let ps = r#"
+# Force UTF-8 en sortie : les libellés de statut accentués (« Décharge »,
+# « Chargée complète »…) seraient sinon émis en codepage OEM et arriveraient
+# en mojibake côté Rust (from_utf8_lossy) sur Windows FR.
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $results = @()
 # Capacités réelles depuis namespace root\WMI
 $designCap = 0; $fullCap = 0; $cycleCount = 0
@@ -569,6 +573,9 @@ pub async fn get_windows_license() -> Result<WindowsLicense, String> {
         #[cfg(target_os = "windows")]
         {
             let ps = r#"
+# Sortie UTF-8 : les statuts de licence accentués (« Licencié », « Période de
+# grâce »…) seraient sinon mojibake côté Rust sur Windows FR.
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $licStatus = { param($code) switch ($code) {
     0{"Non licencié"} 1{"Licencié"} 2{"Période de grâce OOB"} 3{"Période de grâce OOT"}
     4{"Non-authentique"} 5{"Notification"} 6{"Grâce étendue"} default{"Inconnu"}
