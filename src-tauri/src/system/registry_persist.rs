@@ -191,7 +191,7 @@ try {{
     foreach ($v in $key.GetValueNames()) {{
         $kind = $key.GetValueKind($v).ToString()
         $raw = $key.GetValue($v)
-        $data = if ($raw -eq $null) {{ '' }} elseif ($raw -is [byte[]]) {{ ($raw | ForEach-Object {{ '{{0:X2}}' -f $_ }}) -join ' ' }} else {{ $raw.ToString() }}
+        $data = if ($raw -eq $null) {{ '' }} elseif ($raw -is [byte[]]) {{ ($raw | ForEach-Object {{ '{{0:X2}}' -f $_ }}) -join ' ' }} elseif ($raw -is [string[]]) {{ $raw -join ' | ' }} else {{ $raw.ToString() }}
         $values += [PSCustomObject]@{{ Name = if ($v -eq '') {{ '(Default)' }} else {{ $v }}; Kind = $kind; Data = $data }}
     }}
     [PSCustomObject]@{{ Path = '{}'; Subkeys = $subkeys; Values = $values; Error = $null }} | ConvertTo-Json -Depth 3
