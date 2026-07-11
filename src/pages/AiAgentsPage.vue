@@ -169,10 +169,16 @@ async function loadOllamaModels() {
 }
 
 // ─── Paramètres ────────────────────────────────────────────────────────────────
+// Borne valide : une valeur corrompue en localStorage (parseInt → NaN) rendrait
+// slice(0, NaN) équivalent à slice(0, 0) et effacerait TOUT l'historique.
+function sanitizeMaxConv(n: number): number {
+  return Number.isFinite(n) && n > 0 ? Math.min(Math.floor(n), 1000) : 50;
+}
 const maxConversations = ref<number>(
-  parseInt(localStorage.getItem("nitrite_ai_max_conv") ?? "50", 10)
+  sanitizeMaxConv(parseInt(localStorage.getItem("nitrite_ai_max_conv") ?? "50", 10))
 );
 function saveMaxConversations() {
+  maxConversations.value = sanitizeMaxConv(maxConversations.value);
   localStorage.setItem("nitrite_ai_max_conv", String(maxConversations.value));
 }
 
@@ -206,7 +212,8 @@ function loadConversations() {
 }
 
 function persistConversations() {
-  localStorage.setItem("nitrite_ai_conversations", JSON.stringify(conversations.value.slice(0, maxConversations.value)));
+  const cap = sanitizeMaxConv(maxConversations.value);
+  localStorage.setItem("nitrite_ai_conversations", JSON.stringify(conversations.value.slice(0, cap)));
 }
 
 function exportConversations() {
