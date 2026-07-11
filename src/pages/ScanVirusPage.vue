@@ -214,6 +214,28 @@ function severityVariant(id: number): "success" | "warning" | "danger" | "neutra
   return "neutral";
 }
 
+// Compte les menaces détectées depuis `sinceMs` via Get-MpThreatDetection.
+// Renvoie 0 si aucune, ou si l'API est indisponible (échec silencieux : le scan
+// lui-même a déjà réussi, on ne veut pas transformer ça en erreur bloquante).
+async function countThreatsSince(sinceMs: number): Promise<number> {
+  try {
+    const result = await invoke<CommandResult>("run_system_command", {
+      cmd: "powershell",
+      args: ["-Command",
+        "Get-MpThreatDetection | Select-Object -ExpandProperty InitialDetectionTime | ForEach-Object { $_.ToUniversalTime().ToString('o') }",
+      ],
+    });
+    const out = (result?.stdout ?? "").trim();
+    if (!out) return 0;
+    return out.split(/\r?\n/).filter(line => {
+      const t = Date.parse(line.trim());
+      return !Number.isNaN(t) && t >= sinceMs;
+    }).length;
+  } catch {
+    return 0;
+  }
+}
+
 async function startScan(type: "quick" | "full" | "offline" | "custom") {
   scanning.value = true;
   scanType.value = type;
@@ -251,6 +273,9 @@ async function startScan(type: "quick" | "full" | "offline" | "custom") {
   }
 
   let result = "Aucune menace détectée";
+  // Horodatage de début : sert à ne compter QUE les détections de CE scan
+  // (Get-MpThreatDetection liste aussi l'historique).
+  const scanStartedAt = Date.now();
 
   try {
     // Simulate progress while scan runs
@@ -267,9 +292,20 @@ async function startScan(type: "quick" | "full" | "offline" | "custom") {
 
     clearInterval(progressInterval); progressInterval = null;
     scanProgress.value = 100;
-    scanStatus.value = "Scan termine — aucune menace detectee";
+
+    // Start-MpScan réussit même si des menaces sont trouvées (elles partent en
+    // quarantaine). Ne PAS affirmer « aucune menace » sans vérifier : interroger
+    // les détections postérieures au début du scan.
+    const threats = await countThreatsSince(scanStartedAt);
     scanDone.value = true;
-    notifications.success("Scan termine");
+    if (threats > 0) {
+      result = `${threats} menace(s) détectée(s)`;
+      scanStatus.value = `Scan terminé — ${threats} menace(s) détectée(s) (voir quarantaine)`;
+      notifications.warning("Menaces détectées", `${threats} menace(s) — consultez la quarantaine`);
+    } else {
+      scanStatus.value = "Scan terminé — aucune menace détectée";
+      notifications.success("Scan terminé");
+    }
   } catch (e: unknown) {
     if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
     scanProgress.value = 100;
