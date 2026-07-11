@@ -145,7 +145,9 @@ fn to_id(name: &str) -> String {
     let mut id: String = name
         .chars()
         .map(|c| {
-            if c.is_alphanumeric() {
+            // is_ascii_alphanumeric (pas is_alphanumeric) : les lettres accentuées
+            // (é, à…) ne sont pas URL-safe et to_ascii_lowercase les laisse intactes.
+            if c.is_ascii_alphanumeric() {
                 c.to_ascii_lowercase()
             } else {
                 '-'
