@@ -378,8 +378,11 @@ try {
 fn get_battery_info() -> Option<BatteryData> {
     #[cfg(target_os = "windows")]
     use std::os::windows::process::CommandExt;
+    // -NoProfile -NonInteractive : sans ça, PowerShell charge le profil user à
+    // chaque relevé batterie (latence dans la boucle de monitoring, sortie
+    // potentiellement altérée par le profil). Cohérent avec les autres appels.
     let output = std::process::Command::new("powershell")
-        .args(["-Command", "(Get-WmiObject Win32_Battery | Select-Object EstimatedChargeRemaining, BatteryStatus | ConvertTo-Json)"])
+        .args(["-NoProfile", "-NonInteractive", "-Command", "(Get-WmiObject Win32_Battery | Select-Object EstimatedChargeRemaining, BatteryStatus | ConvertTo-Json)"])
         .creation_flags(0x08000000)
         .output()
         .ok()?;
