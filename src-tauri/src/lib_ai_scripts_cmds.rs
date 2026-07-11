@@ -409,9 +409,15 @@ async fn launch_lhm_portable() -> Result<(), NiTriTeError> {
         // Lancement avec élévation UAC (requis pour accès WMI matériel)
         // Les apostrophes dans le chemin sont échappées ('') pour éviter l'injection PS
         let escaped = exe.to_string_lossy().replace('\'', "''");
+        // -WorkingDirectory = dossier de l'exe : LHM charge son pilote noyau
+        // (.sys) et son fichier de config relativement à son répertoire. Sans ça
+        // il démarre dans le CWD de Nitrite et échoue à trouver ses ressources.
+        let dir_escaped = exe.parent()
+            .map(|p| p.to_string_lossy().replace('\'', "''"))
+            .unwrap_or_default();
         std::process::Command::new("powershell")
             .args(["-NoProfile", "-Command",
-                &format!("Start-Process -FilePath '{}' -Verb RunAs", escaped)])
+                &format!("Start-Process -FilePath '{}' -WorkingDirectory '{}' -Verb RunAs", escaped, dir_escaped)])
             .creation_flags(0x08000000)
             .spawn()
             .map_err(|e| NiTriTeError::System(e.to_string()))?;
@@ -487,8 +493,11 @@ async fn launch_exe(relative_path: String) -> Result<(), NiTriTeError> {
             "Chemin hors du répertoire portables autorisé".into(),
         ));
     }
-    std::process::Command::new(&canonical_full)
-        .spawn()
+    // current_dir = dossier de l'exe : cohérent avec launch_portable, pour que
+    // l'app trouve ses ressources relatives (config, DLL) au lieu du CWD Nitrite.
+    let mut cmd = std::process::Command::new(&canonical_full);
+    if let Some(parent) = canonical_full.parent() { cmd.current_dir(parent); }
+    cmd.spawn()
         .map_err(|e| NiTriTeError::System(format!("Lancement impossible: {}", e)))?;
     Ok(())
 }
