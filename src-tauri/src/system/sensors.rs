@@ -30,20 +30,22 @@ fn unit_for(sensor_type: &str) -> &'static str {
 }
 
 fn hw_type_label(hw_type: &str) -> &'static str {
-    match hw_type {
-        "CPU"              => "CPU",
-        "GpuNvidia"        => "GPU NVIDIA",
-        "GpuAmd"           => "GPU AMD",
-        "GpuIntel"         => "GPU Intel",
-        "Motherboard"      => "Carte mère",
-        "SuperIO"          => "SuperIO",
-        "Ram"              => "RAM",
-        "HDD"              => "Stockage",
-        "SSD"              => "Stockage",
-        "NVMe"             => "Stockage NVMe",
-        "Network"          => "Réseau",
-        "EmbeddedController" => "EC",
-        _                  => "Autre",
+    // Case-insensitive + les deux nomenclatures : OpenHardwareMonitor (CPU,
+    // GpuAti, RAM, Mainboard, HDD) ET LibreHardwareMonitor (Cpu, GpuAmd, Memory,
+    // Motherboard, Storage). Sans ça, les capteurs LHM tombaient tous en « Autre ».
+    match hw_type.to_lowercase().as_str() {
+        "cpu"                       => "CPU",
+        "gpunvidia"                 => "GPU NVIDIA",
+        "gpuamd" | "gpuati"         => "GPU AMD",
+        "gpuintel"                  => "GPU Intel",
+        "motherboard" | "mainboard" => "Carte mère",
+        "superio"                   => "SuperIO",
+        "ram" | "memory"            => "RAM",
+        "hdd" | "ssd" | "storage"   => "Stockage",
+        "nvme"                      => "Stockage NVMe",
+        "network"                   => "Réseau",
+        "embeddedcontroller"        => "EC",
+        _                           => "Autre",
     }
 }
 
