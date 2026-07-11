@@ -2,13 +2,22 @@
 use std::os::windows::process::CommandExt;
 
 /// Lance un script PowerShell sans fenêtre CMD visible.
+///
+/// Décode via `decode_output` (UTF-8 d'abord, repli codepage OEM) plutôt que
+/// `from_utf8_lossy` : de nombreux scripts émettent du texte FR accentué
+/// (« Activé », « non trouvée »…) que PowerShell encode en OEM (CP850 FR) faute
+/// de `$OutputEncoding` — from_utf8_lossy le transformait en mojibake. Les
+/// scripts déjà UTF-8/JSON restent inchangés (fast path UTF-8, aucune régression).
 pub fn ps(script: &str) -> Result<String, String> {
     let out = std::process::Command::new("powershell")
         .args(["-NoProfile", "-NonInteractive", "-Command", script])
         .creation_flags(0x08000000)
         .output()
         .map_err(|e| e.to_string())?;
-    Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+    #[cfg(target_os = "windows")]
+    { Ok(crate::maintenance::commands::decode_output(&out.stdout).trim().to_string()) }
+    #[cfg(not(target_os = "windows"))]
+    { Ok(String::from_utf8_lossy(&out.stdout).trim().to_string()) }
 }
 
 /// Préambule PowerShell définissant la fonction `Loc-Counter` : traduit un nom
