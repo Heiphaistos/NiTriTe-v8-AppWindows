@@ -133,10 +133,11 @@ async function openDefender() {
 
 async function updateDefinitions() {
   try {
-    await invoke("run_system_command", {
+    const r = await invoke<{ success: boolean; stderr: string }>("run_system_command", {
       cmd: "powershell",
-      args: ["-Command", "Update-MpSignature"],
+      args: ["-Command", "Update-MpSignature -ErrorAction Stop"],
     });
+    if (!r.success) throw new Error(r.stderr?.trim() || "Échec de la mise à jour des définitions");
     notifications.success("Definitions mises a jour");
   } catch (e: unknown) {
     if (!isTauriContext()) { notifications.info("Mode dev", "Simulation mise a jour definitions"); }
@@ -156,13 +157,14 @@ async function scheduleWeeklyScan() {
   schedulingLoading.value = true;
   scheduleSuccess.value = false;
   try {
-    await invoke("run_system_command", {
+    const r = await invoke<{ success: boolean; stdout: string; stderr: string }>("run_system_command", {
       cmd: "cmd",
       args: [
         "/c",
         'schtasks /create /tn "NitriteWeeklyScan" /tr "powershell Start-MpScan -ScanType QuickScan" /sc weekly /d SUN /st 02:00 /f',
       ],
     });
+    if (!r.success) throw new Error(r.stderr?.trim() || r.stdout?.trim() || "schtasks a échoué");
     scheduleSuccess.value = true;
     notifications.success("Planification", "Scan hebdomadaire planifié chaque dimanche à 02h00");
   } catch (e: unknown) {
