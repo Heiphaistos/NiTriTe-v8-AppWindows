@@ -15,6 +15,39 @@ pub struct CommandResult {
     pub exit_code: i32,
 }
 
+/// Décode la sortie d'une commande. UTF-8 d'abord (PowerShell, ASCII : chemin
+/// rapide, aucun changement), puis repli sur le codepage OEM — les outils console
+/// (driverquery, systeminfo…) écrivent en OEM sur Windows FR, et `from_utf8_lossy`
+/// transformait leurs accents en mojibake ("Contrôleur" → "Contr�leur").
+#[cfg(target_os = "windows")]
+pub(crate) fn decode_output(bytes: &[u8]) -> String {
+    if let Ok(s) = std::str::from_utf8(bytes) {
+        return s.to_string();
+    }
+    if bytes.is_empty() {
+        return String::new();
+    }
+    use windows::Win32::Globalization::{GetOEMCP, MultiByteToWideChar, MULTI_BYTE_TO_WIDE_CHAR_FLAGS};
+    unsafe {
+        let cp = GetOEMCP();
+        let len = MultiByteToWideChar(cp, MULTI_BYTE_TO_WIDE_CHAR_FLAGS(0), bytes, None);
+        if len <= 0 {
+            return String::from_utf8_lossy(bytes).to_string();
+        }
+        let mut buf = vec![0u16; len as usize];
+        let written = MultiByteToWideChar(cp, MULTI_BYTE_TO_WIDE_CHAR_FLAGS(0), bytes, Some(&mut buf));
+        if written <= 0 {
+            return String::from_utf8_lossy(bytes).to_string();
+        }
+        String::from_utf16_lossy(&buf[..written as usize])
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+pub(crate) fn decode_output(bytes: &[u8]) -> String {
+    String::from_utf8_lossy(bytes).to_string()
+}
+
 /// Execute une commande systeme avec timeout effectif.
 /// `timeout_secs` : 0 = pas de timeout (attente illimitée).
 pub fn execute_system_command(cmd: &str, args: &[&str], timeout_secs: u64) -> Result<CommandResult, NiTriTeError> {
@@ -54,8 +87,8 @@ pub fn execute_system_command(cmd: &str, args: &[&str], timeout_secs: u64) -> Re
 
     Ok(CommandResult {
         success: output.status.success(),
-        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+        stdout: decode_output(&output.stdout),
+        stderr: decode_output(&output.stderr),
         exit_code: output.status.code().unwrap_or(-1),
     })
 }
