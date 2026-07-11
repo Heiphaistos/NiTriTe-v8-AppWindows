@@ -107,10 +107,14 @@ async function restorePoint(p: RestorePoint) {
   if (!ok) return;
   restoringId.value = p.sequence_number;
   try {
-    await invoke("run_system_command", {
+    // -ErrorAction Stop : un succès réel redémarre la machine, donc cette notif
+    // n'est visible qu'en cas d'échec. Sans Stop, un échec (System Restore
+    // désactivé, point invalide) sort en exit 0 et afficherait un faux succès.
+    const r = await invoke<{ success: boolean; stderr: string }>("run_system_command", {
       cmd: "powershell",
-      args: ["-Command", `Restore-Computer -RestorePoint ${p.sequence_number} -Confirm:$false`],
+      args: ["-Command", `Restore-Computer -RestorePoint ${p.sequence_number} -Confirm:$false -ErrorAction Stop`],
     });
+    if (!r.success) throw new Error(r.stderr?.trim() || "La restauration a échoué (System Restore désactivé ?)");
     notify.success("Restauration lancée", "Le système va redémarrer.");
   } catch (e: unknown) {
     notify.error("Erreur restauration", String(e));
