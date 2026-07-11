@@ -220,7 +220,8 @@ async function executeBuiltinScript(script: BuiltinScript) {
     outputLines.value.push("", `--- Terminé en ${elapsed.value}s (code: ${result.exit_code}) ---`);
     detectedPaths.value = [...new Set(extractPaths(result.output))].slice(0, 8);
     pushHistory({ name: script.name, type: script.script_type, ran_at: new Date().toLocaleString("fr-FR"), elapsed_s: elapsed.value, exit_code: result.exit_code, success: result.success });
-    notify.success("Script terminé", `${script.name} — ${elapsed.value}s`);
+    if (result.success) notify.success("Script terminé", `${script.name} — ${elapsed.value}s`);
+    else notify.warning("Script terminé avec erreurs", `${script.name} — code ${result.exit_code}`);
   } catch (e: unknown) {
     if (!isTauriContext()) {
       outputLines.value.push("Exécution simulée en mode dev...", "Opération terminée.", "", "--- Terminé (code: 0) ---");
@@ -315,7 +316,8 @@ async function executeCustomScript() {
     outputLines.value.push("", `--- Terminé en ${elapsed.value}s (code: ${result.exit_code}) ---`);
     const name = customName.value.trim() || "Script personnalisé";
     pushHistory({ name, type: customType.value, ran_at: new Date().toLocaleString("fr-FR"), elapsed_s: elapsed.value, exit_code: result.exit_code, success: result.success });
-    notify.success("Script terminé", `${name} — ${elapsed.value}s`);
+    if (result.success) notify.success("Script terminé", `${name} — ${elapsed.value}s`);
+    else notify.warning("Script terminé avec erreurs", `${name} — code ${result.exit_code}`);
   } catch (e: unknown) {
     if (!isTauriContext()) {
       outputLines.value.push("Exécution simulée en mode dev...", customScript.value, "", "--- Terminé (code: 0) ---");
@@ -390,7 +392,8 @@ async function runScriptFile() {
     });
     outputLines.value.push(result.output, "", `--- Terminé (code: ${result.exit_code}) ---`);
     pushHistory({ name: selectedFile.value.name, type: st, ran_at: new Date().toLocaleString("fr-FR"), elapsed_s: elapsed.value, exit_code: result.exit_code, success: result.success });
-    notify.success("Script terminé");
+    if (result.success) notify.success("Script terminé");
+    else notify.warning("Script terminé avec erreurs", `Code ${result.exit_code}`);
   } catch (e: unknown) {
     if (!isTauriContext()) {
       outputLines.value.push("Exécution simulée en mode dev...", "", "--- Terminé (code: 0) ---");
