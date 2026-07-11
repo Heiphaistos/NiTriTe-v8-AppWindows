@@ -58,7 +58,7 @@ $result | ConvertTo-Json -Compress
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let text = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
             serde_json::from_str(&text).map_err(|e| e.to_string())
         }
         #[cfg(not(target_os = "windows"))]
@@ -135,7 +135,7 @@ $result | ConvertTo-Json -Compress
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let text = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
             if text.is_empty() { return Ok(serde_json::Value::Null); }
             serde_json::from_str(&text).map_err(|e| format!("JSON parse: {} — raw: {}", e, text.chars().take(200).collect::<String>()))
         }
@@ -200,7 +200,7 @@ $result | ConvertTo-Json -Compress -Depth 4
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let text = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
             if text.is_empty() { return Ok(serde_json::Value::Null); }
             serde_json::from_str(&text).map_err(|e| e.to_string())
         }
@@ -239,7 +239,7 @@ try {
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let text = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
             if text.is_empty() { return Ok(serde_json::Value::Null); }
             let json_text = if text.starts_with('{') && !text.starts_with('[') {
                 format!("[{}]", text)
@@ -313,7 +313,7 @@ if ($result.Count -eq 0) { Write-Output '[]' } else { $result | ConvertTo-Json -
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let text = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
             if text.is_empty() || text == "[]" { return Ok(serde_json::json!([])); }
             let json_text = if text.starts_with('{') { format!("[{}]", text) } else { text };
             serde_json::from_str(&json_text).map_err(|e| e.to_string())
@@ -403,7 +403,7 @@ if ($result.Count -eq 0) { Write-Output '[]' } else { $result | ConvertTo-Json -
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let text = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
             if text.is_empty() || text == "[]" { return Ok(serde_json::json!([])); }
             let json_text = if text.starts_with('{') { format!("[{}]", text) } else { text };
             serde_json::from_str(&json_text).map_err(|e| e.to_string())
@@ -462,7 +462,7 @@ try {
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let text = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
             if text.is_empty() || text == "[]" { return Ok(serde_json::json!([])); }
             let json_text = if text.starts_with('{') { format!("[{}]", text) } else { text };
             serde_json::from_str(&json_text).map_err(|e| e.to_string())

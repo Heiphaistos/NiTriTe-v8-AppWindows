@@ -97,8 +97,11 @@ async fn set_environment_variable(name: String, value: String, scope: String) ->
                 "Système" | "System" | "Machine" => "Machine",
                 _ => "User",
             };
+            // try/catch obligatoire : une exception de méthode .NET (ex. scope
+            // Machine sans admin) n'arrête PAS le script — 'OK' était imprimé
+            // quand même → faux-succès.
             let ps = format!(
-                "[System.Environment]::SetEnvironmentVariable('{}', '{}', [System.EnvironmentVariableTarget]::{}); Write-Output 'OK'",
+                "try {{ [System.Environment]::SetEnvironmentVariable('{}', '{}', [System.EnvironmentVariableTarget]::{}); Write-Output 'OK' }} catch {{ Write-Output $_.Exception.Message; exit 1 }}",
                 name.replace('\'', "''"),
                 value.replace('\'', "''"),
                 ps_scope
@@ -108,11 +111,12 @@ async fn set_environment_variable(name: String, value: String, scope: String) ->
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            if stdout.contains("OK") || out.status.success() {
+            let stdout = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
+            if out.status.success() && stdout.contains("OK") {
                 Ok(format!("Variable '{}' définie ({})", name, ps_scope))
             } else {
-                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
+                let stderr = crate::maintenance::commands::decode_output(&out.stderr).trim().to_string();
+                Err(if !stdout.is_empty() { stdout } else { stderr })
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -130,8 +134,10 @@ async fn delete_environment_variable(name: String, scope: String) -> Result<Stri
                 "Système" | "System" | "Machine" => "Machine",
                 _ => "User",
             };
+            // Même protocole que set_environment_variable : exception .NET
+            // non-terminante → try/catch + exit 1, sinon faux-succès sans admin.
             let ps = format!(
-                "[System.Environment]::SetEnvironmentVariable('{}', $null, [System.EnvironmentVariableTarget]::{}); Write-Output 'OK'",
+                "try {{ [System.Environment]::SetEnvironmentVariable('{}', $null, [System.EnvironmentVariableTarget]::{}); Write-Output 'OK' }} catch {{ Write-Output $_.Exception.Message; exit 1 }}",
                 name.replace('\'', "''"),
                 ps_scope
             );
@@ -140,11 +146,12 @@ async fn delete_environment_variable(name: String, scope: String) -> Result<Stri
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            if stdout.contains("OK") || out.status.success() {
+            let stdout = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
+            if out.status.success() && stdout.contains("OK") {
                 Ok(format!("Variable '{}' supprimée ({})", name, ps_scope))
             } else {
-                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
+                let stderr = crate::maintenance::commands::decode_output(&out.stderr).trim().to_string();
+                Err(if !stdout.is_empty() { stdout } else { stderr })
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -167,20 +174,28 @@ async fn toggle_startup_program(name: String, location: String, command: String,
                 format!("{}\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", hive)
             };
 
+            // try/catch + -ErrorAction Stop : les échecs de Set-ItemProperty
+            // (HKLM sans admin) sont non-terminants → 'OK' sortait quand même.
             let ps = if enable {
                 format!(
-                    "Set-ItemProperty -Path '{}' -Name '{}' -Value '{}' -Force; Write-Output 'OK'",
+                    "try {{ Set-ItemProperty -Path '{}' -Name '{}' -Value '{}' -Force -ErrorAction Stop; Write-Output 'OK' }} catch {{ Write-Output $_.Exception.Message; exit 1 }}",
                     reg_path.replace('\'', "''"),
                     name.replace('\'', "''"),
                     command.replace('\'', "''")
                 )
             } else {
-                // Déplacer vers Disabled\Run plutôt que supprimer
+                // Déplacer vers un stash plutôt que supprimer. Stash sous
+                // SOFTWARE\NiTriTe\DisabledRun : l'ancien '{hive}\Disabled\Run'
+                // créait une clé à la RACINE du hive (pollution registre).
+                // Le stash n'est jamais relu (la réactivation passe par le
+                // paramètre `command` du frontend) → déplacement sans migration.
                 format!(
-                    "$disPath = '{}\\Disabled\\Run'; if(-not (Test-Path $disPath)){{ New-Item $disPath -Force | Out-Null }}; \
+                    "try {{ \
+                     $disPath = '{}\\SOFTWARE\\NiTriTe\\DisabledRun'; if(-not (Test-Path $disPath)){{ New-Item $disPath -Force -ErrorAction Stop | Out-Null }}; \
                      $val = try{{ (Get-ItemProperty -Path '{}' -Name '{}' -ErrorAction Stop).'{}' }} catch {{ '{}' }}; \
-                     Set-ItemProperty -Path $disPath -Name '{}' -Value $val -Force; \
-                     Remove-ItemProperty -Path '{}' -Name '{}' -ErrorAction SilentlyContinue; Write-Output 'OK'",
+                     Set-ItemProperty -Path $disPath -Name '{}' -Value $val -Force -ErrorAction Stop; \
+                     Remove-ItemProperty -Path '{}' -Name '{}' -ErrorAction Stop; Write-Output 'OK' \
+                     }} catch {{ Write-Output $_.Exception.Message; exit 1 }}",
                     hive, // $disPath
                     &reg_path.replace('\'', "''"),
                     &name.replace('\'', "''"),
@@ -196,11 +211,12 @@ async fn toggle_startup_program(name: String, location: String, command: String,
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            if stdout.contains("OK") || out.status.success() {
+            let stdout = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
+            if out.status.success() && stdout.contains("OK") {
                 Ok(if enable { format!("'{}' activé au démarrage", name) } else { format!("'{}' désactivé au démarrage", name) })
             } else {
-                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
+                let stderr = crate::maintenance::commands::decode_output(&out.stderr).trim().to_string();
+                Err(if !stdout.is_empty() { stdout } else { stderr })
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -278,13 +294,18 @@ async fn create_scheduled_task(task_name: String, command: String, trigger: Stri
             let safe_name = task_name.replace('\'', "''");
             let safe_cmd = command.replace('\'', "''");
             let safe_desc = description.replace('\'', "''");
+            // try/catch : un échec de Register-ScheduledTask (droits, nom déjà
+            // pris par une tâche protégée…) est non-terminant → 'OK' sortait
+            // quand même et l'UI annonçait la tâche créée à tort.
             let ps = format!(
                 r#"
-$action = New-ScheduledTaskAction -Execute '{safe_cmd}'
-$trigger = {trigger_ps}
-$settings = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable:$false
-Register-ScheduledTask -TaskName '{safe_name}' -Action $action -Trigger $trigger -Settings $settings -Description '{safe_desc}' -Force
-Write-Output 'OK'
+try {{
+    $action = New-ScheduledTaskAction -Execute '{safe_cmd}'
+    $trigger = {trigger_ps}
+    $settings = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable:$false
+    Register-ScheduledTask -TaskName '{safe_name}' -Action $action -Trigger $trigger -Settings $settings -Description '{safe_desc}' -Force -ErrorAction Stop | Out-Null
+    Write-Output 'OK'
+}} catch {{ Write-Output $_.Exception.Message; exit 1 }}
 "#
             );
             let out = std::process::Command::new("powershell")
@@ -292,11 +313,12 @@ Write-Output 'OK'
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            if stdout.contains("OK") || out.status.success() {
+            let stdout = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
+            if out.status.success() && stdout.contains("OK") {
                 Ok(format!("Tâche '{}' créée avec succès", task_name))
             } else {
-                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
+                let stderr = crate::maintenance::commands::decode_output(&out.stderr).trim().to_string();
+                Err(if !stdout.is_empty() { stdout } else { stderr })
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -384,8 +406,10 @@ async fn set_default_printer(printer_name: String) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
         #[cfg(target_os = "windows")]
         {
+            // try/catch : SetDefaultPrinter lève une exception COM non-terminante
+            // (imprimante inexistante) → 'OK' sortait quand même.
             let ps = format!(
-                "(New-Object -ComObject WScript.Network).SetDefaultPrinter('{}'); Write-Output 'OK'",
+                "try {{ (New-Object -ComObject WScript.Network).SetDefaultPrinter('{}'); Write-Output 'OK' }} catch {{ Write-Output $_.Exception.Message; exit 1 }}",
                 printer_name.replace('\'', "''")
             );
             let out = std::process::Command::new("powershell")
@@ -393,11 +417,12 @@ async fn set_default_printer(printer_name: String) -> Result<String, String> {
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            if stdout.contains("OK") || out.status.success() {
+            let stdout = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
+            if out.status.success() && stdout.contains("OK") {
                 Ok(format!("Imprimante '{}' définie par défaut", printer_name))
             } else {
-                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
+                let stderr = crate::maintenance::commands::decode_output(&out.stderr).trim().to_string();
+                Err(if !stdout.is_empty() { stdout } else { stderr })
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -469,17 +494,24 @@ async fn install_package_manager(manager: String, window: tauri::Window) -> Resu
     tokio::task::spawn_blocking(move || {
         #[cfg(target_os = "windows")]
         {
+            // try/catch : un échec réseau/installeur (DownloadString lève une
+            // exception non-terminante) laissait le message « installé ! »
+            // s'imprimer quand même → faux-succès.
             let ps = match manager.as_str() {
                 "scoop" => r#"
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-Invoke-RestMethod -Uri 'https://get.scoop.sh' | Invoke-Expression
-Write-Output 'Scoop installé !'
+try {
+    Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force -ErrorAction Stop
+    Invoke-RestMethod -Uri 'https://get.scoop.sh' -ErrorAction Stop | Invoke-Expression
+    Write-Output 'Scoop installé !'
+} catch { Write-Output $_.Exception.Message; exit 1 }
 "#,
                 "chocolatey" => r#"
-Set-ExecutionPolicy Bypass -Scope Process -Force
-[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-Write-Output 'Chocolatey installé !'
+try {
+    Set-ExecutionPolicy Bypass -Scope Process -Force -ErrorAction Stop
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+    Write-Output 'Chocolatey installé !'
+} catch { Write-Output $_.Exception.Message; exit 1 }
 "#,
                 "winget" => {
                     // Winget s'installe via le Microsoft Store / App Installer
@@ -496,12 +528,13 @@ Write-Output 'Chocolatey installé !'
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let stdout = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
             let _ = window.emit("pkg-manager-install-done", &stdout);
             if out.status.success() {
                 Ok(stdout)
             } else {
-                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
+                let stderr = crate::maintenance::commands::decode_output(&out.stderr).trim().to_string();
+                Err(if !stdout.is_empty() { stdout } else { stderr })
             }
         }
         #[cfg(not(target_os = "windows"))]
