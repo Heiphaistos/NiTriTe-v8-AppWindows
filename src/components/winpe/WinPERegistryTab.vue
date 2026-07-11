@@ -35,6 +35,14 @@ async function run(cmd: string, label?: string) {
 
 function isValidRegPath(v: string) { return v.length > 0 && !/[";`$<>|]/.test(v); }
 function isValidFilePath(v: string) { return v.length > 0 && !/[";`$<>|]/.test(v); }
+// Donnée de registre passée à reg.exe entre guillemets : un backslash final
+// (fréquent sur les chemins, ex. C:\App\) échapperait le guillemet fermant via
+// le parser d'arguments MSVCRT. On double la série finale de backslashes pour
+// que reg.exe stocke la donnée intacte.
+function escapeTrailingBackslashes(v: string): string {
+  const m = v.match(/\\+$/);
+  return m ? v + "\\".repeat(m[0].length) : v;
+}
 
 async function loadHive() {
   if (!hiveAlias.value || !hivePath.value) return;
@@ -65,7 +73,7 @@ async function setValue() {
   if (!isValidRegPath(regKey.value)) { output.value = "Chemin de clé invalide."; lastSuccess.value = false; return; }
   if (!isValidRegPath(regValue.value)) { output.value = "Nom de valeur invalide."; lastSuccess.value = false; return; }
   if (regData.value && /[";`$<>|]/.test(regData.value)) { output.value = "Données invalides — caractères interdits."; lastSuccess.value = false; return; }
-  await run(`reg add "${regKey.value}" /v "${regValue.value}" /t ${regType.value} /d "${regData.value}" /f`,
+  await run(`reg add "${regKey.value}" /v "${regValue.value}" /t ${regType.value} /d "${escapeTrailingBackslashes(regData.value)}" /f`,
     `Set ${regKey.value}\\${regValue.value}`);
 }
 
