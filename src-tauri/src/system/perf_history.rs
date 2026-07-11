@@ -75,7 +75,10 @@ for ($i = 0; $i -lt $n; $i++) {{
         $netSend = [math]::Round(($nets | Measure-Object BytesSentPersec -Sum).Sum / 1MB, 3)
     }} catch {{}}
 
-    $points += @{{
+    # PSCustomObject (pas hashtable) : Measure-Object -Property cpu/ramUsed plus
+    # bas ne voit PAS les clés d'une hashtable → avgCpu/peakCpu/avgRam/peakRam
+    # sortiraient tous à 0. La sérialisation JSON reste identique.
+    $points += [PSCustomObject]@{{
         ts        = $ts
         cpu       = [double]$cpu
         ramUsed   = [long]$ramUsed
