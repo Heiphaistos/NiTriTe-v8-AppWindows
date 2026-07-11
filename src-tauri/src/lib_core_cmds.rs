@@ -45,12 +45,12 @@ async fn start_monitoring(
     window: tauri::Window,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), NiTriTeError> {
-    let interval = {
+    let (interval, process_count) = {
         let config = state.config.lock().await;
-        config.monitor_interval_ms
+        (config.monitor_interval_ms, config.process_count)
     };
     let running = state.monitor_running.clone();
-    system::monitor::start_monitoring(window, running, interval);
+    system::monitor::start_monitoring(window, running, interval, process_count);
     Ok(())
 }
 

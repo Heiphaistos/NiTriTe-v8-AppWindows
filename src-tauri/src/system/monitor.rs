@@ -67,6 +67,7 @@ pub fn start_monitoring(
     window: tauri::Window,
     running: Arc<AtomicBool>,
     interval_ms: u64,
+    process_count: u64,
 ) {
     // Guard : si déjà actif, on ne spawne pas un second thread
     if running
@@ -80,6 +81,8 @@ pub fn start_monitoring(
     // tourner le thread en busy-loop 100% CPU (sleep 0) et diviserait par zéro
     // dans le calcul des débits (→ inf KB/s). Minimum 250 ms.
     let interval_ms = interval_ms.max(250);
+    // Nombre de processus émis : piloté par le réglage process_count (borné).
+    let top_n = process_count.clamp(1, 500) as usize;
 
     // GPU + temperature data shared between polling thread and main monitoring thread
     let gpu_shared: Arc<Mutex<Vec<GpuData>>> = Arc::new(Mutex::new(Vec::new()));
@@ -178,7 +181,7 @@ pub fn start_monitoring(
                 })
                 .collect();
             procs.sort_by(|a, b| b.cpu_percent.partial_cmp(&a.cpu_percent).unwrap_or(std::cmp::Ordering::Equal));
-            procs.truncate(10);
+            procs.truncate(top_n);
 
             // Alertes
             let mut alerts = Vec::new();
