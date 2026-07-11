@@ -151,12 +151,16 @@ function exportRegKey() {
     "",
     `[${browsePath.value}]`,
   ];
+  // En .reg, noms et données suivent les mêmes règles d'échappement : \ → \\, " → \"
+  const escReg = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   for (const v of browseResult.value.values) {
-    const name = v.name === "(Default)" ? "@" : `"${v.name}"`;
+    const name = v.name === "(Default)" ? "@" : `"${escReg(v.name)}"`;
     if (v.kind === "String" || v.kind === "ExpandString") {
-      lines.push(`${name}="${v.data.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`);
+      lines.push(`${name}="${escReg(v.data)}"`);
     } else if (v.kind === "DWord") {
-      const hex = parseInt(v.data || "0").toString(16).padStart(8, "0");
+      // GetValue renvoie un Int32 : 0xFFFFFFFF arrive en "-1". >>> 0 le ramène
+      // en u32 non signé avant conversion hex (sinon "-1".toString(16) casse le .reg).
+      const hex = ((parseInt(v.data || "0", 10) || 0) >>> 0).toString(16).padStart(8, "0");
       lines.push(`${name}=dword:${hex}`);
     } else {
       lines.push(`; ${name}=${v.kind}:${v.data}`);
