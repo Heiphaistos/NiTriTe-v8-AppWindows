@@ -24,8 +24,12 @@ pub fn get_event_logs(log_name: &str, count: u32) -> Result<Vec<EventLogEntry>, 
 
     let count = count.min(200); // Limiter a 200 max
 
+    // Niveau dérivé de l'entier .Level (INVARIANT : 1=Critical..5=Verbose) et
+    // non de LevelDisplayName, qui est LOCALISÉ (« Erreur »/« Avertissement » sur
+    // Windows FR) — le frontend colore par les noms anglais, donc sur FR tous les
+    // événements tombaient en « info » (aucune coloration rouge/jaune).
     let ps_cmd = format!(
-        "$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-WinEvent -LogName '{}' -MaxEvents {} -ErrorAction SilentlyContinue | Select-Object Id, LevelDisplayName, ProviderName, TimeCreated, Message | ConvertTo-Json -Depth 2",
+        "$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-WinEvent -LogName '{}' -MaxEvents {} -ErrorAction SilentlyContinue | Select-Object Id, @{{Name='Level';Expression={{switch([int]$_.Level){{1{{'Critical'}}2{{'Error'}}3{{'Warning'}}4{{'Information'}}5{{'Verbose'}}default{{'Information'}}}}}}}}, ProviderName, TimeCreated, Message | ConvertTo-Json -Depth 2",
         log_name, count
     );
     let output = Command::new("powershell")
@@ -55,7 +59,7 @@ pub fn get_event_logs(log_name: &str, count: u32) -> Result<Vec<EventLogEntry>, 
         .filter_map(|e| {
             Some(EventLogEntry {
                 id: e.get("Id")?.as_u64().unwrap_or(0),
-                level: e.get("LevelDisplayName")
+                level: e.get("Level")
                     .and_then(|v| v.as_str())
                     .unwrap_or("Information")
                     .to_string(),
