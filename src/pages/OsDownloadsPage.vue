@@ -121,7 +121,7 @@ const osSections: OsSection[] = [
   {
     title: "Distributions Linux — Populaires",
     items: [
-      { name: "Ubuntu", version: "24.04 LTS", description: "Distribution la plus populaire. Parfait pour débuter.", url: "https://ubuntu.com/download/desktop", badge: "Populaire", badgeVariant: "success", size_gb: 5.7, checksum: "81fae9cc21e2b1e3a9a4526c9d3f4d5e8c2b7a1f0e3d6c9b4a7e2f5d8c1b4a7e", requirements: { ram: "4 Go", cpu: "2 GHz dual-core", disk: "25 Go" }, release_notes: "Ubuntu 24.04 LTS Noble Numbat — support jusqu'en 2029. GNOME 46, noyau 6.8, Snap Firefox par défaut." },
+      { name: "Ubuntu", version: "24.04 LTS", description: "Distribution la plus populaire. Parfait pour débuter.", url: "https://ubuntu.com/download/desktop", badge: "Populaire", badgeVariant: "success", size_gb: 5.7, requirements: { ram: "4 Go", cpu: "2 GHz dual-core", disk: "25 Go" }, release_notes: "Ubuntu 24.04 LTS Noble Numbat — support jusqu'en 2029. GNOME 46, noyau 6.8, Snap Firefox par défaut." },
       { name: "Linux Mint", version: "22", description: "Basée sur Ubuntu, interface familière type Windows.", url: "https://linuxmint.com/download.php", badge: "Débutant", badgeVariant: "success", size_gb: 3.2 },
       { name: "Fedora", version: "41", description: "Technologies récentes, sponsorisé par Red Hat.", url: "https://fedoraproject.org/workstation/download", badge: "Moderne", badgeVariant: "accent", size_gb: 2.1, requirements: { ram: "2 Go", cpu: "2 GHz", disk: "15 Go" } },
       { name: "Debian", version: "12", description: "Distribution stable et fiable, base de nombreuses distros.", url: "https://www.debian.org/download", badge: "Stable", badgeVariant: "info", size_gb: 3.7 },
