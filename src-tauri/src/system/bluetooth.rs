@@ -84,12 +84,22 @@ try {
                 '*phone*'     { 'Téléphone' }
                 default       { 'Autre' }
             }
+            # État de connexion RÉEL via DEVPKEY_Device_IsConnected
+            # ({83DA6326-97A6-4088-9453-A1923F573B29} 15). ConfigManagerErrorCode
+            # -eq 0 signifie « pilote OK/présent », pas « connecté » : un
+            # périphérique appairé mais déconnecté a le code 0 → toujours affiché
+            # connecté à tort.
+            $isConn = $false
+            try {
+                $prop = Get-PnpDeviceProperty -InstanceId $_.PNPDeviceID -KeyName '{83DA6326-97A6-4088-9453-A1923F573B29} 15' -EA Stop
+                $isConn = [bool]$prop.Data
+            } catch {}
             @{
                 name      = $_.Name
                 address   = $_.PNPDeviceID -replace '.*&(\w+)_\w+$','$1'
                 class     = if($_.PNPClass){$_.PNPClass}else{'Unknown'}
                 paired    = $true
-                connected = ($_.ConfigManagerErrorCode -eq 0)
+                connected = $isConn
                 trusted   = $true
                 rssi      = 0
                 mfr       = if($_.Manufacturer){$_.Manufacturer}else{''}
