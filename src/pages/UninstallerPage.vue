@@ -369,10 +369,14 @@ function formatSize(kb: number) {
   return `${(kb / 1024).toFixed(1)} Mo`;
 }
 
-function sourceLabel(src: string) {
-  if (!src) return "";
-  if (src.toLowerCase().includes("hkcu")) return "User";
-  if (src.toLowerCase().includes("store") || src.toLowerCase().includes("appx")) return "Store";
+// Détermine la portée d'installation. Le backend met source="registry" pour
+// TOUTES les entrées ; l'info réelle (ruche HKCU vs HKLM, Store) est dans le
+// chemin registre. On passe donc registry_path, pas source.
+function sourceLabel(regPath: string) {
+  if (!regPath) return "";
+  const p = regPath.toLowerCase();
+  if (p.includes("store") || p.includes("appx")) return "Store";
+  if (p.includes("hkcu")) return "User";
   return "Sys";
 }
 
@@ -673,7 +677,7 @@ onMounted(loadApps);
             <td class="col-size">{{ formatSize(app.install_size_kb) }}</td>
             <td class="col-date">{{ app.install_date || '—' }}</td>
             <td class="col-source" @click.stop>
-              <span v-if="app.source" class="src-badge" :class="sourceLabel(app.source).toLowerCase()">{{ sourceLabel(app.source) }}</span>
+              <span v-if="app.registry_path" class="src-badge" :class="sourceLabel(app.registry_path).toLowerCase()">{{ sourceLabel(app.registry_path) }}</span>
             </td>
             <!-- Conserver AppData -->
             <td class="col-keep" @click.stop>
