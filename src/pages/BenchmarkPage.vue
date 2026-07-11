@@ -233,7 +233,16 @@ async function runCompression() {
 }
 
 async function runAll() {
-  await Promise.all([runCpu(), runCpuMt(), runRam(), runDisk(), runCrypto(), runCompression()]);
+  // SÉQUENTIEL, jamais Promise.all : lancer les benchs en parallèle les ferait
+  // se disputer CPU/RAM/disque (ex. le bench mono-thread mesuré pendant que le
+  // multi-thread sature tous les cœurs) → tous les scores faussés. Chaque
+  // composant doit être mesuré isolément.
+  await runCpu();
+  await runCpuMt();
+  await runRam();
+  await runDisk();
+  await runCrypto();
+  await runCompression();
   saveToHistory();
 }
 
