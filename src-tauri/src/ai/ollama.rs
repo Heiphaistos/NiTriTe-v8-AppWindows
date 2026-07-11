@@ -65,11 +65,22 @@ impl Default for OllamaConfig {
 }
 
 pub async fn check_ollama(url: &str) -> bool {
-    reqwest::get(format!("{}/api/tags", url)).await.is_ok()
+    // Timeout court : reqwest::get() n'a AUCUN timeout par défaut, donc une URL
+    // qui accepte la connexion sans répondre bloquerait ce health-check à vie.
+    let Ok(client) = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+    else {
+        return false;
+    };
+    client.get(format!("{}/api/tags", url)).send().await.is_ok()
 }
 
 pub async fn list_models(url: &str) -> Result<Vec<OllamaModel>, NiTriTeError> {
-    let resp = reqwest::get(format!("{}/api/tags", url)).await?;
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()?;
+    let resp = client.get(format!("{}/api/tags", url)).send().await?;
     let body: serde_json::Value = resp.json().await?;
 
     let models = body["models"].as_array()

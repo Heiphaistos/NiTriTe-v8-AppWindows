@@ -520,8 +520,16 @@ pub fn start_server(server_path: &str, model_path: &str, port: u16) -> Result<Ch
 }
 
 pub async fn is_server_ready(port: u16) -> bool {
-    reqwest::get(format!("http://127.0.0.1:{}/health", port))
-        .await.map(|r| r.status().is_success()).unwrap_or(false)
+    // Timeout court : reqwest::get() n'a aucun timeout par défaut ; un serveur
+    // local wedgé (accepte la connexion mais ne répond pas) bloquerait à vie.
+    let Ok(client) = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+    else {
+        return false;
+    };
+    client.get(format!("http://127.0.0.1:{}/health", port))
+        .send().await.map(|r| r.status().is_success()).unwrap_or(false)
 }
 
 // ─── API chat (OpenAI-compatible) ─────────────────────────────────────────────
