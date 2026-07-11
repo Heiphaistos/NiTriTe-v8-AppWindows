@@ -212,7 +212,9 @@ pub fn get_arp_table() -> Vec<ArpEntry> {
             let mut current_if = String::new();
             for line in text.lines() {
                 let line = line.trim();
-                if line.starts_with("Interface:") {
+                // "Interface" et pas "Interface:" : le FR insère un espace avant les
+                // deux-points ("Interface : ..."). L'extraction via split(':') gère les deux.
+                if line.starts_with("Interface") {
                     current_if = line.split(':').nth(1).unwrap_or("").trim().split("---").next().unwrap_or("").trim().to_string();
                     continue;
                 }
