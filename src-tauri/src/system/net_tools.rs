@@ -80,8 +80,11 @@ pub fn run_ping(host: String, count: u32) -> PingDiagResult {
         Ok(h) => h,
         Err(e) => { tracing::warn!("run_ping: {}", e); return PingDiagResult::default(); }
     };
+    // Repli échec en JSON valide : l'ancien littéral `'@{\"s\":false…}'` (préfixe
+    // @ + backslashes littéraux d'une raw string Rust) n'était jamais parseable →
+    // un ping échoué affichait loss 0% (défaut) au lieu de 100%.
     let ps = format!(
-        r#"try {{ $r = Test-Connection '{host}' -Count {count} -ErrorAction SilentlyContinue; if ($r) {{ $t = @($r | Select-Object -ExpandProperty ResponseTime); @{{s=$true;avg=[math]::Round(($t|Measure-Object -Average).Average,1);min=[math]::Round(($t|Measure-Object -Minimum).Minimum,1);max=[math]::Round(($t|Measure-Object -Maximum).Maximum,1);sent={count};recv=$t.Count;loss=[math]::Round((({count}-$t.Count)/{count})*100,1)}} | ConvertTo-Json -Compress }} else {{ '@{{\"s\":false,\"avg\":0,\"min\":0,\"max\":0,\"sent\":{count},\"recv\":0,\"loss\":100}}' }} }} catch {{ '@{{\"s\":false,\"avg\":0,\"min\":0,\"max\":0,\"sent\":{count},\"recv\":0,\"loss\":100}}' }}"#,
+        r#"try {{ $r = Test-Connection '{host}' -Count {count} -ErrorAction SilentlyContinue; if ($r) {{ $t = @($r | Select-Object -ExpandProperty ResponseTime); @{{s=$true;avg=[math]::Round(($t|Measure-Object -Average).Average,1);min=[math]::Round(($t|Measure-Object -Minimum).Minimum,1);max=[math]::Round(($t|Measure-Object -Maximum).Maximum,1);sent={count};recv=$t.Count;loss=[math]::Round((({count}-$t.Count)/{count})*100,1)}} | ConvertTo-Json -Compress }} else {{ '{{"s":false,"avg":0,"min":0,"max":0,"sent":{count},"recv":0,"loss":100}}' }} }} catch {{ '{{"s":false,"avg":0,"min":0,"max":0,"sent":{count},"recv":0,"loss":100}}' }}"#,
         host = h, count = count
     );
     #[cfg(target_os = "windows")]
@@ -153,7 +156,9 @@ pub fn run_nslookup(host: String, record_type: String, dns_server: Option<String
         },
         _ => String::new(),
     };
-    let ps = format!(r#"try {{ $r = Resolve-DnsName '{host}' -Type {rtype}{server_arg} -ErrorAction SilentlyContinue; if ($r) {{ $recs = @($r | ForEach-Object {{ if($_.IPAddress){{[string]$_.IPAddress}}elseif($_.NameHost){{[string]$_.NameHost}}elseif($_.Exchange){{[string]$_.Exchange}}elseif($_.Strings){{$_.Strings -join ' '}}else{{[string]$_.Name}} }}); @{{ok=$true;recs=$recs;qt='{rtype}'}} | ConvertTo-Json -Compress }} else {{ '@{{\"ok\":false,\"recs\":[],\"qt\":\"{rtype}\"}}' }} }} catch {{ '@{{\"ok\":false,\"recs\":[],\"qt\":\"{rtype}\"}}' }}"#, host=h, rtype=rtype, server_arg=server_arg);
+    // Même correctif que run_ping : repli échec en JSON valide (l'ancien littéral
+    // `'@{\"ok\":false…}'` ne se parsait jamais côté Rust).
+    let ps = format!(r#"try {{ $r = Resolve-DnsName '{host}' -Type {rtype}{server_arg} -ErrorAction SilentlyContinue; if ($r) {{ $recs = @($r | ForEach-Object {{ if($_.IPAddress){{[string]$_.IPAddress}}elseif($_.NameHost){{[string]$_.NameHost}}elseif($_.Exchange){{[string]$_.Exchange}}elseif($_.Strings){{$_.Strings -join ' '}}else{{[string]$_.Name}} }}); @{{ok=$true;recs=$recs;qt='{rtype}'}} | ConvertTo-Json -Compress }} else {{ '{{"ok":false,"recs":[],"qt":"{rtype}"}}' }} }} catch {{ '{{"ok":false,"recs":[],"qt":"{rtype}"}}' }}"#, host=h, rtype=rtype, server_arg=server_arg);
     #[cfg(target_os = "windows")]
     {
         let o = Command::new("powershell").args(["-NoProfile","-NonInteractive","-Command",&ps]).creation_flags(0x08000000).output();
