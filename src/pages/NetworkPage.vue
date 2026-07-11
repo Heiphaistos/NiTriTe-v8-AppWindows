@@ -238,8 +238,9 @@ async function runDiagnostic() {
       : Promise.reject(new Error("no-gw")),
     // 2. Internet
     invoke<CommandResult>("run_system_command", { cmd: "cmd", args: ["/c", "ping", "-n", "2", "-w", "2000", "8.8.8.8"] }),
-    // 3. DNS resolution
-    invoke<CommandResult>("run_system_command", { cmd: "cmd", args: ["/c", "nslookup", "google.com"] }),
+    // 3. DNS resolution — via run_nslookup (Resolve-DnsName typé) plutôt que le
+    //    texte nslookup, dont les libellés ("Address"/"can't find") sont localisés.
+    invoke<{ success: boolean; records: string[] }>("run_nslookup", { host: "google.com", recordType: "A" }),
     // 5. DHCP — via get_ip_config (WMI typé) plutôt que le texte ipconfig, qui
     //    est localisé ("DHCP activé"/"Oui" en FR) et cassait la détection.
     invoke<{ dhcp_enabled: boolean }[]>("get_ip_config"),
@@ -267,8 +268,8 @@ async function runDiagnostic() {
 
   // 3. Résolution DNS
   if (dnsResult.status === "fulfilled") {
-    const out = dnsResult.value?.stdout ?? "";
-    const ok = out.includes("Address") && !out.includes("NXDOMAIN") && !out.includes("can't find");
+    const r = dnsResult.value;
+    const ok = !!r?.success && Array.isArray(r.records) && r.records.length > 0;
     checks.push({ id: "dns_res", label: "Résolution DNS (google.com)", status: ok ? "ok" : "error", detail: ok ? "DNS résout correctement" : "Échec de résolution — DNS potentiellement bloqué ou mal configuré", tip: ok ? undefined : "Essayez de changer votre DNS dans Paramètres réseau (ex: 8.8.8.8 ou 1.1.1.1)." });
   } else {
     checks.push({ id: "dns_res", label: "Résolution DNS", status: "warn", detail: "Test nslookup non disponible" });
