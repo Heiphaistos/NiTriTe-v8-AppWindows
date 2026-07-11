@@ -395,7 +395,10 @@ pub struct LostPartition {
 
 pub fn scan_lost_partitions(disk_index: u32) -> Vec<LostPartition> {
     // Étape 1 — via PowerShell : chercher espace non alloué et résidus de partition
+    // OutputEncoding UTF-8 : les descriptions FR accentuées (« Région non
+    // allouée », « Partition étendue »…) seraient sinon mojibake sur Windows FR.
     let ps = format!(r#"
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 try {{
     $disk = Get-Disk -Number {di} -ErrorAction Stop
     $parts = @(Get-Partition -DiskNumber {di} -ErrorAction SilentlyContinue)
