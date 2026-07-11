@@ -177,6 +177,22 @@ async function createBackup() {
     return;
   }
 
+  // Confirmation explicite avant d'écrire des secrets en clair (mots de passe
+  // WiFi, clés BitLocker, licences, clés SSH). Ces items sont cochés par défaut :
+  // sans ce garde-fou, l'utilisateur exporterait des secrets en clair sans le
+  // savoir dans un fichier non chiffré.
+  const sensibles = selected
+    .filter((id) => SENSITIVE_ITEMS.has(id))
+    .map((id) => backupItems.value.find((b) => b.id === id)?.label ?? id);
+  if (sensibles.length > 0) {
+    const ok = confirm(
+      `⚠ Données sensibles exportées EN CLAIR dans un fichier non chiffré :\n\n` +
+      `${sensibles.map((l) => `• ${l}`).join("\n")}\n\n` +
+      `Conservez le fichier de sauvegarde en lieu sûr. Continuer ?`
+    );
+    if (!ok) return;
+  }
+
   backupInProgress.value = true;
   backupProgress.value = 0;
   backupResult.value = null;
