@@ -214,7 +214,7 @@ pub fn format_partition(letter: String, fs: String, label: String) -> Result<Str
     }
 
     let ps = format!(
-        r#"Format-Volume -DriveLetter '{}' -FileSystem '{}' -NewFileSystemLabel '{}' -Confirm:$false -Force | Out-Null; 'OK'"#,
+        r#"Format-Volume -DriveLetter '{}' -FileSystem '{}' -NewFileSystemLabel '{}' -Confirm:$false -Force -ErrorAction Stop | Out-Null; 'OK'"#,
         clean,
         fs_canonical,
         label.replace('\'', "''")
@@ -228,7 +228,7 @@ pub fn assign_drive_letter(disk_index: u32, part_index: u32, letter: String) -> 
         return Err("Lettre invalide (A-Z uniquement).".into());
     }
     let ps = format!(
-        r#"Set-Partition -DiskNumber {} -PartitionNumber {} -NewDriveLetter '{}'; 'OK'"#,
+        r#"Set-Partition -DiskNumber {} -PartitionNumber {} -NewDriveLetter '{}' -ErrorAction Stop; 'OK'"#,
         disk_index, part_index, clean
     );
     run_ps_cmd(&ps)
@@ -240,7 +240,7 @@ pub fn create_partition(disk_index: u32, size_mb: Option<u32>) -> Result<String,
         _ => "-UseMaximumSize".to_string(),
     };
     let ps = format!(
-        r#"New-Partition -DiskNumber {} {} | Format-Volume -FileSystem NTFS -NewFileSystemLabel 'Nouveau volume' -Confirm:$false -Force | Out-Null; 'OK'"#,
+        r#"New-Partition -DiskNumber {} {} -ErrorAction Stop | Format-Volume -FileSystem NTFS -NewFileSystemLabel 'Nouveau volume' -Confirm:$false -Force -ErrorAction Stop | Out-Null; 'OK'"#,
         disk_index, size_arg
     );
     run_ps_cmd(&ps)
@@ -248,7 +248,7 @@ pub fn create_partition(disk_index: u32, size_mb: Option<u32>) -> Result<String,
 
 pub fn delete_partition(disk_index: u32, part_index: u32) -> Result<String, String> {
     let ps = format!(
-        r#"$p = Get-Partition -DiskNumber {} -PartitionNumber {} -ErrorAction Stop; if ($p.IsSystem -or $p.IsBoot) {{ throw 'Partition systeme/boot' }}; Remove-Partition -DiskNumber {} -PartitionNumber {} -Confirm:$false; 'OK'"#,
+        r#"$p = Get-Partition -DiskNumber {} -PartitionNumber {} -ErrorAction Stop; if ($p.IsSystem -or $p.IsBoot) {{ throw 'Partition systeme/boot' }}; Remove-Partition -DiskNumber {} -PartitionNumber {} -Confirm:$false -ErrorAction Stop; 'OK'"#,
         disk_index, part_index, disk_index, part_index
     );
     run_ps_cmd(&ps)
@@ -257,7 +257,7 @@ pub fn delete_partition(disk_index: u32, part_index: u32) -> Result<String, Stri
 pub fn initialize_disk(disk_index: u32, style: String) -> Result<String, String> {
     let ps_style = if style.eq_ignore_ascii_case("MBR") { "MBR" } else { "GPT" };
     let ps = format!(
-        r#"Initialize-Disk -Number {} -PartitionStyle {} -Confirm:$false; 'OK'"#,
+        r#"Initialize-Disk -Number {} -PartitionStyle {} -Confirm:$false -ErrorAction Stop; 'OK'"#,
         disk_index, ps_style
     );
     run_ps_cmd(&ps)
@@ -295,7 +295,7 @@ pub fn resize_partition_ps(disk_index: u32, part_index: u32, new_size_mb: u64) -
         return Err("Taille invalide (0 MB).".into());
     }
     let ps = format!(
-        r#"Resize-Partition -DiskNumber {} -PartitionNumber {} -Size {}MB -Confirm:$false; 'OK'"#,
+        r#"Resize-Partition -DiskNumber {} -PartitionNumber {} -Size {}MB -Confirm:$false -ErrorAction Stop; 'OK'"#,
         disk_index, part_index, new_size_mb
     );
     run_ps_cmd(&ps)
