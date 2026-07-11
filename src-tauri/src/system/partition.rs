@@ -189,7 +189,10 @@ pub fn format_partition(letter: String, fs: String, label: String) -> Result<Str
     let label: String = label.chars().take(32).collect();
 
     // Vérification WMI : refuser les partitions système, boot, EFI ou Recovery
-    // avant tout formatage destructif.
+    // avant tout formatage destructif. FAIL-CLOSED : si la garde ne peut pas
+    // vérifier (Get-Partition en erreur, WMI KO, pas d'admin), on REFUSE —
+    // l'ancien `catch {{ 'OK' }}` + `unwrap_or("OK")` autorisait le formatage
+    // précisément quand la vérification échouait.
     let check_ps = format!(
         r#"try {{
   $p = Get-Partition -DriveLetter '{letter}' -ErrorAction Stop
@@ -202,14 +205,23 @@ pub fn format_partition(letter: String, fs: String, label: String) -> Result<Str
     }}
   }}
   Write-Output 'OK'
-}} catch {{ Write-Output 'OK' }}"#,
+}} catch {{ Write-Output "ERR:$($_.Exception.Message)" }}"#,
         letter = clean
     );
-    let guard = run_ps_cmd(&check_ps).unwrap_or_else(|_| "OK".to_string());
-    if guard.trim() == "SYSTEM" {
+    let guard = run_ps_cmd(&check_ps).unwrap_or_else(|e| format!("ERR:{}", e));
+    let guard = guard.trim();
+    if guard == "SYSTEM" {
         return Err(format!(
             "Formatage interdit : le lecteur {}:\\ est une partition système, boot, EFI ou Recovery.",
             clean
+        ));
+    }
+    if guard != "OK" {
+        let detail = guard.strip_prefix("ERR:").unwrap_or(guard);
+        return Err(format!(
+            "Formatage refusé : impossible de vérifier la partition {}:\\ ({}).",
+            clean,
+            if detail.is_empty() { "vérification indisponible" } else { detail }
         ));
     }
 
