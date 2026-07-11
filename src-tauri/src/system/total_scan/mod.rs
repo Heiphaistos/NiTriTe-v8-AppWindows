@@ -195,7 +195,10 @@ pub async fn run_total_scan(window: tauri::Window) -> Result<ScanResult, NiTriTe
     if let Ok(Ok(Some(bat))) = tokio::task::spawn_blocking(get_battery_extended).await {
         result.battery_present = true;
         result.battery_health = bat.health_percent;
-        result.battery_cycles = bat.estimated_runtime_minutes;
+        // battery_cycles reste à -1 (« non mesuré ») : Win32_Battery n'expose pas
+        // le nombre de cycles de charge. On n'y mettait à tort l'autonomie estimée
+        // en minutes (métrique différente). Le vrai comptage de cycles est fourni
+        // par le rapport batterie détaillé (tableau `batteries`, champ cycle_count).
     }
 
     // 2. Infos système (CPU, RAM, OS, uptime) (10→20%)
@@ -378,7 +381,10 @@ pub async fn run_simple_scan(window: tauri::Window) -> Result<ScanResult, String
     if let Ok(Ok(Some(bat))) = tokio::task::spawn_blocking(get_battery_extended).await {
         result.battery_present = true;
         result.battery_health = bat.health_percent;
-        result.battery_cycles = bat.estimated_runtime_minutes;
+        // battery_cycles reste à -1 (« non mesuré ») : Win32_Battery n'expose pas
+        // le nombre de cycles de charge. On n'y mettait à tort l'autonomie estimée
+        // en minutes (métrique différente). Le vrai comptage de cycles est fourni
+        // par le rapport batterie détaillé (tableau `batteries`, champ cycle_count).
     }
 
     emit_progress(&window, "Informations système...", 15);
