@@ -98,19 +98,25 @@ function toggleItem(title: string) {
   expandedItem.value = expandedItem.value === title ? null : title;
 }
 
+// Normalise pour une recherche ACCENT-INSENSIBLE : « reseau » doit trouver
+// « Réseau ». toLowerCase() seul laisse les accents → pas de correspondance.
+function norm(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
 const filteredCategories = computed(() => {
   const cats = categories.value;
   if (!search.value.trim()) return cats;
-  const q = search.value.toLowerCase();
+  const q = norm(search.value);
   return cats
     .map((cat) => ({
       ...cat,
       items: cat.items.filter(
         (item) =>
-          item.title.toLowerCase().includes(q) ||
-          (item.symptoms ?? "").toLowerCase().includes(q) ||
-          (item.solution ?? []).some((s) => s.toLowerCase().includes(q)) ||
-          (item.code ?? "").toLowerCase().includes(q)
+          norm(item.title).includes(q) ||
+          norm(item.symptoms ?? "").includes(q) ||
+          (item.solution ?? []).some((s) => norm(s).includes(q)) ||
+          norm(item.code ?? "").includes(q)
       ),
     }))
     .filter((cat) => cat.items.length > 0);
