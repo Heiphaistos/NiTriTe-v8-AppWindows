@@ -336,13 +336,16 @@ async fn run_slmgr(arg: String) -> Result<String, String> {
                 "/xpr" | "/dlv" | "/dli" | "/ato" => arg.as_str(),
                 _ => return Err("Argument non autorisé".to_string()),
             };
+            // [Console]::OutputEncoding=UTF8 : la sortie de slmgr.vbs est localisée
+            // et accentuée sur Windows FR (« Le PC est activé de façon permanente »,
+            // « période de grâce »…) → sinon mojibake dans le statut d'activation.
             let out = std::process::Command::new("powershell")
                 .args(["-NoProfile", "-NonInteractive", "-Command",
-                    &format!("$r = cscript.exe //Nologo $env:SystemRoot\\System32\\slmgr.vbs {} 2>&1; $r -join \"`n\"", safe_arg)])
+                    &format!("[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $r = cscript.exe //Nologo $env:SystemRoot\\System32\\slmgr.vbs {} 2>&1; $r -join \"`n\"", safe_arg)])
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+            Ok(crate::maintenance::commands::decode_output(&out.stdout).trim().to_string())
         }
         #[cfg(not(target_os = "windows"))]
         Err("Non supporté".to_string())
