@@ -88,7 +88,9 @@ onMounted(async () => {
   await aiStore.loadFromConfig();
   try {
     const cfg = await invoke<AppConfig>("get_config");
-    monitorInterval.value      = cfg.monitor_interval_ms    ?? 2000;
+    // ?? ne rattrape pas 0 : un monitor_interval_ms de 0 (config corrompue) doit
+    // retomber sur le défaut, pas rester à 0.
+    monitorInterval.value      = (typeof cfg.monitor_interval_ms === "number" && cfg.monitor_interval_ms >= 500) ? cfg.monitor_interval_ms : 2000;
     processCount.value         = cfg.process_count          ?? 10;
     sidebarDefault.value       = cfg.sidebar_collapsed      ?? false;
     exportFormat.value         = (cfg.export_format ?? "json") as "json" | "txt" | "html" | "md";

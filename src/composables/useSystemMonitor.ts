@@ -28,6 +28,8 @@ function generateFakeMonitorData(): MonitorData {
 }
 
 export function useSystemMonitor(intervalMs: number = 2000) {
+  // Plancher : un intervalle nul/NaN ferait tourner setInterval en boucle rapide.
+  const safeIntervalMs = Number.isFinite(intervalMs) && intervalMs >= 250 ? intervalMs : 2000;
   const monitorData = ref<MonitorData | null>(null);
   const isConnected = ref(false);
   let unlisten: (() => void) | null = null;
@@ -41,7 +43,7 @@ export function useSystemMonitor(intervalMs: number = 2000) {
       isConnected.value = true;
       devInterval = setInterval(() => {
         monitorData.value = generateFakeMonitorData();
-      }, intervalMs);
+      }, safeIntervalMs);
       return;
     }
 
@@ -52,7 +54,7 @@ export function useSystemMonitor(intervalMs: number = 2000) {
         monitorData.value = event.payload;
       });
 
-      await invoke("start_monitoring", { interval_ms: intervalMs });
+      await invoke("start_monitoring", { interval_ms: safeIntervalMs });
       isConnected.value = true;
     } catch {
       isConnected.value = false;
