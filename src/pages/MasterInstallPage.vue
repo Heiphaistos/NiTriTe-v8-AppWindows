@@ -257,9 +257,11 @@ async function installSelection() {
         notifications.warning(`${app.name}: ${result.message}`);
       } else {
         notifications.success(`${app.name} installé`);
+        // Ne marquer installé/décoché qu'en cas de succès réel : sinon une
+        // installation échouée disparaît de la liste et ne peut plus être relancée.
+        app.installed = true;
+        app.checked = false;
       }
-      app.installed = true;
-      app.checked = false;
     } catch (e: unknown) {
       const errMsg = (e instanceof Error ? e.message : String(e)).slice(0, 120);
       installResults.value.push({ name: app.name, success: false, message: errMsg });
