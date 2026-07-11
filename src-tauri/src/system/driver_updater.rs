@@ -408,6 +408,9 @@ pub fn install_driver(inf_path: String) -> DriverInstallResult {
 #[tauri::command]
 pub fn check_driver_updates_winupdate() -> WuDriverSummary {
     let ps = r#"
+# Sortie UTF-8 : titres/modèles/fabricants de MAJ pilotes accentués (FR)
+# seraient sinon mojibake côté Rust (from_utf8_lossy).
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 try {
     $sess = New-Object -ComObject Microsoft.Update.Session -EA Stop
     $searcher = $sess.CreateUpdateSearcher()
