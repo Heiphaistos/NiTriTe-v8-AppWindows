@@ -283,10 +283,17 @@ async function checkAppUpdate(app: AppInfo) {
       args: ["upgrade", "--id", app.winget_id],
     });
     const out: string = result?.stdout ?? "";
+    const low = out.toLowerCase();
+    // App non installée : winget dit "No installed package found" (EN) /
+    // "Aucun package installé trouvé" (FR). Sans ce cas, la sortie non vide
+    // tombait dans « MAJ disponible » → faux positif sur une app absente.
+    if (low.includes("no installed package") || low.includes("aucun package install")) {
+      notifications.info(`${app.name} n'est pas installé`);
+    }
     // winget localise ce message : "No applicable upgrade" (EN) / "Aucune mise à
     // niveau applicable" (FR). Sans le match FR, une app à jour était rapportée
     // à tort comme ayant une mise à jour disponible.
-    if (out.includes("No applicable upgrade") || out.toLowerCase().includes("aucune mise")) {
+    else if (out.includes("No applicable upgrade") || low.includes("aucune mise")) {
       notifications.success(`${app.name} est à jour`);
     } else if (out.trim()) {
       notifications.info(`MAJ disponible pour ${app.name}`, out.split("\n").slice(0, 3).join(" "));
