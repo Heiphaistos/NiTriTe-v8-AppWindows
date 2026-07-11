@@ -76,6 +76,11 @@ pub fn start_monitoring(
         return;
     }
 
+    // Plancher : un intervalle nul/minuscule (config à 0 ou corrompue) ferait
+    // tourner le thread en busy-loop 100% CPU (sleep 0) et diviserait par zéro
+    // dans le calcul des débits (→ inf KB/s). Minimum 250 ms.
+    let interval_ms = interval_ms.max(250);
+
     // GPU + temperature data shared between polling thread and main monitoring thread
     let gpu_shared: Arc<Mutex<Vec<GpuData>>> = Arc::new(Mutex::new(Vec::new()));
     let gpu_shared_writer = gpu_shared.clone();
