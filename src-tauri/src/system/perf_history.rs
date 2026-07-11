@@ -157,18 +157,27 @@ pub async fn get_top_processes_by_cpu(limit: u32) -> Vec<TopProcess> {
     let n = limit.clamp(5, 50);
     let ps = format!(
         r#"
-@(Get-Process -EA SilentlyContinue |
-    Sort-Object CPU -Descending |
-    Select-Object -First {n} |
-    ForEach-Object {{
-        @{{
-            name = $_.ProcessName
-            pid  = [int]$_.Id
-            cpu  = [math]::Round($_.CPU, 2)
-            ram  = [long][math]::Round($_.WorkingSet64/1MB, 1)
-            disk = 0.0
-        }}
-    }}) | ConvertTo-Json -Compress
+# $_.CPU = temps processeur CUMULÉ (secondes) depuis le démarrage, pas un %.
+# Pour un vrai % instantané : deux relevés de CPU espacés de 0,5 s, puis
+# delta / intervalle / nb_cœurs * 100.
+$ncores = [math]::Max(1, [int](Get-CimInstance Win32_ComputerSystem -EA SilentlyContinue).NumberOfLogicalProcessors)
+$snap = @{{}}
+foreach ($p in (Get-Process -EA SilentlyContinue)) {{ $snap[$p.Id] = [double]$p.CPU }}
+Start-Sleep -Milliseconds 500
+$results = foreach ($p in (Get-Process -EA SilentlyContinue)) {{
+    $prev = $snap[$p.Id]
+    $delta = if ($null -ne $prev -and $null -ne $p.CPU) {{ [double]$p.CPU - $prev }} else {{ 0 }}
+    if ($delta -lt 0) {{ $delta = 0 }}
+    $pct = [math]::Round(($delta / 0.5 / $ncores) * 100, 1)
+    [PSCustomObject]@{{
+        name = $p.ProcessName
+        pid  = [int]$p.Id
+        cpu  = $pct
+        ram  = [long][math]::Round($p.WorkingSet64/1MB, 1)
+        disk = 0.0
+    }}
+}}
+@($results | Sort-Object cpu -Descending | Select-Object -First {n}) | ConvertTo-Json -Compress
 "#,
         n = n
     );
