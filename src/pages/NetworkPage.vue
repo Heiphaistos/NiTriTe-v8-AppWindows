@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { invoke, isTauriContext } from "@/utils/invoke";
+import { fetchWithTimeout } from "@/utils/fetchTimeout";
 import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -93,7 +94,7 @@ async function loadOverview() {
 
 async function fetchPublicIp() {
   try {
-    const r = await fetch("https://api.ipify.org?format=json");
+    const r = await fetchWithTimeout("https://api.ipify.org?format=json", {}, 8000);
     if (r.ok) {
       const data = await r.json();
       if (overview.value && data.ip) overview.value = { ...overview.value, public_ip: data.ip };
@@ -121,7 +122,7 @@ async function runSpeedTest() {
     const pings: number[] = [];
     for (let i = 0; i < 3; i++) {
       const t0 = performance.now();
-      await fetch("https://1.1.1.1/cdn-cgi/trace", { cache: "no-store" }).catch(() => null);
+      await fetchWithTimeout("https://1.1.1.1/cdn-cgi/trace", { cache: "no-store" }, 5000).catch(() => null);
       pings.push(performance.now() - t0);
     }
     pings.sort((a, b) => a - b);
@@ -130,10 +131,19 @@ async function runSpeedTest() {
 
     // Download — 100 Mo pour mesure précise même sur connexions rapides (>500 Mbps)
     const dlStart = performance.now();
-    const resp = await fetch("https://speed.cloudflare.com/__down?bytes=100000000");
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    await resp.arrayBuffer(); // télécharge tous les octets
-    const dlTime = Math.max((performance.now() - dlStart) / 1000, 0.01);
+    // Contrôleur armé pendant TOUT le téléchargement (fetch + lecture du body) :
+    // sans ça un stall en cours de download bloquerait arrayBuffer() à vie.
+    const dlAbort = new AbortController();
+    const dlTimeout = setTimeout(() => dlAbort.abort(), 60000);
+    let dlTime: number;
+    try {
+      const resp = await fetch("https://speed.cloudflare.com/__down?bytes=100000000", { signal: dlAbort.signal });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      await resp.arrayBuffer(); // télécharge tous les octets
+      dlTime = Math.max((performance.now() - dlStart) / 1000, 0.01);
+    } finally {
+      clearTimeout(dlTimeout);
+    }
     const dlMbps = parseFloat(((100 * 8) / dlTime).toFixed(1));
     speedProgress.value = 80;
 

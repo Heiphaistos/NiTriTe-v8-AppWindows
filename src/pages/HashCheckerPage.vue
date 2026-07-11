@@ -2,6 +2,7 @@
 import { ref, computed } from "vue";
 import { csvCell } from "@/composables/useExportData";
 import { invoke } from "@/utils/invoke";
+import { fetchWithTimeout } from "@/utils/fetchTimeout";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NBadge from "@/components/ui/NBadge.vue";
@@ -161,7 +162,7 @@ async function checkQuick(r: HashResult) {
 
   // 1. CIRCL HASHLOOKUP — base NSRL (fichiers connus sains, pas de clé requise)
   try {
-    const resp = await fetch(`https://hashlookup.circl.lu/lookup/${algo}/${hash}`);
+    const resp = await fetchWithTimeout(`https://hashlookup.circl.lu/lookup/${algo}/${hash}`, {}, 10000);
     if (resp.ok) {
       const data = await resp.json();
       const name = data["FileName"] || data["ProductName"] || "fichier référencé";
@@ -175,7 +176,7 @@ async function checkQuick(r: HashResult) {
     const form = new FormData();
     form.append("query", "get_info");
     form.append("hash", hash);
-    const resp = await fetch("https://mb-api.abuse.ch/api/v1/", { method: "POST", body: form });
+    const resp = await fetchWithTimeout("https://mb-api.abuse.ch/api/v1/", { method: "POST", body: form }, 15000);
     if (resp.ok) {
       const data = await resp.json();
       if (data.query_status === "hash_not_found") {
