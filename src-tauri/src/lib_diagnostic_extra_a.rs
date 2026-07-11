@@ -13,7 +13,7 @@ async fn kill_process(pid: u32) -> Result<String, String> {
             if out.status.success() {
                 Ok(format!("Processus {} terminé", pid))
             } else {
-                Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -77,7 +77,7 @@ async fn set_service_start_mode(name: String, mode: String) -> Result<String, St
             if out.status.success() {
                 Ok(format!("Service '{}' : mode '{}' appliqué", name, mode))
             } else {
-                Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -321,8 +321,9 @@ async fn delete_scheduled_task(task_name: String, task_path: String) -> Result<S
             if out.status.success() {
                 Ok(format!("Tâche '{}' supprimée", task_name))
             } else {
-                let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
-                let out_str = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                // decode_output : schtasks écrit ses erreurs en codepage OEM sur FR.
+                let err = crate::maintenance::commands::decode_output(&out.stderr).trim().to_string();
+                let out_str = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
                 Err(if !err.is_empty() { err } else { out_str })
             }
         }
@@ -345,7 +346,7 @@ async fn run_scheduled_task_now(task_name: String) -> Result<String, String> {
             if out.status.success() {
                 Ok(format!("Tâche '{}' démarrée", task_name))
             } else {
-                Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
             }
         }
         #[cfg(not(target_os = "windows"))]
