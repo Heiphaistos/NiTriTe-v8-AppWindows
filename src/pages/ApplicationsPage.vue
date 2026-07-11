@@ -258,10 +258,12 @@ async function uninstallApp(app: AppInfo) {
 
   uninstallingIds.value = new Set([...uninstallingIds.value, app.id]);
   try {
-    await invoke("run_system_command", {
+    const r = await invoke<CommandResult>("run_system_command", {
       cmd: "winget",
       args: ["uninstall", "--id", app.winget_id, "--silent"],
     });
+    // execute_system_command résout même sur échec : ne pas marquer désinstallé à tort.
+    if (!r.success) throw new Error((r.stderr?.trim() || r.stdout?.trim() || "winget uninstall a échoué").slice(0, 200));
     installedIds.value = new Set([...installedIds.value].filter(id => id !== app.id));
     notifications.success(`${app.name} désinstallé`);
   } catch (e) {

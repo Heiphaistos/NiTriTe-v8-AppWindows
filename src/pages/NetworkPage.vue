@@ -321,7 +321,8 @@ const fixing = ref<Record<string, boolean>>({});
 async function runFix(id: string, cmd: string, args: string[]) {
   fixing.value[id] = true;
   try {
-    await invoke("run_system_command", { cmd, args });
+    const r = await invoke<CommandResult>("run_system_command", { cmd, args });
+    if (!r.success) throw new Error(r.stderr?.trim() || "Le correctif a échoué (droits admin requis ?)");
     notify.success("Correctif appliqué", "Relancez le diagnostic pour vérifier.");
   } catch (e: unknown) {
     notify.error("Erreur correctif", String(e));
