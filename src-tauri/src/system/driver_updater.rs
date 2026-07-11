@@ -335,8 +335,12 @@ pub fn scan_driver_folder(folder_path: String, device_ids: Vec<String>) -> Drive
         }
     }
 
-    // Deduplicate matches per device_id (keep best score)
-    matches.sort_by_key(|a| std::cmp::Reverse(a.score));
+    // Déduplique par device_id en gardant le meilleur score. dedup_by ne
+    // supprime que les doublons CONSÉCUTIFS : il faut donc d'abord grouper par
+    // device_id (sinon des entrées du même appareil, dispersées par un tri sur
+    // le seul score, échappent à la déduplication et l'appareil apparaît en
+    // double). Tri (device_id, score décroissant) → dedup garde le 1er = meilleur.
+    matches.sort_by(|a, b| a.device_id.cmp(&b.device_id).then(b.score.cmp(&a.score)));
     matches.dedup_by(|a, b| a.device_id == b.device_id);
 
     let devices_with_match = matches.len() as u32;
