@@ -236,7 +236,8 @@ const sorted = computed(() => {
     switch (sortKey.value) {
       case "name":      return dir * a.name.localeCompare(b.name);
       case "publisher": return dir * a.publisher.localeCompare(b.publisher);
-      case "version":   return dir * a.version.localeCompare(b.version);
+      // Tri naturel : "2.0" avant "10.0" (localeCompare simple les inverse)
+      case "version":   return dir * a.version.localeCompare(b.version, undefined, { numeric: true });
       case "size":      return dir * (a.install_size_kb - b.install_size_kb);
       case "date":      return dir * a.install_date.localeCompare(b.install_date);
       default:          return 0;
