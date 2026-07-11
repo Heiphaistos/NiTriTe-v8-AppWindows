@@ -322,6 +322,9 @@ pub fn deep_mft_scan_advanced(drive: String) -> Vec<DeepMftFile> {
 
     let ps = format!(
         r#"
+# Sortie UTF-8 : les noms de fichiers récupérés sont souvent accentués (FR
+# « Téléchargements », « Résumé.docx »…) → sinon mojibake dans la liste.
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $result = @()
 $vol = '{vol}'
 
