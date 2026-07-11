@@ -223,7 +223,7 @@ foreach ($src in $files) {{
                     format!("{} fichier(s) restauré(s) dans {}", ok, target_folder)
                 } else {
                     format!("{} restauré(s), {} échec(s){}", ok, fail,
-                        if errs.is_empty() { String::new() } else { format!(": {}", &errs[..errs.len().min(200)]) })
+                        if errs.is_empty() { String::new() } else { format!(": {}", errs.chars().take(200).collect::<String>()) })
                 };
                 BatchRestoreResult { success: fail == 0 || ok > 0, restored_count: ok, failed_count: fail, message: msg }
             } else {

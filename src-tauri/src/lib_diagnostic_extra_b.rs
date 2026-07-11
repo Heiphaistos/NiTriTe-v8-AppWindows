@@ -137,7 +137,7 @@ $result | ConvertTo-Json -Compress
                 .map_err(|e| e.to_string())?;
             let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
             if text.is_empty() { return Ok(serde_json::Value::Null); }
-            serde_json::from_str(&text).map_err(|e| format!("JSON parse: {} — raw: {}", e, &text[..text.len().min(200)]))
+            serde_json::from_str(&text).map_err(|e| format!("JSON parse: {} — raw: {}", e, text.chars().take(200).collect::<String>()))
         }
         #[cfg(not(target_os = "windows"))]
         Ok(serde_json::Value::Null)

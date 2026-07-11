@@ -20,7 +20,7 @@ fn run_ps(script: &str) -> DebloatResult {
 
     match out {
         Ok(o) => DebloatResult {
-            action: script[..script.len().min(60)].to_string(),
+            action: script.chars().take(60).collect::<String>(),
             success: o.status.success(),
             message: String::from_utf8_lossy(&o.stdout).trim().to_string(),
         },

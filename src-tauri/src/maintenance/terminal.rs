@@ -110,14 +110,16 @@ pub fn run_in_shell(shell_id: &str, command: &str, timeout_secs: u64) -> Result<
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
 
+    // Troncature par caractères : slicer par octets casse sur une frontière
+    // multi-octets (accents, box-drawing, emoji dans la sortie) → panic.
     let stdout = if stdout.len() > max_len {
-        format!("{}...\n[Sortie tronquée à {} caractères]", &stdout[..max_len], max_len)
+        format!("{}...\n[Sortie tronquée à {} caractères]", stdout.chars().take(max_len).collect::<String>(), max_len)
     } else {
         stdout.to_string()
     };
 
     let stderr = if stderr.len() > max_len {
-        format!("{}...\n[Erreur tronquée]", &stderr[..max_len])
+        format!("{}...\n[Erreur tronquée]", stderr.chars().take(max_len).collect::<String>())
     } else {
         stderr.to_string()
     };
