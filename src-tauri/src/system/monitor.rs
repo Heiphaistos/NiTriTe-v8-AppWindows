@@ -114,8 +114,10 @@ pub fn start_monitoring(
         let mut disks = Disks::new_with_refreshed_list();
         let mut prev_rx: u64 = networks.values().map(|n| n.total_received()).sum();
         let mut prev_tx: u64 = networks.values().map(|n| n.total_transmitted()).sum();
-        let mut prev_disk_read: u64 = 0u64;
-        let mut prev_disk_write: u64 = 0u64;
+        // Initialiser avec le compteur RÉEL (comme le réseau) : partir de 0 ferait
+        // du 1er échantillon disque un delta = tous les octets depuis le boot →
+        // spike gigantesque en tête de graphe.
+        let (mut prev_disk_read, mut prev_disk_write) = collect_disk_io().unwrap_or((0, 0));
         // Compteur de ticks : refresh processus tous les 5 ticks seulement
         // (ex: interval 1s → refresh processus toutes les 5s au lieu de chaque seconde)
         let mut tick: u8 = 0;
