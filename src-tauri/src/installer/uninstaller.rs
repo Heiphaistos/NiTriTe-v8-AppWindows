@@ -285,7 +285,12 @@ $found = @()
 
 function Match-Kw($name) {{
     $n = $name.ToLower()
-    foreach ($kw in $keywords) {{ if ($n -like "*$kw*") {{ return $true }} }}
+    # Echapper les métacaractères wildcard du mot-clé : un nom d'app à crochets
+    # ferait matcher -like sur une classe de caractères au lieu du littéral.
+    foreach ($kw in $keywords) {{
+        $pat = '*' + [Management.Automation.WildcardPattern]::Escape($kw) + '*'
+        if ($n -like $pat) {{ return $true }}
+    }}
     return $false
 }}
 
