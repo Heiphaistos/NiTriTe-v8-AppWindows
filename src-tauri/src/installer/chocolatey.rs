@@ -60,9 +60,17 @@ pub fn list_chocolatey_upgrades() -> Result<Vec<ChocoPackage>, NiTriTeError> {
     Ok(packages)
 }
 
-pub fn upgrade_chocolatey_all() -> Result<ChocoUpgradeResult, NiTriTeError> {
+pub fn upgrade_chocolatey_all(excluded: Vec<String>) -> Result<ChocoUpgradeResult, NiTriTeError> {
+    let mut args: Vec<String> = vec!["upgrade".into(), "all".into(), "-y".into(), "--no-color".into()];
+    // Exclusions : choco supporte `--except="pkg1,pkg2"`. Sans ça, les paquets
+    // exclus par l'utilisateur étaient quand même mis à jour. Les noms non-choco
+    // (ids winget de la liste d'exclusion partagée) sont simplement ignorés.
+    let cleaned: Vec<String> = excluded.into_iter().map(|s| s.replace(['"', ','], "")).filter(|s| !s.trim().is_empty()).collect();
+    if !cleaned.is_empty() {
+        args.push(format!("--except=\"{}\"", cleaned.join(",")));
+    }
     let output = Command::new("choco")
-        .args(["upgrade", "all", "-y", "--no-color"])
+        .args(&args)
         .creation_flags(0x08000000)
         .output()
         .map_err(|e| NiTriTeError::System(format!("Erreur upgrade choco: {}", e)))?;

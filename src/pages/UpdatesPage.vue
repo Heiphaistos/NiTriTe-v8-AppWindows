@@ -193,7 +193,7 @@ async function upgradeAllChoco() {
   if (backupBeforeUpdate.value) await createRestorePoint("NitritePreUpdate");
   chocoStatus.value = "updating";
   try {
-    const res = await invokeRaw<{ success: boolean; upgraded_count: number; message: string }>("upgrade_chocolatey_all");
+    const res = await invokeRaw<{ success: boolean; upgraded_count: number; message: string }>("upgrade_chocolatey_all", { excludedIds: excludedIds.value });
     chocoStatus.value = "done"; chocoPkgs.value = [];
     chocoMsg.value = res.message;
     if (res.success) notify.success("Chocolatey", res.message);

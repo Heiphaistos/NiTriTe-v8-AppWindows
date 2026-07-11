@@ -199,8 +199,9 @@ async fn list_chocolatey_upgrades() -> Result<Vec<installer::chocolatey::ChocoPa
 }
 
 #[tauri::command]
-async fn upgrade_chocolatey_all() -> Result<installer::chocolatey::ChocoUpgradeResult, NiTriTeError> {
-    tokio::task::spawn_blocking(installer::chocolatey::upgrade_chocolatey_all)
+async fn upgrade_chocolatey_all(excluded_ids: Option<Vec<String>>) -> Result<installer::chocolatey::ChocoUpgradeResult, NiTriTeError> {
+    let excluded = excluded_ids.unwrap_or_default();
+    tokio::task::spawn_blocking(move || installer::chocolatey::upgrade_chocolatey_all(excluded))
         .await
         .map_err(|e| NiTriTeError::System(e.to_string()))?
 }
