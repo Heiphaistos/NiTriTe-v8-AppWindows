@@ -105,15 +105,31 @@ try {
     BootConfig::default()
 }
 
+/// Exécute bcdedit directement et juge le résultat sur le CODE DE SORTIE
+/// (0 = succès), pas sur le texte de sortie — bcdedit est localisé
+/// ("successfully" en EN, "L'opération a réussi." en FR). Args array : pas d'injection.
+#[cfg(target_os = "windows")]
+fn run_bcdedit(args: &[&str]) -> Result<String, String> {
+    let o = Command::new("bcdedit").args(args).creation_flags(0x08000000).output()
+        .map_err(|e| e.to_string())?;
+    let stdout = String::from_utf8_lossy(&o.stdout).trim().to_string();
+    if o.status.success() {
+        Ok(stdout)
+    } else {
+        let stderr = String::from_utf8_lossy(&o.stderr).trim().to_string();
+        Err(if stderr.is_empty() {
+            if stdout.is_empty() { "Échec bcdedit (droits admin requis ?)".into() } else { stdout }
+        } else { stderr })
+    }
+}
+#[cfg(not(target_os = "windows"))]
+fn run_bcdedit(_args: &[&str]) -> Result<String, String> { Err("Windows uniquement".into()) }
+
 #[tauri::command]
 pub fn set_boot_timeout(seconds: u32) -> Result<String, String> {
     let s = seconds.min(999);
-    let out = ps_out(&format!("bcdedit /timeout {}", s));
-    if out.to_lowercase().contains("successfully") || out.to_lowercase().contains("success") {
-        Ok(format!("Timeout défini à {} secondes", s))
-    } else {
-        Err(out)
-    }
+    run_bcdedit(&["/timeout", &s.to_string()])?;
+    Ok(format!("Timeout défini à {} secondes", s))
 }
 
 #[tauri::command]
@@ -122,12 +138,8 @@ pub fn set_default_boot(entry_id: String) -> Result<String, String> {
     if id.is_empty() || id.len() > 64 || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
         return Err(format!("Identifiant BCD invalide : '{}'", id));
     }
-    let out = ps_out(&format!("bcdedit /default {{{}}}", id));
-    if out.to_lowercase().contains("successfully") {
-        Ok(format!("Entrée de démarrage par défaut définie : {{{}}}", id))
-    } else {
-        Err(out)
-    }
+    run_bcdedit(&["/default", &format!("{{{}}}", id)])?;
+    Ok(format!("Entrée de démarrage par défaut définie : {{{}}}", id))
 }
 
 #[tauri::command]
