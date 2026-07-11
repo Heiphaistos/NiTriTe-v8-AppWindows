@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from "vue";
+import { csvCell } from "@/composables/useExportData";
 import { invoke } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -111,7 +112,9 @@ function stopAuto() {
 function exportCsv() {
   const rows = ["Protocole,Port,Service,Adresse locale,Adresse distante,État,PID,Processus"];
   for (const p of ports.value)
-    rows.push(`${p.protocol},${p.local_port},${knownService(p.local_port)},${p.local_address},${p.remote_address || ""},${p.state},${p.pid},${p.process_name}`);
+    // csvCell : échappe virgules/guillemets et neutralise l'injection de formule
+    // (un process_name commençant par =,+,-,@ pourrait s'exécuter dans Excel).
+    rows.push([p.protocol, p.local_port, knownService(p.local_port), p.local_address, p.remote_address || "", p.state, p.pid, p.process_name].map(csvCell).join(","));
   const blob = new Blob([rows.join("\n")], { type: "text/csv" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
   a.download = `ports_${new Date().toISOString().slice(0,10)}.csv`; a.click();
