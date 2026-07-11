@@ -4,6 +4,8 @@ use std::path::Path;
 use std::collections::HashMap;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")]
+use crate::maintenance::commands::decode_output;
 
 // ─── Windows Update driver status ─────────────────────────────────────────────
 #[derive(Debug, Clone, Serialize, Default)]
@@ -381,8 +383,8 @@ pub fn install_driver(inf_path: String) -> DriverInstallResult {
 
         let duration = start.elapsed().as_secs();
         if let Ok(o) = o {
-            let stdout = String::from_utf8_lossy(&o.stdout).to_string();
-            let stderr = String::from_utf8_lossy(&o.stderr).to_string();
+            let stdout = decode_output(&o.stdout).to_string();
+            let stderr = decode_output(&o.stderr).to_string();
             let combined = if stderr.is_empty() { stdout } else { format!("{}\n{}", stdout, stderr) };
             return DriverInstallResult {
                 inf_path: inf_clean,
@@ -504,8 +506,8 @@ try {{
         let o = Command::new("powershell").args(["-NoProfile","-NonInteractive","-Command",&ps]).creation_flags(0x08000000).output();
         let dur = start.elapsed().as_secs();
         if let Ok(o) = o {
-            let stdout = String::from_utf8_lossy(&o.stdout).to_string();
-            let stderr = String::from_utf8_lossy(&o.stderr).to_string();
+            let stdout = decode_output(&o.stdout).to_string();
+            let stderr = decode_output(&o.stderr).to_string();
             let combined = if stderr.is_empty() { stdout } else { format!("{}\n{}", stdout, stderr) };
             return DriverInstallResult { inf_path: uid, success: o.status.success(), output: combined.chars().take(2000).collect(), duration_secs: dur };
         }
@@ -542,8 +544,8 @@ try {
         let o = Command::new("powershell").args(["-NoProfile","-NonInteractive","-Command",ps]).creation_flags(0x08000000).output();
         let dur = start.elapsed().as_secs();
         if let Ok(o) = o {
-            let stdout = String::from_utf8_lossy(&o.stdout).to_string();
-            let stderr = String::from_utf8_lossy(&o.stderr).to_string();
+            let stdout = decode_output(&o.stdout).to_string();
+            let stderr = decode_output(&o.stderr).to_string();
             let combined = if stderr.is_empty() { stdout } else { format!("{}\n{}", stdout, stderr) };
             return DriverInstallResult { inf_path: "Windows Update — All".to_string(), success: o.status.success(), output: combined.chars().take(3000).collect(), duration_secs: dur };
         }

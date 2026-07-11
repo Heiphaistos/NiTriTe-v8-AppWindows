@@ -2,6 +2,7 @@ use serde::Serialize;
 use std::process::Command;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+use crate::maintenance::commands::decode_output;
 
 /// Valide un nom d'hôte ou une adresse IP.
 /// Autorise : lettres, chiffres, tirets, points, deux-points (IPv6), crochets.
@@ -108,7 +109,7 @@ pub fn run_traceroute(host: String) -> Vec<TracertHop> {
     {
         let o = Command::new("tracert").args(["-h", "20", "-w", "1000", &h]).creation_flags(0x08000000).output();
         if let Ok(o) = o {
-            let text = String::from_utf8_lossy(&o.stdout);
+            let text = decode_output(&o.stdout);
             let mut hops = Vec::new();
             for line in text.lines() {
                 let line = line.trim();
@@ -207,7 +208,7 @@ pub fn get_arp_table() -> Vec<ArpEntry> {
     {
         let o = Command::new("arp").args(["-a"]).creation_flags(0x08000000).output();
         if let Ok(o) = o {
-            let text = String::from_utf8_lossy(&o.stdout);
+            let text = decode_output(&o.stdout);
             let mut entries = Vec::new();
             let mut current_if = String::new();
             for line in text.lines() {
@@ -324,7 +325,7 @@ pub fn get_wifi_networks() -> Vec<WifiNetwork> {
     {
         let o = Command::new("netsh").args(["wlan","show","networks","mode=bssid"]).creation_flags(0x08000000).output();
         if let Ok(o) = o {
-            let text = String::from_utf8_lossy(&o.stdout);
+            let text = decode_output(&o.stdout);
             let mut networks: Vec<WifiNetwork> = Vec::new();
             let mut current = WifiNetwork::default();
             for line in text.lines() {

@@ -2,6 +2,8 @@ use serde::Serialize;
 use std::process::Command;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")]
+use crate::maintenance::commands::decode_output;
 
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct BcdEntry {
@@ -112,11 +114,11 @@ try {
 fn run_bcdedit(args: &[&str]) -> Result<String, String> {
     let o = Command::new("bcdedit").args(args).creation_flags(0x08000000).output()
         .map_err(|e| e.to_string())?;
-    let stdout = String::from_utf8_lossy(&o.stdout).trim().to_string();
+    let stdout = decode_output(&o.stdout).trim().to_string();
     if o.status.success() {
         Ok(stdout)
     } else {
-        let stderr = String::from_utf8_lossy(&o.stderr).trim().to_string();
+        let stderr = decode_output(&o.stderr).trim().to_string();
         Err(if stderr.is_empty() {
             if stdout.is_empty() { "Échec bcdedit (droits admin requis ?)".into() } else { stdout }
         } else { stderr })
