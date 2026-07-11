@@ -18,7 +18,7 @@ vi.stubGlobal("document", {
   createElement: mockCreateElement,
 });
 
-import { useExportData } from "@/composables/useExportData";
+import { useExportData, csvCell } from "@/composables/useExportData";
 
 describe("useExportData — exportCSV quoting", () => {
   beforeEach(() => {
@@ -62,14 +62,8 @@ describe("useExportData — exportCSV quoting", () => {
   });
 });
 
-// Test de la logique de quoting CSV en isolation
-describe("csvQuoting — règles d'échappement", () => {
-  // Reproduit la logique interne de exportCSV pour tests purs
-  function csvCell(v: unknown): string {
-    const s = String(v ?? "").replace(/"/g, '""');
-    return s.includes(";") || s.includes("\n") || s.includes('"') ? `"${s}"` : s;
-  }
-
+// Test de la logique de quoting CSV exportée (csvCell)
+describe("csvCell — règles d'échappement", () => {
   it("valeur simple sans caractères spéciaux", () => {
     expect(csvCell("Hello")).toBe("Hello");
     expect(csvCell(42)).toBe("42");
@@ -77,9 +71,10 @@ describe("csvQuoting — règles d'échappement", () => {
     expect(csvCell(undefined)).toBe("");
   });
 
-  it("valeur contenant ; → entourée de guillemets", () => {
+  it("valeur contenant ; ou , → entourée de guillemets", () => {
     expect(csvCell("a;b")).toBe('"a;b"');
     expect(csvCell("hello;world")).toBe('"hello;world"');
+    expect(csvCell("a,b")).toBe('"a,b"');
   });
 
   it("valeur contenant saut de ligne → entourée de guillemets", () => {
@@ -92,5 +87,24 @@ describe("csvQuoting — règles d'échappement", () => {
 
   it("valeur contenant les deux → guillemets doublés + entourée", () => {
     expect(csvCell('a;b"c')).toBe('"a;b""c"');
+  });
+});
+
+describe("csvCell — anti-injection de formule", () => {
+  it("neutralise une cellule débutant par = + @ avec une apostrophe", () => {
+    expect(csvCell("=cmd|calc")).toBe("'=cmd|calc");
+    expect(csvCell("+SUM(A1)")).toBe("'+SUM(A1)");
+    expect(csvCell("@import")).toBe("'@import");
+  });
+
+  it("neutralise une formule commençant par - mais préserve un nombre négatif", () => {
+    expect(csvCell("-2+3+cmd()")).toBe("'-2+3+cmd()");
+    expect(csvCell("-5")).toBe("-5");
+    expect(csvCell("-5.5")).toBe("-5.5");
+  });
+
+  it("combine neutralisation et mise entre guillemets si nécessaire", () => {
+    // Débute par = (neutralisé) et contient un ; (quoté)
+    expect(csvCell("=A1;B2")).toBe(`"'=A1;B2"`);
   });
 });
