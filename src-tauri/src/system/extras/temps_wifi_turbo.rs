@@ -325,32 +325,42 @@ pub fn get_nearby_wifi() -> Result<Vec<WifiNetwork>, String> {
         .creation_flags(0x08000000)
         .output()
         .map_err(|e| e.to_string())?;
-    let text = String::from_utf8_lossy(&out.stdout);
+    // decode_output (repli OEM) : netsh écrit en codepage OEM → SSID accentués
+    // sinon mojibake.
+    let text = crate::maintenance::commands::decode_output(&out.stdout);
+    // Parsing locale-indépendant : les libellés netsh sont traduits (« Type de
+    // réseau », « Authentification », « Type de radio », « Canal »…). Sans ça,
+    // sur Windows FR l'auth/type restaient vides et la bande était toujours
+    // « 2.4 GHz ». On coupe sur ':', normalise le libellé (accents retirés) et
+    // matche des mots-clés EN + FR.
+    let strip_accents = |s: &str| s.chars().map(|c| match c {
+        'é'|'è'|'ê'|'ë' => 'e', 'à'|'â'|'ä' => 'a', 'î'|'ï' => 'i',
+        'ô'|'ö' => 'o', 'û'|'ü'|'ù' => 'u', 'ç' => 'c', _ => c,
+    }).collect::<String>();
     let mut networks: Vec<WifiNetwork> = Vec::new();
     let mut current = WifiNetwork { ssid: String::new(), bssid: String::new(), signal_percent: 0, channel: 0, band: String::new(), authentication: String::new(), network_type: String::new(), radio_type: String::new() };
     for line in text.lines() {
-        let line = line.trim();
-        if line.starts_with("SSID") && !line.starts_with("SSID Name") && !line.starts_with("BSSID") {
+        let Some((label, val)) = line.split_once(':') else { continue };
+        let l = strip_accents(&label.trim().to_lowercase());
+        let val = val.trim();
+        if l.starts_with("ssid") {
+            // Nouvelle entrée réseau (« SSID 1 »). « bssid » commence par 'b' → exclu.
             if !current.ssid.is_empty() { networks.push(current); current = WifiNetwork { ssid: String::new(), bssid: String::new(), signal_percent: 0, channel: 0, band: String::new(), authentication: String::new(), network_type: String::new(), radio_type: String::new() }; }
-            if let Some(v) = line.split_once(':').map(|x| x.1) { current.ssid = v.trim().to_string(); }
-        } else if line.starts_with("Network type") {
-            if let Some(v) = line.split_once(':').map(|x| x.1) { current.network_type = v.trim().to_string(); }
-        } else if line.starts_with("Authentication") {
-            if let Some(v) = line.split_once(':').map(|x| x.1) { current.authentication = v.trim().to_string(); }
-        } else if line.starts_with("BSSID 1") {
-            if let Some(v) = line.split_once(':').map(|x| x.1) { current.bssid = v.trim().to_string(); }
-        } else if line.starts_with("Signal") {
-            if let Some(v) = line.split_once(':').map(|x| x.1) {
-                current.signal_percent = v.trim().trim_end_matches('%').parse().unwrap_or(0);
-            }
-        } else if line.starts_with("Radio type") {
-            if let Some(v) = line.split_once(':').map(|x| x.1) {
-                let rt = v.trim().to_string();
-                current.band = if rt.contains("5") { "5 GHz".to_string() } else { "2.4 GHz".to_string() };
-                current.radio_type = rt;
-            }
-        } else if line.starts_with("Channel") {
-            if let Some(v) = line.split_once(':').map(|x| x.1) { current.channel = v.trim().parse().unwrap_or(0); }
+            current.ssid = val.to_string();
+        } else if l.starts_with("bssid") {
+            current.bssid = val.to_string();
+        } else if l.contains("radio") {
+            let rt = val.to_string();
+            current.band = if rt.contains('5') { "5 GHz".to_string() } else { "2.4 GHz".to_string() };
+            current.radio_type = rt;
+        } else if l.contains("network") || l.contains("reseau") {
+            current.network_type = val.to_string();
+        } else if l.contains("authentic") || l.contains("authentif") {
+            current.authentication = val.to_string();
+        } else if l == "signal" {
+            current.signal_percent = val.trim_end_matches('%').trim().parse().unwrap_or(0);
+        } else if l == "channel" || l.contains("canal") {
+            current.channel = val.parse().unwrap_or(0);
         }
     }
     if !current.ssid.is_empty() { networks.push(current); }
