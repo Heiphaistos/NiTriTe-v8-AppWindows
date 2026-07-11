@@ -489,7 +489,7 @@ try {{
     $searcher = $sess.CreateUpdateSearcher()
     $results = $searcher.Search("IsInstalled=0 and Type='Driver'")
     $target = $results.Updates | Where-Object {{ $_.Identity.UpdateID -eq '{uid}' }} | Select-Object -First 1
-    if (-not $target) {{ throw "Update $env:uid not found" }}
+    if (-not $target) {{ throw "Update {uid} not found" }}
     # Download
     $downloader = $sess.CreateUpdateDownloader()
     $coll = New-Object -ComObject Microsoft.Update.UpdateColl
@@ -500,6 +500,12 @@ try {{
     $installer = $sess.CreateUpdateInstaller()
     $installer.Updates = $coll
     $instResult = $installer.Install()
+    # ResultCode : 2=Succeeded, 3=SucceededWithErrors. Autre (0/1/4/5) = échec.
+    # Sans ce throw, le script sort en code 0 → faux-succès côté Rust même si
+    # l'install a échoué (ResultCode 4).
+    if ($instResult.ResultCode -ne 2 -and $instResult.ResultCode -ne 3) {{
+        throw "Install failed — ResultCode: $($instResult.ResultCode)"
+    }}
     "Installed: $($target.Title) — ResultCode: $($instResult.ResultCode)"
 }} catch {{
     throw $_.Exception.Message
@@ -538,6 +544,11 @@ try {
     $installer.Updates = $coll
     Write-Host "Installation en cours..."
     $instResult = $installer.Install()
+    # ResultCode : 2=Succeeded, 3=SucceededWithErrors. Autre = échec → throw
+    # pour éviter un faux-succès (exit 0) côté Rust.
+    if ($instResult.ResultCode -ne 2 -and $instResult.ResultCode -ne 3) {
+        throw "Install failed — ResultCode: $($instResult.ResultCode)"
+    }
     "Installe $($coll.Count) pilote(s). Code: $($instResult.ResultCode). Reboot requis: $($instResult.RebootRequired)"
 } catch {
     throw $_.Exception.Message
