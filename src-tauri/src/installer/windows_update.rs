@@ -123,8 +123,21 @@ try {
             .map_err(|e| NiTriTeError::System(e.to_string()))?;
 
         if let Some(stdout) = child.stdout.take() {
-            for l in BufReader::new(stdout).lines().map_while(Result::ok) {
-                let _ = win.emit("wu-log", l);
+            // Lecture octets + décodage OEM : PowerShell 5.1 redirige stdout dans
+            // le codepage OEM (pas UTF-8), donc un titre de MAJ accentué (KB FR)
+            // ferait échouer lines() et tronquerait le reste du log.
+            let mut reader = BufReader::new(stdout);
+            let mut buf = Vec::new();
+            loop {
+                buf.clear();
+                match reader.read_until(b'\n', &mut buf) {
+                    Ok(0) => break,
+                    Ok(_) => {
+                        while matches!(buf.last(), Some(b'\n') | Some(b'\r')) { buf.pop(); }
+                        let _ = win.emit("wu-log", crate::maintenance::commands::decode_output(&buf));
+                    }
+                    Err(_) => break,
+                }
             }
         }
 
