@@ -80,6 +80,13 @@ const editName   = ref("");
 const editData   = ref("");
 const editSaving = ref(false);
 
+// Seuls ces types se réécrivent sans perte via registry_set_value (texte simple).
+// MultiString (affiché « a | b | c ») serait réécrit en UNE entrée avec des pipes
+// littéraux, et Binary (hex) serait corrompu : on interdit leur édition texte.
+function isEditable(kind: string): boolean {
+  return kind === "String" || kind === "ExpandString" || kind === "DWord" || kind === "QWord";
+}
+
 function startEdit(v: RegValue) {
   editName.value = v.name;
   editData.value = v.data;
@@ -288,7 +295,7 @@ function exportRegKey() {
                 <NBadge :variant="kindVariant(v.kind)" style="font-size:9px">{{ v.kind }}</NBadge>
                 <span class="val-data">{{ v.data.length > 60 ? v.data.slice(0,60)+'...' : v.data }}</span>
                 <div class="val-actions">
-                  <button class="val-btn" @click="startEdit(v)" title="Modifier"><Edit2 :size="11" /></button>
+                  <button v-if="isEditable(v.kind)" class="val-btn" @click="startEdit(v)" title="Modifier"><Edit2 :size="11" /></button>
                   <button class="val-btn danger" @click="deleteValue(v.name)" title="Supprimer"><Trash2 :size="11" /></button>
                 </div>
               </div>
