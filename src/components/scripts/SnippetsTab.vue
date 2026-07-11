@@ -91,7 +91,9 @@ async function runSnippet(s: Snippet) {
       content: s.content, scriptType: s.lang,
     });
     runOutput.value[s.id] = res.output || "(pas de sortie)";
-    notify.success("Script terminé");
+    // Ne pas afficher « terminé » (succès) si le script a échoué (exit non-zéro).
+    if (res.success) notify.success("Script terminé");
+    else notify.warning("Script terminé avec erreurs");
   } catch (e: unknown) { runOutput.value[s.id] = String(e); notify.error("Erreur", String(e)); }
 }
 </script>
