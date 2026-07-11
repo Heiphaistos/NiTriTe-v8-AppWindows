@@ -336,13 +336,14 @@ pub fn get_wifi_networks() -> Vec<WifiNetwork> {
                 } else if line.to_lowercase().starts_with("signal") {
                     let v = line.split_once(':').map(|x| x.1).unwrap_or("0%").trim().trim_end_matches('%').parse::<u32>().unwrap_or(0);
                     current.signal_percent = v;
-                } else if line.to_lowercase().starts_with("channel") {
+                } else if { let l = line.to_lowercase(); l.starts_with("channel") || l.starts_with("canal") } {
+                    // netsh est localisé : accepter les libellés FR en plus des EN.
                     current.channel = line.split_once(':').map(|x| x.1).unwrap_or("").trim().to_string();
-                } else if line.to_lowercase().contains("authentication") {
+                } else if { let l = line.to_lowercase(); l.contains("authentication") || l.contains("authentif") } {
                     current.auth = line.split_once(':').map(|x| x.1).unwrap_or("").trim().to_string();
-                } else if line.to_lowercase().contains("cipher") {
+                } else if { let l = line.to_lowercase(); l.contains("cipher") || l.contains("chiffrement") } {
                     current.encryption = line.split_once(':').map(|x| x.1).unwrap_or("").trim().to_string();
-                } else if line.to_lowercase().contains("radio type") {
+                } else if { let l = line.to_lowercase(); l.contains("radio type") || l.contains("type de radio") } {
                     current.band = line.split_once(':').map(|x| x.1).unwrap_or("").trim().to_string();
                 }
             }
