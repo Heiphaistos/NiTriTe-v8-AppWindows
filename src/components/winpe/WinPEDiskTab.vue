@@ -49,6 +49,13 @@ const diskpartCmds = [
 function isValidDriveLetter(v: string) { return /^[A-Za-z]:?$/.test(v.trim()); }
 function isValidVolumeLabel(v: string) { return v.length <= 32 && /^[A-Za-z0-9_ -]*$/.test(v); }
 function isValidPath(v: string) { return v.length > 0 && !/[";`$<>|]/.test(v); }
+// Un backslash final devant le guillemet fermant l'échapperait (`"D:\"` → arg cassé).
+// On le retire ; pour une racine (`D:`), `\.` référence le même répertoire sans ce piège.
+function safeRoboPath(v: string): string {
+  let p = v.trim().replace(/[\\/]+$/, "");
+  if (/^[A-Za-z]:$/.test(p)) p += "\\.";
+  return p;
+}
 function isValidDiskIndex(v: string) { return /^\d{1,2}$/.test(v.trim()); }
 
 async function formatVolume() {
@@ -57,7 +64,8 @@ async function formatVolume() {
   const letter = formatDrive.value.replace(":", "").trim().toUpperCase();
   const label = (formatLabel.value || "VOLUME").trim();
   if (!isValidVolumeLabel(label)) { output.value = "Étiquette invalide — alphanumériques, espaces, tirets, underscores uniquement."; lastSuccess.value = false; return; }
-  const cmd = `format ${letter}: /fs:${formatFs.value} /v:${label} /q /y`;
+  // Label quoté : un espace non quoté serait parsé comme paramètre séparé par format.com
+  const cmd = `format ${letter}: /fs:${formatFs.value} /v:"${label}" /q /y`;
   await run(cmd, `Formater ${letter}: en ${formatFs.value}`);
 }
 
@@ -65,8 +73,10 @@ async function cloneDisk() {
   if (!cloneSrc.value || !cloneDst.value) return;
   if (!isValidPath(cloneSrc.value)) { output.value = "Chemin source invalide."; lastSuccess.value = false; return; }
   if (!isValidPath(cloneDst.value)) { output.value = "Chemin destination invalide."; lastSuccess.value = false; return; }
-  const cmd = `robocopy "${cloneSrc.value}" "${cloneDst.value}" /E /COPYALL /R:0 /W:0 /LOG+:robocopy_log.txt`;
-  await run(cmd, `Clone ${cloneSrc.value} → ${cloneDst.value}`);
+  const src = safeRoboPath(cloneSrc.value);
+  const dst = safeRoboPath(cloneDst.value);
+  const cmd = `robocopy "${src}" "${dst}" /E /COPYALL /R:0 /W:0 /LOG+:robocopy_log.txt`;
+  await run(cmd, `Clone ${src} → ${dst}`);
 }
 
 async function cleanDisk() {
