@@ -42,8 +42,10 @@ async fn control_service(name: String, action: String) -> Result<String, String>
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;
-            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+            // decode_output (repli OEM) : le message d'erreur PowerShell FR
+            // (« Impossible de démarrer le service… ») serait sinon mojibake.
+            let stdout = crate::maintenance::commands::decode_output(&out.stdout).trim().to_string();
+            let stderr = crate::maintenance::commands::decode_output(&out.stderr).trim().to_string();
             if stdout.contains("OK") || out.status.success() {
                 Ok(format!("Service '{}' : {} effectué", name, action))
             } else {
@@ -110,7 +112,7 @@ async fn set_environment_variable(name: String, value: String, scope: String) ->
             if stdout.contains("OK") || out.status.success() {
                 Ok(format!("Variable '{}' définie ({})", name, ps_scope))
             } else {
-                Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -142,7 +144,7 @@ async fn delete_environment_variable(name: String, scope: String) -> Result<Stri
             if stdout.contains("OK") || out.status.success() {
                 Ok(format!("Variable '{}' supprimée ({})", name, ps_scope))
             } else {
-                Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -198,7 +200,7 @@ async fn toggle_startup_program(name: String, location: String, command: String,
             if stdout.contains("OK") || out.status.success() {
                 Ok(if enable { format!("'{}' activé au démarrage", name) } else { format!("'{}' désactivé au démarrage", name) })
             } else {
-                Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -231,7 +233,7 @@ async fn remove_startup_program(name: String, location: String) -> Result<String
             if out.status.success() {
                 Ok(format!("Entrée '{}' supprimée du démarrage", name))
             } else {
-                Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -294,7 +296,7 @@ Write-Output 'OK'
             if stdout.contains("OK") || out.status.success() {
                 Ok(format!("Tâche '{}' créée avec succès", task_name))
             } else {
-                Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -368,7 +370,7 @@ async fn set_power_plan(guid: String) -> Result<String, String> {
             if out.status.success() {
                 Ok(format!("Plan d'alimentation {} activé", guid))
             } else {
-                Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -395,7 +397,7 @@ async fn set_default_printer(printer_name: String) -> Result<String, String> {
             if stdout.contains("OK") || out.status.success() {
                 Ok(format!("Imprimante '{}' définie par défaut", printer_name))
             } else {
-                Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -499,7 +501,7 @@ Write-Output 'Chocolatey installé !'
             if out.status.success() {
                 Ok(stdout)
             } else {
-                Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+                Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string())
             }
         }
         #[cfg(not(target_os = "windows"))]
