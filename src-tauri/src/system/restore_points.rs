@@ -70,6 +70,13 @@ pub fn create_restore_point(description: &str) -> Result<(), NiTriTeError> {
         r#"
 $desc = '{}'
 try {{
+    # Contourne la limite de fréquence Windows (1 point / 24 h par défaut) : sans
+    # ça, Checkpoint-Computer ne fait RIEN et sort quand même en 0 → faux succès
+    # (« point créé » sans point réel). Mettre la fréquence à 0 force la création.
+    try {{
+        New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore' `
+            -Name 'SystemRestorePointCreationFrequency' -Value 0 -PropertyType DWord -Force -EA SilentlyContinue | Out-Null
+    }} catch {{}}
     Checkpoint-Computer -Description $desc -RestorePointType "APPLICATION_INSTALL" -ErrorAction Stop
     Write-Output "OK"
 }} catch {{
