@@ -29,13 +29,20 @@ fn ps_out(ps: &str) -> String {
     #[cfg(target_os = "windows")]
     {
         let o = Command::new("powershell").args(["-NoProfile","-NonInteractive","-Command",ps]).creation_flags(0x08000000).output();
-        if let Ok(o) = o { return String::from_utf8_lossy(&o.stdout).to_string(); }
+        if let Ok(o) = o { return decode_output(&o.stdout).to_string(); }
     }
+    #[cfg(not(target_os = "windows"))]
+    let _ = ps;
     String::new()
 }
 
 #[tauri::command]
 pub fn get_boot_config() -> BootConfig {
+    // Libellés bcdedit partiellement localisés : sur Windows FR « identifier »
+    // devient « identificateur » (vérifié) tandis que device/path/description/
+    // locale/default/timeout restent en anglais. L'ancien `^identifier` ne
+    // matchait jamais en FR → tous les IDs vides, is_default toujours faux et
+    // « définir par défaut » inopérant. `^identif\S*` couvre EN + FR.
     let ps = r#"
 try {
     $bcd = & bcdedit /enum ALL 2>&1
@@ -43,12 +50,15 @@ try {
     $current = $null
     $defaultId = ''
     $timeout = 30
+    $prev = ''
     $bcd | ForEach-Object {
-        $line = $_
+        $line = "$_"
         if ($line -match '^-+$') {
             if ($current) { $entries += $current }
-            $current = @{ id=''; desc=''; type=''; device=''; path=''; locale=''; default=$false }
-        } elseif ($line -match '^identifier\s+(\S+)') {
+            # Le type d'entrée = ligne d'en-tête juste avant les tirets
+            # (« Gestionnaire de démarrage Windows », « Windows Boot Loader »…).
+            $current = @{ id=''; desc=''; type=$prev.Trim(); device=''; path=''; locale=''; default=$false }
+        } elseif ($line -match '^identif\S*\s+(\S+)') {
             if ($current) { $current.id = $Matches[1] }
         } elseif ($line -match '^description\s+(.+)') {
             if ($current) { $current.desc = $Matches[1].Trim() }
@@ -58,17 +68,19 @@ try {
             if ($current) { $current.path = $Matches[1].Trim() }
         } elseif ($line -match '^locale\s+(.+)') {
             if ($current) { $current.locale = $Matches[1].Trim() }
+        } elseif ($line -match '^timeout\s+(\d+)') {
+            # Timeout du bloc {bootmgr} uniquement : /enum ALL liste {fwbootmgr}
+            # en premier (timeout firmware, souvent 0) — le « premier timeout
+            # rencontré » renvoyait cette valeur au lieu du délai du menu Windows.
+            if ($current -and $current.id -eq '{bootmgr}') { $timeout = [int]$Matches[1] }
         }
+        $prev = $line
     }
     if ($current) { $entries += $current }
 
     # Get default
     $defLine = $bcd | Where-Object { $_ -match 'default\s+(\{[^\}]+\})' } | Select-Object -First 1
     if ($defLine -match '\{[^\}]+\}') { $defaultId = $Matches[0] }
-
-    # Get timeout
-    $toLine = $bcd | Where-Object { $_ -match 'timeout\s+(\d+)' } | Select-Object -First 1
-    if ($toLine -match '\d+') { $timeout = [int]$Matches[0] }
 
     @{ entries=$entries; default=$defaultId; timeout=$timeout; safe=$false; debug=$false } | ConvertTo-Json -Depth 4 -Compress
 } catch {
@@ -79,16 +91,22 @@ try {
     {
         let o = Command::new("powershell").args(["-NoProfile","-NonInteractive","-Command",ps]).creation_flags(0x08000000).output();
         if let Ok(o) = o {
-            let t = String::from_utf8_lossy(&o.stdout);
+            // decode_output : descriptions/en-têtes accentués (« Gestionnaire de
+            // démarrage Windows ») sortent en OEM → mojibake avec from_utf8_lossy.
+            let t = decode_output(&o.stdout);
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(t.trim()) {
                 let entries = v["entries"].as_array().map(|arr| arr.iter().map(|e| {
                     let id = e["id"].as_str().unwrap_or("").to_string();
                     let default_id = v["default"].as_str().unwrap_or("").to_string();
+                    let entry_type = match e["type"].as_str().map(str::trim) {
+                        Some(t) if !t.is_empty() => t.to_string(),
+                        _ => "osloader".to_string(),
+                    };
                     BcdEntry {
                         is_default: id == default_id,
                         id,
                         description: e["desc"].as_str().unwrap_or("").to_string(),
-                        entry_type: e["type"].as_str().unwrap_or("osloader").to_string(),
+                        entry_type,
                         device: e["device"].as_str().unwrap_or("").to_string(),
                         path: e["path"].as_str().unwrap_or("").to_string(),
                         locale: e["locale"].as_str().unwrap_or("").to_string(),
