@@ -46,6 +46,9 @@ pub struct AccountsInfo {
 #[tauri::command]
 pub fn get_user_accounts() -> AccountsInfo {
     let ps = r#"
+# Sortie UTF-8 : noms/descriptions de comptes et groupes accentués (FR
+# « Administrateurs », « Compte d'utilisateur invité »…) seraient sinon mojibake.
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $out = @{}
 $admins = @(Get-LocalGroupMember -Group 'Administrators' -ErrorAction SilentlyContinue |
     Select-Object -ExpandProperty Name)
@@ -72,16 +75,30 @@ $out.Groups = @(Get-LocalGroup -ErrorAction SilentlyContinue | Select-Object -Fi
 })
 
 try {
-    $na = net accounts 2>$null | Out-String
-    $out.Policy = @{
-        MinLen   = if ($na -match 'Minimum password length:\s+(\d+)')  { [int]$matches[1] } else { 0 }
-        MaxAge   = if ($na -match 'Maximum password age.*?(\d+)')       { [int]$matches[1] } else { -1 }
-        MinAge   = if ($na -match 'Minimum password age.*?(\d+)')       { [int]$matches[1] } else { 0 }
-        Lockout  = if ($na -match 'Lockout threshold:\s+(\d+)')         { [int]$matches[1] } else { 0 }
-        LockDur  = if ($na -match 'Lockout duration.*?(\d+)')           { [int]$matches[1] } else { -1 }
-        History  = if ($na -match 'Length of password history.*?(\d+)') { [int]$matches[1] } else { 0 }
-        Complex  = [bool]((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters' `
-                     -ErrorAction SilentlyContinue).RequireStrongKey -eq 1)
+    # secedit /export : clés INF INVARIANTES (MinimumPasswordLength…), contrairement
+    # à `net accounts` dont les libellés sont traduits — sur Windows FR aucun regex
+    # anglais ne matchait et toute la politique tombait à 0/-1. secedit requiert
+    # l'élévation ; à défaut on garde les valeurs par défaut (fallback catch).
+    $inf = Join-Path $env:TEMP ("nitrite_secpol_" + [guid]::NewGuid().ToString('N') + ".inf")
+    secedit /export /cfg $inf /areas SECURITYPOLICY 2>$null | Out-Null
+    if (Test-Path $inf) {
+        $c = Get-Content $inf -ErrorAction SilentlyContinue
+        function Sec($key, $def) {
+            $m = $c | Where-Object { $_ -match ("^\s*" + $key + "\s*=\s*(-?\d+)") } | Select-Object -First 1
+            if ($m -and $m -match '=\s*(-?\d+)') { [int]$matches[1] } else { $def }
+        }
+        $out.Policy = @{
+            MinLen  = Sec 'MinimumPasswordLength' 0
+            MaxAge  = Sec 'MaximumPasswordAge' -1
+            MinAge  = Sec 'MinimumPasswordAge' 0
+            Lockout = Sec 'LockoutBadCount' 0
+            LockDur = Sec 'LockoutDuration' -1
+            History = Sec 'PasswordHistorySize' 0
+            Complex = [bool]((Sec 'PasswordComplexity' 0) -eq 1)
+        }
+        Remove-Item $inf -Force -ErrorAction SilentlyContinue
+    } else {
+        $out.Policy = @{MinLen=0;MaxAge=-1;MinAge=0;Lockout=0;LockDur=-1;History=0;Complex=$false}
     }
 } catch {
     $out.Policy = @{MinLen=0;MaxAge=-1;MinAge=0;Lockout=0;LockDur=-1;History=0;Complex=$false}
