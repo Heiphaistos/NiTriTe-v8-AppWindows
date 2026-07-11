@@ -27,6 +27,9 @@ pub struct SysDriversData {
 #[tauri::command]
 pub fn get_sys_drivers_list() -> SysDriversData {
     let ps = r#"
+# Sortie UTF-8 : les noms de périphériques/fabricants accentués (FR
+# « Périphérique système »…) seraient sinon mojibake côté Rust (from_utf8_lossy).
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $out = @{}
 try {
     $drv = Get-WmiObject Win32_PnPSignedDriver -ErrorAction SilentlyContinue |
