@@ -71,6 +71,9 @@ pub struct ScanExtra {
 
 pub fn collect_scan_extra() -> ScanExtra {
     let ps = r#"
+# Sortie UTF-8 : libellés accentués codés en dur (« Désactivé (risque ⚠) »,
+# « Élever… », « Défaut… », « Aucun point trouvé ») → sinon mojibake côté Rust.
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $out = @{}
 
 # === TPM ===
