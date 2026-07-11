@@ -358,7 +358,8 @@ async fn launch_portable(app_id: String) -> Result<(), NiTriTeError> {
         .ok_or_else(|| NiTriTeError::System(format!("Application {} non trouvee", app_id)))?;
 
     let portables_dir = utils::paths::portables_dir();
-    let exe_path = portables_dir.join(&app.folder_name).join(&app.exe_name);
+    let app_dir = portables_dir.join(&app.folder_name);
+    let exe_path = app_dir.join(&app.exe_name);
 
     if !exe_path.exists() {
         return Err(NiTriTeError::System(format!(
@@ -367,7 +368,11 @@ async fn launch_portable(app_id: String) -> Result<(), NiTriTeError> {
         )));
     }
 
+    // current_dir = dossier de l'app : beaucoup d'apps portables résolvent leur
+    // config, DLL et données relativement au répertoire courant. Sans ça, le CWD
+    // hérité serait celui de Nitrite → app qui ne trouve pas ses fichiers.
     std::process::Command::new(&exe_path)
+        .current_dir(&app_dir)
         .spawn()
         .map_err(|e| NiTriTeError::System(format!("Impossible de lancer {}: {}", app.name, e)))?;
 
