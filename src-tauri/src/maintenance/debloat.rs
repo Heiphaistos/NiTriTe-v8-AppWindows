@@ -464,9 +464,17 @@ pub fn remove_bloatware_uwp(apps: Vec<String>) -> Result<Vec<DebloatResult>, NiT
     };
 
     for app in &default_bloatware {
-        // PS single-quoted string escape : '' (double quote), pas \'
+        // PS single-quoted string escape : '' (double quote), pas \'.
+        // On VÉRIFIE la suppression réelle (Get-AppxPackage après) + exit code :
+        // sinon `Remove-AppxPackage -SilentlyContinue; Write-Output done` renvoyait
+        // toujours success=true, même quand la suppression échouait.
         let script = format!(
-            r#"Get-AppxPackage -Name '{}' | Remove-AppxPackage -ErrorAction SilentlyContinue; Write-Output 'done'"#,
+            r#"$n = '{}'
+$pkg = Get-AppxPackage -Name $n -ErrorAction SilentlyContinue
+if (-not $pkg) {{ Write-Output 'Non installe'; exit 0 }}
+$pkg | Remove-AppxPackage -ErrorAction SilentlyContinue
+if (Get-AppxPackage -Name $n -ErrorAction SilentlyContinue) {{ Write-Output 'Echec suppression'; exit 1 }}
+Write-Output 'Supprime'"#,
             app.replace('\'', "''")
         );
         let mut res = run_ps(&script);

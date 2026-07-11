@@ -2293,7 +2293,7 @@ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
 name = "nitrite"
-version = "7.97.0"
+version = "7.98.0"
 dependencies = [
  "anyhow",
  "chrono",
