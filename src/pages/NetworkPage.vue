@@ -240,8 +240,9 @@ async function runDiagnostic() {
     invoke<CommandResult>("run_system_command", { cmd: "cmd", args: ["/c", "ping", "-n", "2", "-w", "2000", "8.8.8.8"] }),
     // 3. DNS resolution
     invoke<CommandResult>("run_system_command", { cmd: "cmd", args: ["/c", "nslookup", "google.com"] }),
-    // 5. DHCP
-    invoke<CommandResult>("run_system_command", { cmd: "ipconfig", args: ["/all"] }),
+    // 5. DHCP — via get_ip_config (WMI typé) plutôt que le texte ipconfig, qui
+    //    est localisé ("DHCP activé"/"Oui" en FR) et cassait la détection.
+    invoke<{ dhcp_enabled: boolean }[]>("get_ip_config"),
   ]);
 
   // 1. Passerelle
@@ -290,12 +291,10 @@ async function runDiagnostic() {
 
   // 5. DHCP / IP statique
   if (dhcpResult.status === "fulfilled") {
-    const out = dhcpResult.value?.stdout ?? "";
-    const dhcpEnabled = out.toLowerCase().includes("dhcp enabled") && out.toLowerCase().includes("yes");
-    const staticIp = out.toLowerCase().includes("dhcp enabled") && out.toLowerCase().includes("no");
-    if (dhcpEnabled) checks.push({ id: "dhcp", label: "Configuration IP", status: "ok", detail: "DHCP activé — IP attribuée automatiquement" });
-    else if (staticIp) checks.push({ id: "dhcp", label: "Configuration IP", status: "info", detail: "IP statique configurée manuellement", tip: "Une IP statique est normale sur certains réseaux d'entreprise." });
-    else checks.push({ id: "dhcp", label: "Configuration IP", status: "info", detail: "Mode DHCP indéterminé" });
+    const adapters = Array.isArray(dhcpResult.value) ? dhcpResult.value : [];
+    if (adapters.length === 0) checks.push({ id: "dhcp", label: "Configuration IP", status: "info", detail: "Mode DHCP indéterminé" });
+    else if (adapters.some(a => a.dhcp_enabled)) checks.push({ id: "dhcp", label: "Configuration IP", status: "ok", detail: "DHCP activé — IP attribuée automatiquement" });
+    else checks.push({ id: "dhcp", label: "Configuration IP", status: "info", detail: "IP statique configurée manuellement", tip: "Une IP statique est normale sur certains réseaux d'entreprise." });
   } else {
     checks.push({ id: "dhcp", label: "Configuration IP", status: "info", detail: "Impossible de déterminer DHCP/statique" });
   }
