@@ -90,7 +90,10 @@ pub fn install_package(
             "--disable-interactivity",
         ])
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        // stderr non lu ici : le piper sans le drainer bloquerait winget (deadlock)
+        // dès que son buffer stderr se remplit. On le jette ; le verdict vient du
+        // code de sortie et la sortie utile de winget passe par stdout.
+        .stderr(Stdio::null())
         .creation_flags(0x08000000)
         .spawn()?;
 
@@ -120,7 +123,10 @@ pub fn upgrade_all(window: &tauri::Window) -> Result<(), NiTriTeError> {
     let mut child = Command::new("winget")
         .args(["upgrade", "--all", "--silent", "--accept-source-agreements", "--accept-package-agreements"])
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        // stderr non lu ici : le piper sans le drainer bloquerait winget (deadlock)
+        // dès que son buffer stderr se remplit. On le jette ; le verdict vient du
+        // code de sortie et la sortie utile de winget passe par stdout.
+        .stderr(Stdio::null())
         .creation_flags(0x08000000)
         .spawn()?;
 

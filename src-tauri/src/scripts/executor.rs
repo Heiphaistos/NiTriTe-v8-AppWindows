@@ -127,6 +127,21 @@ fn execute_script_inner(
     // Thread dédié : lit stdout ligne par ligne et émet les événements
     std::thread::spawn(move || {
         let mut child = child;
+        // Drainer stderr sur un thread séparé : le piper sans le lire bloquerait
+        // le process (deadlock) dès que son buffer stderr se remplit. On émet
+        // aussi ses lignes (erreurs de script) et on les fusionne à la sortie.
+        let stderr_handle = child.stderr.take().map(|stderr| {
+            let win = window_clone.clone();
+            std::thread::spawn(move || {
+                let mut buf = String::new();
+                for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+                    let _ = win.emit("script-output", &line);
+                    buf.push_str(&line);
+                    buf.push('\n');
+                }
+                buf
+            })
+        });
         let mut output_text = String::new();
         if let Some(stdout) = child.stdout.take() {
             let reader = BufReader::new(stdout);
@@ -135,6 +150,9 @@ fn execute_script_inner(
                 output_text.push('\n');
                 let _ = window_clone.emit("script-output", &line);
             }
+        }
+        if let Some(h) = stderr_handle {
+            if let Ok(err_text) = h.join() { output_text.push_str(&err_text); }
         }
         if let Ok(status) = child.wait() {
             let _ = tx.send((output_text, status));

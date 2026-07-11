@@ -208,10 +208,19 @@ pub fn create_system_image(target_drive: String, window: &tauri::Window) -> Clon
             }
         });
 
+        // Drainer stderr sur un thread : le piper sans le lire bloquerait wbadmin
+        // (deadlock) dès que son buffer stderr se remplit.
+        let stderr_thread = child.stderr.take().map(|stderr| {
+            std::thread::spawn(move || {
+                for _line in BufReader::new(stderr).lines().map_while(Result::ok) {}
+            })
+        });
+
         // ── Attente de fin de processus ─────────────────────────
         match child.wait() {
             Ok(status) => {
                 let _ = reader_thread.join();
+                if let Some(t) = stderr_thread { let _ = t.join(); }
                 let ok   = status.success();
                 let code = status.code().unwrap_or(-1);
                 let step = if ok { "done" } else { "error" };
