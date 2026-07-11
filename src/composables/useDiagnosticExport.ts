@@ -11,6 +11,12 @@ const escHtml = (s: unknown): string =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+
+// Échappe une valeur pour une cellule de table Markdown : un | non échappé
+// (fréquent dans les noms de logiciels/pilotes) casserait la structure de la
+// table, et un saut de ligne romprait la rangée.
+const mdCell = (s: unknown): string =>
+  String(s ?? "").replace(/\r?\n/g, " ").replace(/\|/g, "\\|");
 import type { Ref } from "vue";
 import { invoke, invokeRaw } from "@/utils/invoke";
 import { exportScanHtml } from "@/composables/useScanExport";
@@ -552,26 +558,26 @@ ${l.office_name ? `<div class="kv"><span class="k">${escHtml(l.office_name)} —
       lines.push("## RAM",
         `${s.ramData.value.used_slots}/${s.ramData.value.total_slots} slots — ${s.ramData.value.total_capacity_gb.toFixed(0)} GB total`, "",
         `| Slot | GB | Type | Vitesse | Fabricant | P/N |`, `|---|---|---|---|---|---|`,
-        ...s.ramData.value.slots.map(sl => `| ${sl.device_locator} | ${sl.capacity_gb.toFixed(0)} | ${sl.memory_type} | ${sl.speed_mhz} MHz | ${sl.manufacturer} | ${sl.part_number || "—"} |`), "");
+        ...s.ramData.value.slots.map(sl => `| ${mdCell(sl.device_locator)} | ${sl.capacity_gb.toFixed(0)} | ${mdCell(sl.memory_type)} | ${sl.speed_mhz} MHz | ${mdCell(sl.manufacturer)} | ${mdCell(sl.part_number || "—")} |`), "");
     }
     if (s.gpuList.value.length) {
       lines.push("## GPU", `| Modèle | VRAM | Driver | Résolution | Hz |`, `|---|---|---|---|---|`,
-        ...s.gpuList.value.map(g => `| ${g.name} | ${g.adapter_ram_mb >= 1024 ? (g.adapter_ram_mb / 1024).toFixed(0) + "GB" : g.adapter_ram_mb + "MB"} | ${g.driver_version} | ${g.current_resolution} | ${g.current_refresh_rate} |`), "");
+        ...s.gpuList.value.map(g => `| ${mdCell(g.name)} | ${g.adapter_ram_mb >= 1024 ? (g.adapter_ram_mb / 1024).toFixed(0) + "GB" : g.adapter_ram_mb + "MB"} | ${mdCell(g.driver_version)} | ${mdCell(g.current_resolution)} | ${g.current_refresh_rate} |`), "");
     }
     if (s.storageList.value.length) {
       lines.push("## Stockage", `| Modèle | Taille | Interface | Type | Serial | Statut |`, `|---|---|---|---|---|---|`,
-        ...s.storageList.value.map(d => `| ${d.model} | ${d.size_gb.toFixed(0)} GB | ${d.interface_type} | ${d.media_type} | ${d.serial_number || "—"} | ${d.status} |`), "");
+        ...s.storageList.value.map(d => `| ${mdCell(d.model)} | ${d.size_gb.toFixed(0)} GB | ${mdCell(d.interface_type)} | ${mdCell(d.media_type)} | ${mdCell(d.serial_number || "—")} | ${mdCell(d.status)} |`), "");
     }
     if (s.batteries.value.length) {
       lines.push("## 🔋 Batterie", `| Nom | Statut | Charge | Autonomie | Cap. originale | Cap. actuelle | Santé | Chimie | Cycles |`, `|---|---|---|---|---|---|---|---|---|`,
-        ...s.batteries.value.map(b => `| ${b.name} | ${b.status} | ${b.estimated_charge_remaining}% | ${b.estimated_run_time} | ${b.design_capacity} mWh | ${b.full_charge_capacity} mWh | ${b.battery_health_percent.toFixed(1)}% | ${b.chemistry} | ${b.cycle_count} |`), "");
+        ...s.batteries.value.map(b => `| ${mdCell(b.name)} | ${mdCell(b.status)} | ${b.estimated_charge_remaining}% | ${mdCell(b.estimated_run_time)} | ${b.design_capacity} mWh | ${b.full_charge_capacity} mWh | ${b.battery_health_percent.toFixed(1)}% | ${mdCell(b.chemistry)} | ${b.cycle_count} |`), "");
     }
     if (s.licenseInfo.value) {
       const l = s.licenseInfo.value;
       lines.push("## Licences", `| | |`, `|---|---|`,
-        `| Produit Windows | ${l.product_name} |`, `| Statut | ${l.activation_status} |`,
-        `| Clé Windows | \`${l.full_product_key || "Non disponible"}\` |`,
-        ...(l.office_name ? [`| ${l.office_name} | ${l.office_status} |`, `| Clé Office | \`${l.office_full_key || l.office_key || "Non disponible"}\` |`] : []), "");
+        `| Produit Windows | ${mdCell(l.product_name)} |`, `| Statut | ${mdCell(l.activation_status)} |`,
+        `| Clé Windows | \`${mdCell(l.full_product_key || "Non disponible")}\` |`,
+        ...(l.office_name ? [`| ${mdCell(l.office_name)} | ${mdCell(l.office_status)} |`, `| Clé Office | \`${mdCell(l.office_full_key || l.office_key || "Non disponible")}\` |`] : []), "");
     }
     {
       const sr = s.scanResult.value;
@@ -586,7 +592,7 @@ ${l.office_name ? `<div class="kv"><span class="k">${escHtml(l.office_name)} —
       lines.push("## Logiciels installés (50 plus récents)",
         `| Nom | Version | Éditeur | Date |`, `|---|---|---|---|`,
         ...[...s.softwareList.value].sort((a, b) => (b.install_date || "").localeCompare(a.install_date || "")).slice(0, 50)
-          .map(sw => `| ${sw.name} | ${sw.version || "—"} | ${sw.publisher || "—"} | ${sw.install_date || "—"} |`), "");
+          .map(sw => `| ${mdCell(sw.name)} | ${mdCell(sw.version || "—")} | ${mdCell(sw.publisher || "—")} | ${mdCell(sw.install_date || "—")} |`), "");
     }
     if (s.scanProblems.value.length)
       lines.push("## ⚠ Problèmes détectés", ...s.scanProblems.value.map(p => `- ${p}`), "");
