@@ -121,7 +121,9 @@ try {
     let arr: Vec<serde_json::Value> = serde_json::from_str(out.trim()).unwrap_or_default();
     arr.iter().filter_map(|v| {
         let value = v["value"].as_f64().unwrap_or(0.0);
-        if value == 0.0 { return None; }
+        // Cohérent avec query_lhm : une tension de 0.0 V est une lecture valide
+        // (ex. rail non alimenté), on ne la filtre pas comme les autres capteurs.
+        if value == 0.0 && v["sensor_type"].as_str().unwrap_or("") != "Voltage" { return None; }
         let st = v["sensor_type"].as_str().unwrap_or("").to_string();
         let hw_type = v["hardware_type"].as_str().unwrap_or("").to_string();
         Some(SensorReading {
