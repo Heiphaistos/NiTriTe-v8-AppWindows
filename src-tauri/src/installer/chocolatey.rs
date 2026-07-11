@@ -70,11 +70,25 @@ pub fn upgrade_chocolatey_all() -> Result<ChocoUpgradeResult, NiTriTeError> {
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let success = output.status.success();
 
-    // Compter les paquets mis à jour
+    // Nombre de paquets mis à jour : choco termine par une ligne récapitulative
+    // "Chocolatey upgraded 2/3 packages." — on en extrait N (fiable), plutôt que
+    // de compter les lignes "upgraded"/"successful" qui sur-comptaient (la ligne
+    // récap + une ligne par paquet, et "0/3" comptait comme 1).
     let upgraded = stdout
         .lines()
-        .filter(|l| l.contains("upgraded") || l.contains("successful"))
-        .count() as u32;
+        .find_map(|l| {
+            let ll = l.to_lowercase();
+            if !ll.contains('/') {
+                return None;
+            }
+            ll.split_once("upgraded ")
+                .and_then(|(_, rest)| rest.split('/').next())
+                .and_then(|n| n.trim().parse::<u32>().ok())
+        })
+        .unwrap_or_else(|| {
+            // Repli si le format récap change : compter les lignes "successful".
+            stdout.lines().filter(|l| l.to_lowercase().contains("successful")).count() as u32
+        });
 
     let message = if success {
         format!("{} paquet(s) mis à jour", upgraded)
