@@ -9,8 +9,20 @@ use super::{parse_json_arr, ps};
 #[tauri::command]
 pub fn toggle_defender_realtime(enable: bool) -> Result<String, String> {
     let val = if enable { "$false" } else { "$true" };
-    let script = format!("Set-MpPreference -DisableRealtimeMonitoring {val}; 'OK'");
-    ps(&script)
+    // -ErrorAction Stop + try/catch : Set-MpPreference est routinièrement bloqué
+    // par la Tamper Protection de Defender (erreur non-terminante). Sans ça, le
+    // '; OK' s'imprime malgré l'échec et ps() ne vérifie pas le code de sortie
+    // → faux succès. On distingue explicitement OK / ERR.
+    let script = format!(
+        "try {{ Set-MpPreference -DisableRealtimeMonitoring {val} -ErrorAction Stop; 'OK' }} catch {{ \"ERR:$($_.Exception.Message)\" }}"
+    );
+    let out = ps(&script)?;
+    let t = out.trim();
+    if t.starts_with("OK") {
+        Ok(if enable { "Protection temps réel activée".into() } else { "Protection temps réel désactivée".into() })
+    } else {
+        Err(t.trim_start_matches("ERR:").trim().to_string())
+    }
 }
 
 #[tauri::command]

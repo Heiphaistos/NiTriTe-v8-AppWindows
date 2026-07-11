@@ -130,19 +130,25 @@ pub fn switch_dns(adapter: String, primary: String, secondary: String) -> Result
     if !secondary.is_empty() {
         secondary.parse::<std::net::IpAddr>().map_err(|_| format!("IP DNS secondaire invalide : {}", secondary))?;
     }
-    // Adaptateur passé via $args[0] pour éviter l'injection PS par bypass '''
-    if primary.is_empty() {
-        ps_with_args("Set-DnsClientServerAddress -InterfaceAlias $args[0] -ResetServerAddresses; 'OK'", &[&adapter])
+    // Adaptateur passé via $args[0] pour éviter l'injection PS par bypass '''.
+    // IPs validées (IpAddr) donc sûres à embarquer dans la chaîne simple-quote.
+    let action = if primary.is_empty() {
+        "Set-DnsClientServerAddress -InterfaceAlias $args[0] -ResetServerAddresses -ErrorAction Stop".to_string()
     } else if secondary.is_empty() {
-        ps_with_args(
-            &format!("Set-DnsClientServerAddress -InterfaceAlias $args[0] -ServerAddresses '{}'; 'OK'", primary),
-            &[&adapter],
-        )
+        format!("Set-DnsClientServerAddress -InterfaceAlias $args[0] -ServerAddresses '{}' -ErrorAction Stop", primary)
     } else {
-        ps_with_args(
-            &format!("Set-DnsClientServerAddress -InterfaceAlias $args[0] -ServerAddresses '{}','{}'; 'OK'", primary, secondary),
-            &[&adapter],
-        )
+        format!("Set-DnsClientServerAddress -InterfaceAlias $args[0] -ServerAddresses '{}','{}' -ErrorAction Stop", primary, secondary)
+    };
+    // -ErrorAction Stop + try/catch : sans ça, un échec non-terminant (adaptateur
+    // introuvable, accès refusé) laisserait '; OK' s'imprimer → faux succès, car
+    // ps_with_args ne vérifie pas le code de sortie.
+    let script = format!("try {{ {action}; 'OK' }} catch {{ \"ERR:$($_.Exception.Message)\" }}");
+    let out = ps_with_args(&script, &[&adapter])?;
+    let t = out.trim();
+    if t.starts_with("OK") {
+        Ok("Serveurs DNS mis à jour".to_string())
+    } else {
+        Err(t.trim_start_matches("ERR:").trim().to_string())
     }
 }
 
