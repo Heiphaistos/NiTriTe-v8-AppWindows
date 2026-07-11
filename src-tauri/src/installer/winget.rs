@@ -107,12 +107,21 @@ pub fn install_package(
     if let Some(stdout) = child.stdout.take() {
         let reader = BufReader::new(stdout);
         for line in reader.lines().map_while(Result::ok) {
+            // Classification EN + FR, insensible à la casse : winget est localisé,
+            // donc « erreur »/« Réussi » sur Windows FR — sans ça toutes les lignes
+            // tombaient en « info » (aucune coloration rouge/verte).
+            let ll = line.to_lowercase();
+            let level = if ll.contains("error") || ll.contains("erreur") || ll.contains("échou") || ll.contains("failed") || ll.contains("échec") {
+                "error"
+            } else if ll.contains("successfully") || ll.contains("réussi") || ll.contains("succès") {
+                "success"
+            } else {
+                "info"
+            };
             let _ = window.emit("install-log", serde_json::json!({
                 "app_id": package_id,
                 "line": line,
-                "level": if line.contains("error") || line.contains("Error") { "error" }
-                         else if line.contains("Successfully") { "success" }
-                         else { "info" },
+                "level": level,
             }));
         }
     }
