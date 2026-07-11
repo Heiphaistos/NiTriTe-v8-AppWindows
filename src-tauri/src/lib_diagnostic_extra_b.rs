@@ -258,6 +258,9 @@ async fn get_third_party_licenses() -> Result<serde_json::Value, String> {
         #[cfg(target_os = "windows")]
         {
             let ps = r#"
+# Sortie UTF-8 : statuts accentués codés en dur (« Licencié », « Grâce étendue »,
+# « Abonnement Microsoft 365 ») + Description WMI → sinon mojibake garanti.
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $result = @()
 # Logiciels avec licences dans le registre
 $regPaths = @(
