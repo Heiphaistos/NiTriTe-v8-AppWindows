@@ -27,6 +27,14 @@ interface InstalledApp {
   install_size_kb: number; install_date: string;
 }
 
+// Identité STABLE d'une app. Le DisplayName n'est PAS unique (VC++ redist
+// x86/x64, mises à jour multiples partagent un nom) : s'en servir comme clé
+// coche/désinstalle/supprime toutes les homonymes d'un coup et casse les :key
+// Vue. registry_path (PSPath) est la vraie clé ; fallback name si absent.
+function appId(app: InstalledApp): string {
+  return app.registry_path || app.name;
+}
+
 interface UninstallJob {
   app: InstalledApp;
   status: "pending" | "running" | "done" | "error";
@@ -124,7 +132,7 @@ async function confirmForceRemove() {
       args: ["-Command", `Remove-Item -LiteralPath '${regPath}' -Recurse -Force -ErrorAction SilentlyContinue`],
     });
     notify.success("Suppression forcée", `${app.name} retiré du registre`);
-    apps.value = apps.value.filter(a => a.name !== app.name);
+    apps.value = apps.value.filter(a => appId(a) !== appId(app));
     saveLastUninstall(app.name);
   } catch (e: unknown) {
     notify.error("Suppression forcée échouée", String(e));
@@ -176,10 +184,10 @@ function appCategory(app: InstalledApp): AppCat {
   return "user";
 }
 
-// Per-app keep-appdata preference (map: app.name → boolean)
+// Per-app keep-appdata preference (map: appId → boolean)
 const keepAppDataMap = ref<Record<string, boolean>>({});
-function toggleKeepAppData(name: string) {
-  keepAppDataMap.value[name] = !keepAppDataMap.value[name];
+function toggleKeepAppData(id: string) {
+  keepAppDataMap.value[id] = !keepAppDataMap.value[id];
 }
 
 type SortKey = "name" | "publisher" | "size" | "date" | "version";
@@ -224,7 +232,7 @@ const filtered = computed(() => {
 
 const totalSelectedSizeMb = computed(() => {
   const total = apps.value
-    .filter(a => selected.value.has(a.name))
+    .filter(a => selected.value.has(appId(a)))
     .reduce((acc, a) => acc + (a.install_size_kb ?? 0), 0);
   return total >= 1024 ? `${(total / 1024).toFixed(0)} Mo` : `${total} Ko`;
 });
@@ -248,18 +256,18 @@ const sorted = computed(() => {
 
 const selectedCount = computed(() => selected.value.size);
 const allChecked = computed(() =>
-  filtered.value.length > 0 && filtered.value.every(a => selected.value.has(a.name))
+  filtered.value.length > 0 && filtered.value.every(a => selected.value.has(appId(a)))
 );
 const pendingResiduals = computed(() => jobs.value.filter(j => j.status === "done" && !j.residualsHandled && j.residuals.length > 0));
 
-function toggleSelect(name: string) {
-  if (selected.value.has(name)) selected.value.delete(name);
-  else selected.value.add(name);
+function toggleSelect(id: string) {
+  if (selected.value.has(id)) selected.value.delete(id);
+  else selected.value.add(id);
   selected.value = new Set(selected.value);
 }
 function toggleAll() {
-  if (allChecked.value) filtered.value.forEach(a => selected.value.delete(a.name));
-  else filtered.value.forEach(a => selected.value.add(a.name));
+  if (allChecked.value) filtered.value.forEach(a => selected.value.delete(appId(a)));
+  else filtered.value.forEach(a => selected.value.add(appId(a)));
   selected.value = new Set(selected.value);
 }
 
@@ -272,14 +280,14 @@ async function loadApps() {
 }
 
 async function startUninstall() {
-  const toUninstall = apps.value.filter(a => selected.value.has(a.name));
+  const toUninstall = apps.value.filter(a => selected.value.has(appId(a)));
   if (!toUninstall.length) return;
 
   if (createRestoreBeforeUninstall.value) await doCreateRestorePoint();
 
   jobs.value = toUninstall.map(a => ({
     app: a, status: "pending", message: "", residuals: [], residualsHandled: false,
-    keepAppData: keepAppDataMap.value[a.name] ?? false,
+    keepAppData: keepAppDataMap.value[appId(a)] ?? false,
   }));
   uninstalling.value = true;
   progress.value = 0;
@@ -306,8 +314,8 @@ async function startUninstall() {
         : rawResiduals;
 
       if (result.success) {
-        apps.value = apps.value.filter(a => a.name !== job.app.name);
-        selected.value.delete(job.app.name);
+        apps.value = apps.value.filter(a => appId(a) !== appId(job.app));
+        selected.value.delete(appId(job.app));
         saveLastUninstall(job.app.name);
         showTips(job.app.name);
       }
@@ -333,18 +341,20 @@ async function startUninstall() {
 }
 
 async function deleteJobResiduals(job: UninstallJob) {
-  handlingResiduals.value[job.app.name] = true;
+  const id = appId(job.app);
+  handlingResiduals.value[id] = true;
   try {
     const r = await invoke<ResidualCleanResult>("delete_residuals", { paths: job.residuals });
     if (r.success) notify.success("Résidus supprimés", r.message);
     else notify.error("Suppression partielle", r.message);
     job.residualsHandled = true;
   } catch (e: unknown) { notify.error("Erreur", String(e)); }
-  handlingResiduals.value[job.app.name] = false;
+  handlingResiduals.value[id] = false;
 }
 
 async function extractJobResiduals(job: UninstallJob) {
-  handlingResiduals.value[job.app.name] = true;
+  const id = appId(job.app);
+  handlingResiduals.value[id] = true;
   try {
     const r = await invoke<ResidualCleanResult>("extract_residuals", {
       paths: job.residuals,
@@ -354,7 +364,7 @@ async function extractJobResiduals(job: UninstallJob) {
     else notify.error("Extraction partielle", r.message);
     job.residualsHandled = true;
   } catch (e: unknown) { notify.error("Erreur", String(e)); }
-  handlingResiduals.value[job.app.name] = false;
+  handlingResiduals.value[id] = false;
 }
 
 async function pickExtractTarget() {
@@ -382,7 +392,7 @@ function sourceLabel(regPath: string) {
 
 function selectByPublisher(pub: string) {
   if (!pub) return;
-  filtered.value.filter(a => a.publisher === pub).forEach(a => selected.value.add(a.name));
+  filtered.value.filter(a => a.publisher === pub).forEach(a => selected.value.add(appId(a)));
   selected.value = new Set(selected.value);
 }
 
@@ -557,7 +567,7 @@ onMounted(loadApps);
         <NButton variant="ghost" size="sm" @click="pickExtractTarget"><FolderOpen :size="12" /></NButton>
       </div>
 
-      <div v-for="job in jobs" :key="job.app.name" class="job-block" :class="job.status">
+      <div v-for="job in jobs" :key="appId(job.app)" class="job-block" :class="job.status">
         <div class="job-row">
           <CheckCircle v-if="job.status === 'done'"  :size="14" class="ic-success" />
           <XCircle     v-else-if="job.status === 'error'" :size="14" class="ic-error" />
@@ -572,10 +582,10 @@ onMounted(loadApps);
             <AlertTriangle :size="12" style="color:#d97706;flex-shrink:0" />
             <span class="res-label">{{ job.residuals.length }} résidu(s) détecté(s) :</span>
             <div class="res-actions">
-              <NButton variant="danger" size="sm" :loading="!!handlingResiduals[job.app.name]" @click="deleteJobResiduals(job)">
+              <NButton variant="danger" size="sm" :loading="!!handlingResiduals[appId(job.app)]" @click="deleteJobResiduals(job)">
                 <Trash2 :size="11" /> Supprimer définitivement
               </NButton>
-              <NButton variant="ghost" size="sm" :loading="!!handlingResiduals[job.app.name]" @click="extractJobResiduals(job)">
+              <NButton variant="ghost" size="sm" :loading="!!handlingResiduals[appId(job.app)]" @click="extractJobResiduals(job)">
                 <Archive :size="11" /> Extraire puis supprimer
               </NButton>
               <NButton variant="ghost" size="sm" @click="job.residualsHandled = true">Ignorer</NButton>
@@ -656,12 +666,12 @@ onMounted(loadApps);
         </thead>
         <tbody>
           <tr
-            v-for="app in sorted" :key="app.name"
-            class="app-row" :class="{ selected: selected.has(app.name) }"
-            @click="toggleSelect(app.name)"
+            v-for="app in sorted" :key="appId(app)"
+            class="app-row" :class="{ selected: selected.has(appId(app)) }"
+            @click="toggleSelect(appId(app))"
           >
             <td class="col-check">
-              <CheckSquare v-if="selected.has(app.name)" :size="14" style="color:var(--accent-primary)" />
+              <CheckSquare v-if="selected.has(appId(app))" :size="14" style="color:var(--accent-primary)" />
               <Square v-else :size="14" style="color:var(--text-muted)" />
             </td>
             <td class="col-name">
@@ -683,9 +693,9 @@ onMounted(loadApps);
             <td class="col-keep" @click.stop>
               <button
                 class="keep-btn"
-                :class="{ active: keepAppDataMap[app.name] }"
-                :title="keepAppDataMap[app.name] ? 'AppData conservée' : 'Conserver les données utilisateur'"
-                @click="toggleKeepAppData(app.name)"
+                :class="{ active: keepAppDataMap[appId(app)] }"
+                :title="keepAppDataMap[appId(app)] ? 'AppData conservée' : 'Conserver les données utilisateur'"
+                @click="toggleKeepAppData(appId(app))"
               >
                 <Archive :size="12" />
               </button>
