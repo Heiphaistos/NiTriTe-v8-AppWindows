@@ -412,7 +412,9 @@ try {
     $updates = @($results.Updates | ForEach-Object {
         $u = $_
         $szMb = if($u.MaxDownloadSize -gt 0){[math]::Round($u.MaxDownloadSize/1MB,1)}else{0}
-        @{
+        # PSCustomObject (pas hashtable) : sinon Measure-Object -Property mb plus
+        # bas ne voit pas la clé → taille totale des MAJ toujours 0.
+        [PSCustomObject]@{
             title   = [string]$u.Title
             class   = [string]$u.DriverClass
             mfr     = [string]$u.DriverManufacturer
