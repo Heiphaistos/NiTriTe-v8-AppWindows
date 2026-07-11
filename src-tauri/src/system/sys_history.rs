@@ -43,6 +43,9 @@ pub struct SystemHistory {
 #[tauri::command]
 pub fn get_system_history() -> SystemHistory {
     let ps = r#"
+# Sortie UTF-8 : messages d'événements et libellés FR accentués (« Critique »,
+# « Erreur », texte des événements) seraient sinon mojibake (from_utf8_lossy).
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $out = @{}
 
 # Date d'installation Windows

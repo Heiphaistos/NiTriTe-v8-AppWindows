@@ -172,6 +172,7 @@ pub async fn get_network_adapters_detailed() -> Result<Vec<NetworkAdapterDetail>
         #[cfg(target_os = "windows")]
         {
             let ps = r#"
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 try {
     $adapters = Get-NetAdapter -ErrorAction Stop | Where-Object { $_.Status -eq 'Up' -or $_.Status -eq 'Disconnected' }
     if (-not $adapters) { $adapters = Get-NetAdapter -ErrorAction Stop }
@@ -285,7 +286,8 @@ pub async fn get_installed_software() -> Result<Vec<InstalledSoftware>, String> 
         {
             let out = std::process::Command::new("powershell")
                 .args(["-NoProfile", "-NonInteractive", "-Command",
-                    "Get-ItemProperty 'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',\
+                    "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;\
+                     Get-ItemProperty 'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',\
                      'HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' 2>$null |\
                      Where-Object { $_.DisplayName } |\
                      Select-Object DisplayName,DisplayVersion,Publisher,InstallDate,InstallLocation,EstimatedSize |\
