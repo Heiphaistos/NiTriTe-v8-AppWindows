@@ -152,10 +152,14 @@ async function testDep(dep: Dependency) {
   testingDep.value = dep.id;
   testResults.value[dep.id] = "pending";
   try {
-    await invoke("run_system_command", {
+    // Via `cmd /c <test>`, cmd.exe se lance mais l'échec de la commande interne
+    // est masqué : execute_system_command résout quand même. Vérifier success,
+    // sinon une dépendance absente serait rapportée « ok ».
+    const r = await invoke<{ success: boolean }>("run_system_command", {
       cmd: dep.cmd ?? "cmd",
       args: dep.test_args ?? ["/c", dep.test_command ?? "echo ok"],
     });
+    if (!r.success) throw new Error("Test échoué");
     testResults.value[dep.id] = "ok";
     notify.success(dep.name, "Test réussi");
   } catch {
