@@ -46,16 +46,23 @@ try {
     $wslExe = (Get-Command wsl -EA SilentlyContinue)
     if (-not $wslExe) { throw "WSL non trouvé" }
 
+    # wsl.exe émet de l'UTF-16LE ; capturé en codepage OEM par PowerShell, la
+    # sortie devient du mojibake et le parsing renvoie 0 distro. WSL_UTF8=1 force
+    # une sortie UTF-8 correctement décodée (variable officielle de wsl.exe).
+    $env:WSL_UTF8 = "1"
+
     $raw = & wsl --list --verbose 2>&1
     $lines = $raw | Where-Object { $_ -and $_.Trim() -ne '' } | Select-Object -Skip 1
 
     $distros = @($lines | ForEach-Object {
         $line = $_.TrimEnd()
-        if ($line -match '^\*?\s+(\S+)\s+(\S+)\s+(\d+)') {
+        # STATE peut contenir des espaces selon la locale (FR « En cours
+        # d'exécution ») : capture non-gourmande jusqu'au numéro de version final.
+        if ($line -match '^\*?\s+(\S+)\s+(.+?)\s+(\d+)\s*$') {
             $isDefault = $line.TrimStart().StartsWith('*')
             @{
                 name    = $Matches[1]
-                state   = $Matches[2]
+                state   = $Matches[2].Trim()
                 version = [int]$Matches[3]
                 default = $isDefault
             }
