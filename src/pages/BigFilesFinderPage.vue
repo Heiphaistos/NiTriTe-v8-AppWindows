@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { csvCell } from "@/composables/useExportData";
 import { invoke, invokeRaw } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -143,7 +144,7 @@ function cancelDelete() { confirmDelete.value = null; }
 function exportCsv() {
   const rows = ["Rang,Nom,Chemin,Taille (octets),Taille lisible,Extension,Modifié",
     ...displayed.value.map((f, i) =>
-      `${i+1},"${f.name}","${f.path}",${f.size_bytes},"${formatSize(f.size_bytes)}","${f.extension}","${f.modified}"`
+      [i+1, f.name, f.path, f.size_bytes, formatSize(f.size_bytes), f.extension, f.modified].map(csvCell).join(",")
     )
   ].join("\n");
   const blob = new Blob([rows], { type: "text/csv" });

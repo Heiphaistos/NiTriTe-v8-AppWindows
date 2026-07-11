@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { csvCell } from "@/composables/useExportData";
 import { invoke, isTauriContext } from "@/utils/invoke";
 import { sdiAcquire, sdiRelease } from "@/utils/sdiGuard";
 import type { CommandResult } from "@/types/diagnostic";
@@ -199,7 +200,7 @@ async function writeToExports(filename: string, content: string) {
 async function exportCSV() {
   const header = "Module,Nom,Type,Date,Etat,Provider";
   const rows = filteredDrivers.value.map(
-    (d) => `"${d.module}","${d.displayName}","${d.driverType}","${d.linkDate}","${d.state}","${d.provider ?? ""}"`
+    (d) => [d.module, d.displayName, d.driverType, d.linkDate, d.state, d.provider ?? ""].map(csvCell).join(",")
   );
   await writeToExports("drivers.csv", [header, ...rows].join("\n"));
 }

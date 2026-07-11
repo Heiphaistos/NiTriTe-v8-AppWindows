@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { csvCell } from "@/composables/useExportData";
 import { invoke, invokeRaw } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -117,7 +118,7 @@ async function deleteAllDupes() {
 function exportCsv() {
   const rows = ["Groupe,Hash,Taille,Chemin,Type,Mode"];
   groups.value.forEach((g, gi) => g.files.forEach((f, fi) =>
-    rows.push(`${gi + 1},"${g.hash}",${g.size_bytes},"${f}",${fi === 0 ? "Original" : "Doublon"},"${scanMode.value}"`)
+    rows.push([gi + 1, g.hash, g.size_bytes, f, fi === 0 ? "Original" : "Doublon", scanMode.value].map(csvCell).join(","))
   ));
   const blob = new Blob([rows.join("\n")], { type: "text/csv" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, defineAsyncComponent } from "vue";
+import { csvCell } from "@/composables/useExportData";
 import { invoke } from "@/utils/invoke";
 import DiagBanner from "@/components/ui/DiagBanner.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -383,8 +384,7 @@ function selectByPublisher(pub: string) {
 async function exportCsv() {
   const rows = ["Nom,Version,Editeur,Taille,Installé le,Source"];
   for (const a of sorted.value) {
-    const esc = (s: string) => `"${(s || "").replace(/"/g, '""')}"`;
-    rows.push([esc(a.name), esc(a.version), esc(a.publisher), formatSize(a.install_size_kb), esc(a.install_date), esc(a.source)].join(","));
+    rows.push([a.name, a.version, a.publisher, formatSize(a.install_size_kb), a.install_date, a.source].map(csvCell).join(","));
   }
   const csv = rows.join("\r\n");
   try {

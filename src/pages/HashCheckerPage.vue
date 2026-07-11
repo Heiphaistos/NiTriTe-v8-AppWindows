@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { csvCell } from "@/composables/useExportData";
 import { invoke } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -212,7 +213,7 @@ function exportCsv() {
   const rows = ["Fichier,Algorithme,Hash,Taille,VT_Malicieux,VT_Suspicieux,VT_Total,VT_Lien"];
   for (const r of results.value) {
     const vt = vtResults.value[vtKey(r)];
-    rows.push(`"${r.path}",${r.algorithm},${r.hash},${r.size_bytes},${vt?.malicious ?? ""},${vt?.suspicious ?? ""},${vt?.total ?? ""},${vt?.link ?? ""}`);
+    rows.push([r.path, r.algorithm, r.hash, r.size_bytes, vt?.malicious ?? "", vt?.suspicious ?? "", vt?.total ?? "", vt?.link ?? ""].map(csvCell).join(","));
   }
   const blob = new Blob([rows.join("\n")], { type: "text/csv" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);

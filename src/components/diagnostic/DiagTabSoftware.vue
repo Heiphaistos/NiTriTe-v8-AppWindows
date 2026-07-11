@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { csvCell } from "@/composables/useExportData";
 import { invoke } from "@/utils/invoke";
 import { Search, Package, Terminal, Plus, Trash2, Download, Loader2 } from "lucide-vue-next";
 import NBadge from "@/components/ui/NBadge.vue";
@@ -106,7 +107,7 @@ function exportSoftwareCsv() {
   const rows = [
     "#,Nom,Version,Éditeur,Date installation,Taille (MB)",
     ...filteredSoftware.value.map((s, i) =>
-      `${i+1},"${s.name}","${s.version||''}","${s.publisher||''}","${s.install_date||''}",${s.estimated_size_mb||0}`
+      [i+1, s.name, s.version||'', s.publisher||'', s.install_date||'', s.estimated_size_mb||0].map(csvCell).join(",")
     )
   ].join("\n");
   const blob = new Blob([rows], { type: "text/csv" });

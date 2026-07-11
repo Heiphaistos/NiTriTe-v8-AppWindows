@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { csvCell } from "@/composables/useExportData";
 import { invoke } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -188,7 +189,7 @@ function exportCSV() {
   if (!networks.value.length) { notify.warning("Aucune donnée", "Effectuez un scan d'abord."); return; }
   const header = "SSID,BSSID,Signal%,Canal,Bande,Authentification,Type réseau,Radio";
   const rows = networks.value.map(n =>
-    `"${n.ssid}","${n.bssid}",${n.signal_percent},${n.channel},"${n.band}","${n.authentication}","${n.network_type}","${n.radio_type}"`
+    [n.ssid, n.bssid, n.signal_percent, n.channel, n.band, n.authentication, n.network_type, n.radio_type].map(csvCell).join(",")
   );
   const csv = [header, ...rows].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
