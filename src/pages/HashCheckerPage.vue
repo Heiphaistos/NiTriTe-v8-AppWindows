@@ -206,7 +206,10 @@ function vtStatus(vt: VtResult): "clean" | "suspicious" | "malicious" | "unknown
 const referenceMatch = computed(() => {
   if (!referenceHash.value.trim() || results.value.length === 0) return null;
   const ref = referenceHash.value.trim().toLowerCase();
-  return results.value[0].hash.toLowerCase() === ref;
+  // Chercher la correspondance parmi TOUS les fichiers hashés, pas seulement le
+  // premier : sinon un hash de référence valide pour le 2e fichier serait
+  // rapporté « modifié ».
+  return results.value.some(r => r.hash.toLowerCase() === ref);
 });
 
 function exportCsv() {
