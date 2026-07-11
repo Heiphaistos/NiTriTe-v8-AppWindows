@@ -281,16 +281,20 @@ async function toggleDriver(d: DriverEntry) {
   }
   try {
     const safeId = instanceId.replace(/'/g, "''");
+    // -ErrorAction Stop : sans ça, un échec (accès refusé, périphérique absent) est
+    // une erreur non-terminante et powershell.exe sort en 0 → faux succès.
     const psCmd = isRunning(d)
-      ? `Disable-PnpDevice -InstanceId '${safeId}' -Confirm:$false`
-      : `Enable-PnpDevice -InstanceId '${safeId}' -Confirm:$false`;
+      ? `Disable-PnpDevice -InstanceId '${safeId}' -Confirm:$false -ErrorAction Stop`
+      : `Enable-PnpDevice -InstanceId '${safeId}' -Confirm:$false -ErrorAction Stop`;
 
-    await invoke("run_system_command", {
+    const result = await invoke<{ success: boolean; stderr: string }>("run_system_command", {
       cmd: "powershell",
       args: ["-Command", psCmd],
     });
+    // execute_system_command résout même si la commande échoue : vérifier success.
+    if (!result.success) throw new Error(result.stderr?.trim() || "La commande PnP a échoué");
 
-    // Mettre à jour l'état local optimistement
+    // Mettre à jour l'état local (uniquement après confirmation du succès)
     const idx = drivers.value.findIndex(x => driverKey(x) === key);
     if (idx !== -1) {
       drivers.value[idx] = {
