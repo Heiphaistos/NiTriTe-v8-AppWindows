@@ -76,7 +76,21 @@ pub fn get_big_files(path: String, count: u32, excluded_folders: Option<Vec<Stri
         String::new()
     } else {
         let patterns: Vec<String> = exclusions.iter()
-            .map(|p| format!("$_.FullName -notlike '{}*'", p.replace('\'', "''")))
+            .map(|p| {
+                // Échapper les métacaractères wildcard PowerShell (`[ ] * ?`) AVANT
+                // le doublage des apostrophes : un dossier « C:\Temp[1] » ferait
+                // sinon matcher -notlike sur une classe de caractères au lieu du
+                // littéral, excluant les mauvais fichiers. Le `*` final reste un
+                // vrai joker (préfixe).
+                let esc = p
+                    .replace('`', "``")
+                    .replace('[', "`[")
+                    .replace(']', "`]")
+                    .replace('*', "`*")
+                    .replace('?', "`?")
+                    .replace('\'', "''");
+                format!("$_.FullName -notlike '{}*'", esc)
+            })
             .collect();
         format!("| Where-Object {{ {} }}", patterns.join(" -and "))
     };
