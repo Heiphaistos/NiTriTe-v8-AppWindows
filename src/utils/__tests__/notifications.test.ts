@@ -92,4 +92,13 @@ describe("useNotificationStore — toasts", () => {
     const ids = store.toasts.map(t => t.id);
     expect(new Set(ids).size).toBe(2);
   });
+
+  it("plafonne à 6 toasts et retire les plus anciens", () => {
+    const store = useNotificationStore();
+    for (let i = 0; i < 10; i++) store.info(`T${i}`);
+    expect(store.toasts).toHaveLength(6);
+    // Les 6 plus récents (T4..T9) sont conservés, les anciens (T0..T3) retirés
+    expect(store.toasts[0].title).toBe("T4");
+    expect(store.toasts[5].title).toBe("T9");
+  });
 });

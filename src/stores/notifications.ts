@@ -9,6 +9,10 @@ export interface Toast {
   duration?: number;
 }
 
+// Plafond : évite qu'une rafale de notifications (ex: boucle d'erreurs) empile
+// des dizaines de toasts et sature l'écran. Les plus anciens sont retirés.
+const MAX_TOASTS = 6;
+
 export const useNotificationStore = defineStore("notifications", () => {
   const toasts = ref<Toast[]>([]);
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -17,6 +21,9 @@ export const useNotificationStore = defineStore("notifications", () => {
     const id = crypto.randomUUID();
     const entry: Toast = { ...toast, id };
     toasts.value.push(entry);
+    while (toasts.value.length > MAX_TOASTS) {
+      removeToast(toasts.value[0].id);
+    }
 
     const duration = toast.duration ?? 5000;
     const timer = setTimeout(() => removeToast(id), duration);
