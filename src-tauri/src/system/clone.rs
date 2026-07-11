@@ -193,26 +193,39 @@ pub fn create_system_image(target_drive: String, window: &tauri::Window) -> Clon
         };
         let window2 = window.clone();
         let reader_thread = std::thread::spawn(move || {
-            let br = BufReader::new(stdout);
-            for line in br.lines().map_while(Result::ok) {
-                // wbadmin : "Creating a backup of volume (C:), copied (X%)."
-                if let Some(pct) = parse_wbadmin_pct(&line) {
-                    // Mappe 0-100% sur la plage 10-95%
-                    let mapped = ((pct as f64 * 0.85) as u32).saturating_add(10).min(95);
-                    let _ = window2.emit("clone-progress", serde_json::json!({
-                        "step": "progress",
-                        "percent": mapped,
-                        "message": format!("Sauvegarde du volume système : {}% terminé...", pct)
-                    }));
+            // Lecture par octets + décodage OEM : wbadmin sort en codepage OEM
+            // (CP850 FR) ; lines() échouerait sur la 1re ligne accentuée et
+            // figerait la progression.
+            let mut br = BufReader::new(stdout);
+            let mut buf = Vec::new();
+            loop {
+                buf.clear();
+                match br.read_until(b'\n', &mut buf) {
+                    Ok(0) => break,
+                    Ok(_) => {
+                        while matches!(buf.last(), Some(b'\n') | Some(b'\r')) { buf.pop(); }
+                        let line = decode_console(&buf);
+                        // wbadmin : "…, copied (X%)." (EN) / "…, copié (X %)." (FR)
+                        if let Some(pct) = parse_wbadmin_pct(&line) {
+                            // Mappe 0-100% sur la plage 10-95%
+                            let mapped = ((pct as f64 * 0.85) as u32).saturating_add(10).min(95);
+                            let _ = window2.emit("clone-progress", serde_json::json!({
+                                "step": "progress",
+                                "percent": mapped,
+                                "message": format!("Sauvegarde du volume système : {}% terminé...", pct)
+                            }));
+                        }
+                    }
+                    Err(_) => break,
                 }
             }
         });
 
-        // Drainer stderr sur un thread : le piper sans le lire bloquerait wbadmin
-        // (deadlock) dès que son buffer stderr se remplit.
-        let stderr_thread = child.stderr.take().map(|stderr| {
+        // Drainer stderr entièrement (octets bruts) : le piper sans le vider
+        // bloquerait wbadmin (deadlock) dès que son buffer stderr se remplit.
+        let stderr_thread = child.stderr.take().map(|mut stderr| {
             std::thread::spawn(move || {
-                for _line in BufReader::new(stderr).lines().map_while(Result::ok) {}
+                let _ = std::io::copy(&mut stderr, &mut std::io::sink());
             })
         });
 
@@ -273,11 +286,28 @@ pub fn create_system_image(target_drive: String, window: &tauri::Window) -> Clon
 }
 
 /// Parse "copied (X%)" depuis la sortie wbadmin
+/// Décode une ligne console brute (UTF-8 d'abord, repli OEM sur Windows FR).
+#[cfg(target_os = "windows")]
+fn decode_console(bytes: &[u8]) -> String {
+    crate::maintenance::commands::decode_output(bytes)
+}
+#[cfg(not(target_os = "windows"))]
+fn decode_console(bytes: &[u8]) -> String {
+    String::from_utf8_lossy(bytes).to_string()
+}
+
 fn parse_wbadmin_pct(line: &str) -> Option<u32> {
-    let idx = line.find("copied (")?;
-    let rest = &line[idx + 8..];
-    let end  = rest.find('%')?;
-    rest[..end].trim().parse::<u32>().ok()
+    // Indépendant de la locale : wbadmin traduit le texte autour ("copied" EN /
+    // "copié" FR) mais le pourcentage reste "N%" ou "N %" (espace insécable FR).
+    // On repère le '%' et on remonte sur les espaces puis les chiffres.
+    let bytes = line.as_bytes();
+    let pct = line.find('%')?;
+    let mut i = pct;
+    while i > 0 && bytes[i - 1] == b' ' { i -= 1; }
+    let end = i;
+    while i > 0 && bytes[i - 1].is_ascii_digit() { i -= 1; }
+    if i == end { return None; }
+    line[i..end].parse::<u32>().ok().filter(|&p| p <= 100)
 }
 
 /// Vérifie que le processus courant tourne en tant qu'administrateur (élevé)
@@ -491,6 +521,15 @@ mod tests {
     fn parse_wbadmin_pct_no_match_returns_none() {
         assert_eq!(parse_wbadmin_pct("No percentage here"), None);
         assert_eq!(parse_wbadmin_pct(""), None);
+        // '%' sans chiffre devant
+        assert_eq!(parse_wbadmin_pct("100 percent (%)"), None);
+    }
+
+    #[test]
+    fn parse_wbadmin_pct_french_output() {
+        // Sortie FR : "copié (25 %)" avec espace avant le %
+        assert_eq!(parse_wbadmin_pct("Création d'une sauvegarde du volume (C:), copié (25 %)."), Some(25));
+        assert_eq!(parse_wbadmin_pct("copié (100 %)"), Some(100));
     }
 
     // ── robocopy_message ──────────────────────────────────────────────────────
