@@ -280,7 +280,10 @@ async function checkAppUpdate(app: AppInfo) {
       args: ["upgrade", "--id", app.winget_id],
     });
     const out: string = result?.stdout ?? "";
-    if (out.includes("No applicable upgrade")) {
+    // winget localise ce message : "No applicable upgrade" (EN) / "Aucune mise à
+    // niveau applicable" (FR). Sans le match FR, une app à jour était rapportée
+    // à tort comme ayant une mise à jour disponible.
+    if (out.includes("No applicable upgrade") || out.toLowerCase().includes("aucune mise")) {
       notifications.success(`${app.name} est à jour`);
     } else if (out.trim()) {
       notifications.info(`MAJ disponible pour ${app.name}`, out.split("\n").slice(0, 3).join(" "));
