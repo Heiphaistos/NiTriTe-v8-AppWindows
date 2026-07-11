@@ -131,11 +131,19 @@ $files = Get-ChildItem -Path '{safe_path}' -Recurse -File -ErrorAction SilentlyC
 $groups = $files | Group-Object Name | Where-Object {{ $_.Count -gt 1 }}
 $dupes = @()
 foreach ($g in $groups) {{
+    # Mode nom : les fichiers homonymes peuvent avoir des tailles DIFFÉRENTES.
+    # On trie par taille décroissante (le plus gros = "original" gardé, index 0)
+    # et on calcule le gaspillage réel = somme totale - plus gros fichier, au
+    # lieu de size*(count-1) qui suppose des tailles identiques.
+    $sorted = $g.Group | Sort-Object Length -Descending
+    $total = ($g.Group | Measure-Object Length -Sum).Sum
+    $keep = $sorted[0].Length
     $dupes += [PSCustomObject]@{{
         hash=$g.Name
-        size=($g.Group | Select-Object -First 1 -ExpandProperty Length)
+        size=$keep
         count=$g.Count
-        files=($g.Group | ForEach-Object {{ $_.FullName }}) -join '|'
+        wasted=($total - $keep)
+        files=($sorted | ForEach-Object {{ $_.FullName }}) -join '|'
     }}
 }}
 $dupes | ConvertTo-Json -Compress
@@ -170,7 +178,10 @@ $dupes | ConvertTo-Json -Compress
         let size = v["size"].as_u64().unwrap_or(0);
         let count = v["count"].as_u64().unwrap_or(2) as u32;
         let files: Vec<String> = v["files"].as_str().unwrap_or("").split('|').filter(|s| !s.is_empty()).map(|s| s.to_string()).collect();
-        DuplicateGroup { hash: v["hash"].as_str().unwrap_or("").to_string(), size_bytes: size, count, wasted_bytes: size * (count as u64 - 1), files }
+        // Mode hash : tailles identiques → size*(count-1) exact. Mode nom : PS
+        // fournit le gaspillage réel via "wasted" (tailles hétérogènes).
+        let wasted_bytes = v["wasted"].as_u64().unwrap_or_else(|| size * (count as u64 - 1));
+        DuplicateGroup { hash: v["hash"].as_str().unwrap_or("").to_string(), size_bytes: size, count, wasted_bytes, files }
     }).collect();
     groups.sort_by_key(|a| std::cmp::Reverse(a.wasted_bytes));
     Ok(groups)
