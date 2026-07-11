@@ -153,10 +153,25 @@ function exportRegKey() {
   ];
   // En .reg, noms et données suivent les mêmes règles d'échappement : \ → \\, " → \"
   const escReg = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  // REG_EXPAND_SZ s'exporte en hex(2) UTF-16-LE null-terminé (format reg.exe natif).
+  const toRegHex2 = (s: string): string => {
+    const bytes: string[] = [];
+    for (let i = 0; i < s.length; i++) {
+      const code = s.charCodeAt(i);
+      bytes.push((code & 0xff).toString(16).padStart(2, "0"));
+      bytes.push(((code >> 8) & 0xff).toString(16).padStart(2, "0"));
+    }
+    bytes.push("00", "00");
+    return bytes.join(",");
+  };
   for (const v of browseResult.value.values) {
     const name = v.name === "(Default)" ? "@" : `"${escReg(v.name)}"`;
-    if (v.kind === "String" || v.kind === "ExpandString") {
+    if (v.kind === "String") {
       lines.push(`${name}="${escReg(v.data)}"`);
+    } else if (v.kind === "ExpandString") {
+      // Sans hex(2), un REG_EXPAND_SZ se réimporte en REG_SZ : l'expansion des
+      // variables d'environnement (%SystemRoot%…) est alors définitivement perdue.
+      lines.push(`${name}=hex(2):${toRegHex2(v.data)}`);
     } else if (v.kind === "DWord") {
       // GetValue renvoie un Int32 : 0xFFFFFFFF arrive en "-1". >>> 0 le ramène
       // en u32 non signé avant conversion hex (sinon "-1".toString(16) casse le .reg).
