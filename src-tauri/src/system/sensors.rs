@@ -349,11 +349,12 @@ if ($items) {
 /// GPU intégré — utilisation + mémoire via Compteurs de performance Windows
 /// Couvre Intel UHD/Iris, AMD Radeon intégré, sans LHM
 fn query_igpu_perf() -> Vec<SensorReading> {
-    let script = r#"
+    let script = format!("{}{}", crate::utils::ps::LOC_COUNTER_PRELUDE, r#"
 $res = @()
 try {
-    # Utilisation GPU par adaptateur
-    $gpuCounters = Get-Counter '\GPU Adapter Memory(*)\Dedicated Usage' -ErrorAction SilentlyContinue
+    # Utilisation GPU par adaptateur (chemins de compteurs traduits pour Windows FR)
+    $pMem = "\{0}(*)\{1}" -f (Loc-Counter 'GPU Adapter Memory'), (Loc-Counter 'Dedicated Usage')
+    $gpuCounters = Get-Counter $pMem -ErrorAction SilentlyContinue
     if ($gpuCounters) {
         foreach ($sample in $gpuCounters.CounterSamples) {
             $adapter = ($sample.InstanceName -replace '.*luid_.*?_.*?_phys_.*?_eng_.*?_engt.*','GPU').Trim()
@@ -365,7 +366,8 @@ try {
         }
     }
     # Utilisation GPU engine 3D
-    $util = Get-Counter '\GPU Engine(*engtype_3D*)\Utilization Percentage' -ErrorAction SilentlyContinue
+    $pUtil = "\{0}(*engtype_3D*)\{1}" -f (Loc-Counter 'GPU Engine'), (Loc-Counter 'Utilization Percentage')
+    $util = Get-Counter $pUtil -ErrorAction SilentlyContinue
     if ($util) {
         $total = ($util.CounterSamples | Measure-Object CookedValue -Sum).Sum
         $pct = [math]::Round([math]::Min($total, 100), 1)
@@ -373,8 +375,8 @@ try {
     }
 } catch {}
 @($res) | ConvertTo-Json -Compress -Depth 2
-"#;
-    let out = ps(script).unwrap_or_default();
+"#);
+    let out = ps(&script).unwrap_or_default();
     if out.trim().is_empty() || out.trim() == "null" { return vec![]; }
     let arr: Vec<serde_json::Value> = serde_json::from_str(out.trim()).unwrap_or_default();
     arr.iter().filter_map(|v| {

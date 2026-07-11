@@ -413,7 +413,7 @@ async fn get_processes_extended() -> Result<serde_json::Value, String> {
     tokio::task::spawn_blocking(|| {
         #[cfg(target_os = "windows")]
         {
-            let ps = r#"
+            let ps = format!("{}{}", crate::utils::ps::LOC_COUNTER_PRELUDE, r#"
 try {
     $procs = Get-Process -ErrorAction SilentlyContinue | Select-Object -First 200
     $result = @()
@@ -429,7 +429,8 @@ try {
     }
     # GPU usage via Get-Counter (meilleures infos si dispo)
     try {
-        $gpuCounters = Get-Counter '\GPU Engine(*)\Utilization Percentage' -ErrorAction SilentlyContinue -MaxSamples 1
+        $pGpu = "\{0}(*)\{1}" -f (Loc-Counter 'GPU Engine'), (Loc-Counter 'Utilization Percentage')
+        $gpuCounters = Get-Counter $pGpu -ErrorAction SilentlyContinue -MaxSamples 1
         if ($gpuCounters) {
             $gpuByPid = @{}
             $gpuCounters.CounterSamples | Where-Object { $_.CookedValue -gt 0 } | ForEach-Object {
@@ -449,9 +450,9 @@ try {
     } catch {}
     $result | ConvertTo-Json -Compress -Depth 2
 } catch { Write-Output '[]' }
-"#;
+"#);
             let out = std::process::Command::new("powershell")
-                .args(["-NoProfile", "-NonInteractive", "-Command", ps])
+                .args(["-NoProfile", "-NonInteractive", "-Command", ps.as_str()])
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| e.to_string())?;

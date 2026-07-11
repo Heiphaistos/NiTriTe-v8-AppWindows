@@ -271,13 +271,14 @@ fn collect_gpu_data() -> Result<Vec<GpuData>, String> {
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
-        let ps = r#"
+        let ps = format!("{}{}", crate::utils::ps::LOC_COUNTER_PRELUDE, r#"
 try {
     $gpus = Get-WmiObject Win32_VideoController -ErrorAction Stop | Where-Object { $_.Name -notlike '*Basic*' -and $_.Name -notlike '*Miroir*' }
     $result = foreach ($g in $gpus) {
         $usage = 0
         try {
-            $counters = (Get-Counter '\GPU Engine(*_phys_*engrtype_3D)\Utilization Percentage' -ErrorAction SilentlyContinue).CounterSamples
+            $pGpu = "\{0}(*_phys_*engrtype_3D)\{1}" -f (Loc-Counter 'GPU Engine'), (Loc-Counter 'Utilization Percentage')
+            $counters = (Get-Counter $pGpu -ErrorAction SilentlyContinue).CounterSamples
             if ($counters) { $usage = [math]::Round(($counters | Measure-Object -Property CookedValue -Sum).Sum) }
         } catch {}
         $vramTotal = if ($g.AdapterRAM -gt 0) { [math]::Round($g.AdapterRAM / 1MB) } else { 0 }
@@ -285,9 +286,9 @@ try {
     }
     $result | ConvertTo-Json -Compress
 } catch { Write-Output '[]' }
-"#;
+"#);
         let out = std::process::Command::new("powershell")
-            .args(["-NoProfile", "-NonInteractive", "-Command", ps])
+            .args(["-NoProfile", "-NonInteractive", "-Command", ps.as_str()])
             .creation_flags(0x08000000)
             .output()
             .map_err(|e| e.to_string())?;
