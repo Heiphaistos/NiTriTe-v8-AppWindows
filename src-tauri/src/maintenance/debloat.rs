@@ -12,18 +12,47 @@ pub struct DebloatResult {
     pub message: String,
 }
 
+/// Exécute un script PowerShell en propageant les échecs réels.
+///
+/// Historiquement chaque script se terminait par un `Write-Output` → le
+/// process sortait toujours en code 0, même quand les `reg add`/`netsh`
+/// échouaient (droits admin manquants) : tous les boutons rapportaient un
+/// faux succès. Le script est donc enveloppé : `$ErrorActionPreference =
+/// 'Stop'`, shims `reg`/`netsh`/`powercfg`/`wevtutil` qui convertissent un
+/// code retour non nul en exception, et try/catch global qui sort en code 1
+/// avec le message d'erreur. Les `-ErrorAction SilentlyContinue` explicites
+/// des scripts (actions volontairement best-effort) restent silencieux.
 fn run_ps(script: &str) -> DebloatResult {
+    let wrapped = format!(
+        r#"$ErrorActionPreference = 'Stop'
+function reg {{ & "$env:SystemRoot\System32\reg.exe" @args | Out-Null; if ($LASTEXITCODE -ne 0) {{ throw "reg a echoue (code $LASTEXITCODE) : $($args -join ' ')" }} }}
+function netsh {{ & "$env:SystemRoot\System32\netsh.exe" @args | Out-Null; if ($LASTEXITCODE -ne 0) {{ throw "netsh a echoue (code $LASTEXITCODE) : $($args -join ' ')" }} }}
+function powercfg {{ & "$env:SystemRoot\System32\powercfg.exe" @args | Out-Null; if ($LASTEXITCODE -ne 0) {{ throw "powercfg a echoue (code $LASTEXITCODE) : $($args -join ' ')" }} }}
+function wevtutil {{ & "$env:SystemRoot\System32\wevtutil.exe" @args; if ($LASTEXITCODE -ne 0) {{ throw "wevtutil a echoue (code $LASTEXITCODE)" }} }}
+try {{
+{script}
+}} catch {{ Write-Output $_.Exception.Message; exit 1 }}"#
+    );
     let out = Command::new("powershell")
-        .args(["-NoProfile", "-NonInteractive", "-Command", script])
+        .args(["-NoProfile", "-NonInteractive", "-Command", &wrapped])
         .creation_flags(0x08000000)
         .output();
 
     match out {
-        Ok(o) => DebloatResult {
-            action: script.chars().take(60).collect::<String>(),
-            success: o.status.success(),
-            message: String::from_utf8_lossy(&o.stdout).trim().to_string(),
-        },
+        Ok(o) => {
+            let stdout = crate::maintenance::commands::decode_output(&o.stdout).trim().to_string();
+            let success = o.status.success();
+            let message = if !success && stdout.is_empty() {
+                crate::maintenance::commands::decode_output(&o.stderr).trim().to_string()
+            } else {
+                stdout
+            };
+            DebloatResult {
+                action: script.chars().take(60).collect::<String>(),
+                success,
+                message,
+            }
+        }
         Err(e) => DebloatResult {
             action: "powershell".to_string(),
             success: false,
@@ -65,11 +94,13 @@ pub fn disable_cortana() -> Result<DebloatResult, NiTriTeError> {
 pub fn disable_xbox_services() -> Result<DebloatResult, NiTriTeError> {
     let script = r#"
         $services = @('XblAuthManager','XblGameSave','XboxGipSvc','XboxNetApiSvc')
+        $n = 0
         foreach ($s in $services) {
             Stop-Service $s -Force -ErrorAction SilentlyContinue
-            Set-Service $s -StartupType Disabled -ErrorAction SilentlyContinue
+            try { Set-Service $s -StartupType Disabled -ErrorAction Stop; $n++ } catch {}
         }
-        Write-Output "Services Xbox desactives"
+        if ($n -eq 0) { throw "Aucun service Xbox desactive (droits administrateur requis ?)" }
+        Write-Output "$n services Xbox desactives"
     "#;
     Ok(run_ps(script))
 }
@@ -77,7 +108,7 @@ pub fn disable_xbox_services() -> Result<DebloatResult, NiTriTeError> {
 pub fn disable_superfetch() -> Result<DebloatResult, NiTriTeError> {
     let script = r#"
         Stop-Service SysMain -Force -ErrorAction SilentlyContinue
-        Set-Service SysMain -StartupType Disabled -ErrorAction SilentlyContinue
+        Set-Service SysMain -StartupType Disabled
         Write-Output "SysMain (Superfetch) desactive"
     "#;
     Ok(run_ps(script))
@@ -122,6 +153,7 @@ pub fn clear_event_logs() -> Result<DebloatResult, NiTriTeError> {
         foreach ($log in $logs) {
             try { wevtutil cl $log 2>$null; $count++ } catch {}
         }
+        if ($count -eq 0) { throw "Aucun journal vide (droits administrateur requis ?)" }
         Write-Output "$count journaux vides"
     "#;
     Ok(run_ps(script))
@@ -129,8 +161,8 @@ pub fn clear_event_logs() -> Result<DebloatResult, NiTriTeError> {
 
 pub fn clear_windowsupdate_cache() -> Result<DebloatResult, NiTriTeError> {
     let script = r#"
-        Stop-Service wuauserv -Force -ErrorAction SilentlyContinue
-        Stop-Service bits -Force -ErrorAction SilentlyContinue
+        Stop-Service wuauserv -Force
+        Stop-Service bits -Force
         Remove-Item "$env:SystemRoot\SoftwareDistribution\Download\*" -Recurse -Force -ErrorAction SilentlyContinue
         Start-Service wuauserv -ErrorAction SilentlyContinue
         Start-Service bits -ErrorAction SilentlyContinue
@@ -222,7 +254,9 @@ pub fn run_extra_action(action: &str) -> DebloatResult {
             Write-Output "Prefetch vide"
         "#),
         "remove_teams" => run_ps(r#"
-            Get-AppxPackage -Name 'MicrosoftTeams' | Remove-AppxPackage -ErrorAction SilentlyContinue
+            $pkg = Get-AppxPackage -Name 'MicrosoftTeams' -ErrorAction SilentlyContinue
+            if ($pkg) { $pkg | Remove-AppxPackage }
+            if (Get-AppxPackage -Name 'MicrosoftTeams' -ErrorAction SilentlyContinue) { throw "Echec suppression du package Teams" }
             $path = "${env:ProgramData}\Microsoft\Teams"
             if (Test-Path $path) { Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue }
             Write-Output "Teams supprime"
@@ -259,8 +293,10 @@ pub fn run_extra_action(action: &str) -> DebloatResult {
             Write-Output "IP renouvelle"
         "#),
         "disable_ipv6" => run_ps(r#"
-            Get-NetAdapter | ForEach-Object { Disable-NetAdapterBinding -InterfaceAlias $_.Name -ComponentID ms_tcpip6 -ErrorAction SilentlyContinue }
-            Write-Output "IPv6 desactive sur toutes les interfaces"
+            $n = 0
+            Get-NetAdapter | ForEach-Object { try { Disable-NetAdapterBinding -InterfaceAlias $_.Name -ComponentID ms_tcpip6 -ErrorAction Stop; $n++ } catch {} }
+            if ($n -eq 0) { throw "IPv6 non desactive (droits administrateur requis ?)" }
+            Write-Output "IPv6 desactive sur $n interface(s)"
         "#),
         "disable_teredo" => run_ps(r#"
             netsh interface teredo set state disabled
@@ -272,8 +308,13 @@ pub fn run_extra_action(action: &str) -> DebloatResult {
         "#),
         "disable_netbios" => run_ps(r#"
             $adapters = Get-WmiObject Win32_NetworkAdapterConfiguration -Filter "IPEnabled=True"
-            foreach ($a in $adapters) { $a.SetTcpipNetbios(2) | Out-Null }
-            Write-Output "NetBIOS over TCP/IP desactive"
+            $n = 0
+            foreach ($a in $adapters) {
+                $r = $a.SetTcpipNetbios(2)
+                if ($r.ReturnValue -eq 0 -or $r.ReturnValue -eq 1) { $n++ }
+            }
+            if ($n -eq 0 -and $adapters) { throw "NetBIOS non desactive (droits administrateur requis ?)" }
+            Write-Output "NetBIOS over TCP/IP desactive sur $n interface(s)"
         "#),
         "reset_firewall" => run_ps(r#"
             netsh advfirewall reset
@@ -285,11 +326,16 @@ pub fn run_extra_action(action: &str) -> DebloatResult {
         "#),
         "disable_nagle" => run_ps(r#"
             $ifaces = Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"
+            $n = 0
             foreach ($if in $ifaces) {
-                Set-ItemProperty -Path $if.Name -Name TcpAckFrequency -Value 1 -Force -ErrorAction SilentlyContinue
-                Set-ItemProperty -Path $if.Name -Name TCPNoDelay -Value 1 -Force -ErrorAction SilentlyContinue
+                try {
+                    Set-ItemProperty -Path $if.PSPath -Name TcpAckFrequency -Value 1 -Force -ErrorAction Stop
+                    Set-ItemProperty -Path $if.PSPath -Name TCPNoDelay -Value 1 -Force -ErrorAction Stop
+                    $n++
+                } catch {}
             }
-            Write-Output "Algorithme de Nagle desactive"
+            if ($n -eq 0) { throw "Nagle non desactive (droits administrateur requis ?)" }
+            Write-Output "Algorithme de Nagle desactive sur $n interface(s)"
         "#),
         "purge_arp" => run_ps(r#"
             netsh interface ip delete arpcache
@@ -300,23 +346,28 @@ pub fn run_extra_action(action: &str) -> DebloatResult {
             Write-Output "DNS re-enregistre"
         "#),
         "set_dns_google" => run_ps(r#"
-            $adapters = Get-NetAdapter | Where-Object Status -eq 'Up'
-            foreach ($a in $adapters) {
-                Set-DnsClientServerAddress -InterfaceIndex $a.InterfaceIndex -ServerAddresses ('8.8.8.8','8.8.4.4') -ErrorAction SilentlyContinue
+            $n = 0
+            Get-NetAdapter | Where-Object Status -eq 'Up' | ForEach-Object {
+                try { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses ('8.8.8.8','8.8.4.4') -ErrorAction Stop; $n++ } catch {}
             }
-            Write-Output "DNS Google (8.8.8.8 / 8.8.4.4) configure"
+            if ($n -eq 0) { throw "DNS non modifie (droits administrateur requis ?)" }
+            Write-Output "DNS Google (8.8.8.8 / 8.8.4.4) configure sur $n interface(s)"
         "#),
         "set_dns_cloudflare" => run_ps(r#"
-            $adapters = Get-NetAdapter | Where-Object Status -eq 'Up'
-            foreach ($a in $adapters) {
-                Set-DnsClientServerAddress -InterfaceIndex $a.InterfaceIndex -ServerAddresses ('1.1.1.1','1.0.0.1') -ErrorAction SilentlyContinue
+            $n = 0
+            Get-NetAdapter | Where-Object Status -eq 'Up' | ForEach-Object {
+                try { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses ('1.1.1.1','1.0.0.1') -ErrorAction Stop; $n++ } catch {}
             }
-            Write-Output "DNS Cloudflare (1.1.1.1 / 1.0.0.1) configure"
+            if ($n -eq 0) { throw "DNS non modifie (droits administrateur requis ?)" }
+            Write-Output "DNS Cloudflare (1.1.1.1 / 1.0.0.1) configure sur $n interface(s)"
         "#),
         "optimize_mtu" => run_ps(r#"
-            netsh interface ipv4 set subinterface "Ethernet" mtu=1500 store=persistent 2>$null
-            netsh interface ipv4 set subinterface "Wi-Fi" mtu=1500 store=persistent 2>$null
-            Write-Output "MTU optimise a 1500"
+            $n = 0
+            foreach ($a in (Get-NetAdapter -Physical | Where-Object Status -eq 'Up')) {
+                try { netsh interface ipv4 set subinterface "$($a.Name)" mtu=1500 store=persistent; $n++ } catch {}
+            }
+            if ($n -eq 0) { throw "MTU non modifie (droits administrateur requis ou aucune interface active)" }
+            Write-Output "MTU 1500 applique sur $n interface(s)"
         "#),
         "show_net_stats" => run_ps(r#"
             $stats = netstat -e
@@ -346,7 +397,7 @@ public class MemUtil { [DllImport("psapi.dll")] public static extern int EmptyWo
         "#),
         "disable_search_index" => run_ps(r#"
             Stop-Service WSearch -Force -ErrorAction SilentlyContinue
-            Set-Service WSearch -StartupType Disabled -ErrorAction SilentlyContinue
+            Set-Service WSearch -StartupType Disabled
             Write-Output "Indexation Windows Search desactivee"
         "#),
         "disable_error_reporting" => run_ps(r#"
@@ -392,8 +443,9 @@ public class MemUtil { [DllImport("psapi.dll")] public static extern int EmptyWo
             Write-Output "Fichier d'echange configure en automatique"
         "#),
         "disable_hpet" => run_ps(r#"
-            bcdedit /deletevalue useplatformclock 2>$null
-            bcdedit /set disabledynamictick yes 2>$null
+            try { bcdedit /deletevalue useplatformclock 2>&1 | Out-Null } catch {}
+            try { bcdedit /set disabledynamictick yes 2>&1 | Out-Null } catch { throw "bcdedit a echoue (droits administrateur requis ?)" }
+            if ($LASTEXITCODE -ne 0) { throw "bcdedit a echoue (droits administrateur requis ?)" }
             Write-Output "HPET optimise pour le gaming"
         "#),
         "enable_msi_mode" => run_ps(r#"
