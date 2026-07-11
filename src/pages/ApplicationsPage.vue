@@ -235,7 +235,10 @@ async function installApp(app: AppInfo) {
   installingIds.value = new Set([...installingIds.value, app.id]);
   installLogs.value[app.id] = [];
   try {
-    await invokeRaw("install_app", { wingetId: app.winget_id });
+    // install_app renvoie Ok(InstallResult) même sur échec winget (success:false,
+    // pas d'exception) → vérifier success sinon on marque « installé » à tort.
+    const res = await invokeRaw<{ success: boolean; message: string }>("install_app", { wingetId: app.winget_id });
+    if (!res?.success) throw new Error(res?.message || "winget install a échoué");
     installedIds.value = new Set([...installedIds.value, app.id]);
     notifications.success(`${app.name} installé`);
   } catch (e: unknown) {
