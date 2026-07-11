@@ -1,6 +1,6 @@
 [package]
 name = "nitrite"
-version = "8.29.0"
+version = "8.30.0"
 description = "Nitrite v26.31 - Maintenance Informatique Professionnelle"
 authors = ["NiTriTe"]
 edition = "2021"

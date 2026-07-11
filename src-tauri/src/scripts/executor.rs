@@ -277,12 +277,12 @@ Write-Host "$count fichiers .tmp supprimes.""#, false),
             "netsh wlan show profiles", false),
         script("Mot de passe WiFi actuel", "Affiche le mot de passe du reseau WiFi connecte", "Reseau", "powershell",
             r#"$p = (netsh wlan show interfaces | Select-String 'Profil').ToString().Split(':')[-1].Trim()
-netsh wlan show profile name="$p" key=clear | Select-String 'Contenu de la cle'"#, false),
+netsh wlan show profile name="$p" key=clear | Select-String 'Contenu de la cl|Key Content'"#, false),
         script("Exporter tous les mots de passe WiFi", "Exporte tous les mots de passe WiFi sur le bureau", "Reseau", "powershell",
             r#"$out = @()
 (netsh wlan show profiles) | Select-String ': ' | ForEach-Object {
   $n = $_.ToString().Split(':')[-1].Trim()
-  $k = (netsh wlan show profile name="$n" key=clear) | Select-String 'Contenu de la cle'
+  $k = (netsh wlan show profile name="$n" key=clear) | Select-String 'Contenu de la cl|Key Content'
   if ($k) { $pw = $k.ToString().Split(':')[-1].Trim() } else { $pw = '(non disponible)' }
   $out += "$n : $pw"
 }
