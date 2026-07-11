@@ -26,6 +26,9 @@ pub struct CertsData {
 #[tauri::command]
 pub fn get_certificates() -> CertsData {
     let ps = r#"
+# Sortie UTF-8 : Subject/Issuer de certificats peuvent contenir des accents
+# (organisations FR : « O=Société … ») → sinon mojibake côté Rust.
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $out = @{}
 $all = @()
 $stores = @(

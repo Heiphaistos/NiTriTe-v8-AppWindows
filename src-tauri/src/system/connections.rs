@@ -131,7 +131,9 @@ pub fn collect_wifi_info() -> Option<WifiInfo> {
             .creation_flags(0x08000000)
             .output()
             .ok()?;
-        let text = String::from_utf8_lossy(&out.stdout);
+        // netsh écrit en codepage OEM : decode_output (UTF-8 first, repli OEM)
+        // évite le mojibake des libellés/valeurs FR.
+        let text = crate::maintenance::commands::decode_output(&out.stdout);
         let mut wifi = WifiInfo {
             ssid: String::new(), bssid: String::new(),
             signal_percent: 0, band: String::new(), channel: 0,
@@ -140,20 +142,32 @@ pub fn collect_wifi_info() -> Option<WifiInfo> {
             adapter_name: String::new(), authentication: String::new(),
             protocol: String::new(),
         };
+        // Parsing locale-indépendant : les libellés netsh sont traduits ET alignés
+        // différemment (« État », « Authentification », « Canal »…). On coupe sur le
+        // premier ':', on normalise le libellé (minuscule, accents retirés) et on
+        // matche des mots-clés EN + FR — au lieu de préfixes anglais à espaces fixes
+        // qui rendaient toutes les infos WiFi vides sur Windows FR.
+        let strip_accents = |s: &str| s.chars().map(|c| match c {
+            'é'|'è'|'ê'|'ë' => 'e', 'à'|'â'|'ä' => 'a', 'î'|'ï' => 'i',
+            'ô'|'ö' => 'o', 'û'|'ü'|'ù' => 'u', 'ç' => 'c', _ => c,
+        }).collect::<String>();
         for line in text.lines() {
-            let line = line.trim();
-            if let Some(val) = line.strip_prefix("SSID                   : ") { wifi.ssid = val.to_string(); }
-            if let Some(val) = line.strip_prefix("BSSID                  : ") { wifi.bssid = val.to_string(); }
-            if let Some(val) = line.strip_prefix("Signal                 : ") { wifi.signal_percent = val.trim_end_matches('%').parse().unwrap_or(0); }
-            if let Some(val) = line.strip_prefix("Radio type             : ") { wifi.protocol = val.to_string(); }
-            if let Some(val) = line.strip_prefix("Channel                : ") { wifi.channel = val.parse().unwrap_or(0); }
-            if let Some(val) = line.strip_prefix("Authentication         : ") { wifi.authentication = val.to_string(); }
-            if let Some(val) = line.strip_prefix("Cipher                 : ") { wifi.security = val.to_string(); }
-            if let Some(val) = line.strip_prefix("Receive rate (Mbps)    : ") { wifi.receive_rate_mbps = val.parse().unwrap_or(0.0); }
-            if let Some(val) = line.strip_prefix("Transmit rate (Mbps)   : ") { wifi.transmit_rate_mbps = val.parse().unwrap_or(0.0); }
-            if let Some(val) = line.strip_prefix("State                  : ") { wifi.state = val.to_string(); }
-            if let Some(val) = line.strip_prefix("Name                   : ") { wifi.adapter_name = val.to_string(); }
-            // Band detection from channel
+            let Some((label, val)) = line.split_once(':') else { continue };
+            let label = strip_accents(&label.trim().to_lowercase());
+            let val = val.trim();
+            if val.is_empty() { continue; }
+            let l = label.as_str();
+            if l == "ssid" { wifi.ssid = val.to_string(); }
+            else if l == "bssid" { wifi.bssid = val.to_string(); }
+            else if l == "signal" { wifi.signal_percent = val.trim_end_matches('%').trim().parse().unwrap_or(0); }
+            else if l.contains("radio") { wifi.protocol = val.to_string(); }
+            else if l == "channel" || l.contains("canal") { wifi.channel = val.parse().unwrap_or(0); }
+            else if l.contains("authentic") || l.contains("authentif") { wifi.authentication = val.to_string(); }
+            else if l.contains("cipher") || l.contains("chiffrement") { wifi.security = val.to_string(); }
+            else if l.contains("receive") || l.contains("reception") { wifi.receive_rate_mbps = val.parse().unwrap_or(0.0); }
+            else if l.contains("transmit") || l.contains("transmission") { wifi.transmit_rate_mbps = val.parse().unwrap_or(0.0); }
+            else if l == "state" || l.contains("etat") { wifi.state = val.to_string(); }
+            else if l == "name" || l == "nom" { wifi.adapter_name = val.to_string(); }
         }
         if wifi.channel > 0 {
             wifi.band = if wifi.channel <= 14 { "2.4 GHz".to_string() }
