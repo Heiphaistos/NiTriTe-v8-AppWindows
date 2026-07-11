@@ -35,8 +35,14 @@ fn blocked_commands() -> HashSet<&'static str> {
 
 /// Caracteres suspects d'injection de commandes
 fn has_injection(cmd: &str) -> bool {
-    // "&" seul est un séparateur cmd.exe (cmd1 & cmd2) — autant que "&&"
-    ["&", "&&", "||", "|", ";", ">", ">>", "<", "`", "$("].iter().any(|c| cmd.contains(c))
+    // "&" seul est un séparateur cmd.exe (cmd1 & cmd2) — autant que "&&".
+    // Les sauts de ligne (\n, \r) sont CRITIQUES : `first_word` vient de
+    // split_whitespace (qui les avale), donc « ping 8.8.8.8\r\nshutdown /s »
+    // passait la whitelist alors que cmd /C exécute la 2e ligne. On bloque aussi
+    // "%" (expansion de variables d'environnement dans cmd.exe).
+    ["&", "&&", "||", "|", ";", ">", ">>", "<", "`", "$(", "\n", "\r", "%"]
+        .iter()
+        .any(|c| cmd.contains(c))
 }
 
 /// Validation des arguments pour les commandes potentiellement dangereuses selon leurs arguments.
@@ -191,6 +197,19 @@ mod tests {
     #[test]
     fn blocks_subshell_injection() {
         assert!(is_safe("ping $(whoami)").is_err());
+    }
+
+    #[test]
+    fn blocks_newline_injection() {
+        // first_word vient de split_whitespace (avale le \n) : sans blocage du
+        // saut de ligne, la 2e ligne s'exécutait via cmd /C.
+        assert!(is_safe("ping 8.8.8.8\r\nshutdown /s /t 0").is_err());
+        assert!(is_safe("ipconfig\ndel important.txt").is_err());
+    }
+
+    #[test]
+    fn blocks_env_var_expansion() {
+        assert!(is_safe("ping %COMPUTERNAME%").is_err());
     }
 
     // ── Validation arguments (commandes sensibles) ────────────────────────────
