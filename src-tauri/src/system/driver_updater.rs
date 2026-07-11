@@ -82,6 +82,9 @@ pub struct DriverInstallResult {
 #[tauri::command]
 pub fn get_hardware_devices() -> Vec<HardwareDevice> {
     let ps = r#"
+# Sortie UTF-8 : noms de périphériques/fabricants accentués (FR « Périphérique
+# système »…) seraient sinon mojibake côté Rust (from_utf8_lossy).
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $devs = @(Get-WmiObject Win32_PnPEntity -ErrorAction SilentlyContinue | ForEach-Object {
     $d = $_
     $hwids = @()

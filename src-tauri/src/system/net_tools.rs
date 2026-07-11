@@ -172,6 +172,7 @@ pub fn run_nslookup(host: String, record_type: String, dns_server: Option<String
 #[tauri::command]
 pub fn get_ip_config() -> Vec<IpConfigAdapter> {
     let ps = r#"
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $result = @(Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' } | ForEach-Object {
     $a = $_
     $ip4 = Get-NetIPAddress -InterfaceIndex $a.ifIndex -AddressFamily IPv4 -EA SilentlyContinue | Select-Object -First 1
@@ -467,6 +468,7 @@ pub fn get_net_shares(host: String) -> Vec<NetShareEntry> {
         Err(e) => { tracing::warn!("get_net_shares: {}", e); return vec![]; }
     };
     let ps = format!(r#"
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 try {{
     $shares = @(Get-WmiObject -ComputerName '{host}' Win32_Share -EA SilentlyContinue |
         ForEach-Object {{ @{{ name=[string]$_.Name; path=[string]$_.Path; comment=[string]$_.Description; host='{host}' }} }})
