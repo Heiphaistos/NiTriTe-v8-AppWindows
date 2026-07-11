@@ -334,11 +334,14 @@ async fn trigger_windows_update() -> String {
     tokio::task::spawn_blocking(|| {
         // Déclenche le scan et l'install via UsoClient (Windows 10/11)
         // Chemin absolu pour éviter le PATH hijacking
+        // Succès = exit code 0, pas seulement « le process a démarré » :
+        // is_ok() masquait les échecs d'UsoClient (service USO désactivé…)
+        // et court-circuitait le fallback vers ms-settings.
         let r1 = std::process::Command::new(r"C:\Windows\System32\UsoClient.exe")
             .arg("StartInteractiveScan")
             .creation_flags(0x08000000)
             .output();
-        if r1.is_ok() { return "Scan Windows Update déclenché".to_string(); }
+        if matches!(r1, Ok(o) if o.status.success()) { return "Scan Windows Update déclenché".to_string(); }
         // Fallback: ouvre les paramètres Windows Update
         let _ = std::process::Command::new("cmd")
             .args(["/C", "start ms-settings:windowsupdate"])
