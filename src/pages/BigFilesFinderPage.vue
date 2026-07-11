@@ -36,15 +36,23 @@ function removeExclusion(folder: string) {
   excludedFolders.value = excludedFolders.value.filter(f => f !== folder);
 }
 
-// Filtre extensions (multi, comma-separated)
+// Filtre extensions (multi, séparées par des virgules). On normalise chaque
+// entrée sans le point de tête ("png" ou ".png" → "png") pour une comparaison
+// EXACTE : un includes() ferait matcher « png » sur « .apng » et « zip » sur
+// « .zip.tmp », sur-incluant des fichiers non voulus.
 const filterExts = computed(() => {
   if (!filterExt.value.trim()) return [];
-  return filterExt.value.split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
+  return filterExt.value.split(",")
+    .map(e => e.trim().toLowerCase().replace(/^\./, ""))
+    .filter(Boolean);
 });
 
 const displayed = computed(() => {
   if (filterExts.value.length === 0) return files.value;
-  return files.value.filter(f => filterExts.value.some(e => f.extension.toLowerCase().includes(e)));
+  return files.value.filter(f => {
+    const ext = f.extension.toLowerCase().replace(/^\./, "");
+    return filterExts.value.includes(ext);
+  });
 });
 
 const totalSize = computed(() =>
