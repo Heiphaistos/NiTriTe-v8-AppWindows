@@ -71,9 +71,13 @@ const totalOptimizations = computed(() =>
   gainsHistory.value.reduce((acc, g) => acc + g.actionsDone, 0)
 );
 
-async function fetchStats(): Promise<SysStats | null> {
+// fresh=true : bypasser le cache. Indispensable pour la mesure avant/après d'un
+// mode Turbo : sinon statsBefore et statsAfter renvoient le MÊME snapshot caché
+// → ramDiff toujours 0, aucun gain affiché même quand la RAM a été libérée.
+async function fetchStats(fresh = false): Promise<SysStats | null> {
   try {
-    const info = dataCache.get("get_system_info") as SysInfo | undefined ?? await invoke<SysInfo>("get_system_info");
+    const cached = fresh ? undefined : (dataCache.get("get_system_info") as SysInfo | undefined);
+    const info = cached ?? await invoke<SysInfo>("get_system_info");
     if (!info) return null;
     const total_mb = Math.round((info.ram?.total_gb ?? 0) * 1024);
     const used_mb  = Math.round((info.ram?.used_gb ?? 0) * 1024);
@@ -91,13 +95,13 @@ async function applyMode(modeId: string) {
   activeMode.value = modeId;
   result.value = null;
   statsAfter.value = null;
-  statsBefore.value = await fetchStats();
+  statsBefore.value = await fetchStats(true);
   try {
     const r = await invoke<{ actions_done: string[]; errors: string[] }>("apply_turbo_mode", { mode: modeId });
     result.value = r;
     // Attendre 1s que Windows applique, puis mesurer
     await new Promise(res => setTimeout(res, 1200));
-    statsAfter.value = await fetchStats();
+    statsAfter.value = await fetchStats(true);
     // Persister le gain dans localStorage
     const freed = ramDiff();
     const modeLabel = modes.find(m => m.id === modeId)?.label ?? modeId;
