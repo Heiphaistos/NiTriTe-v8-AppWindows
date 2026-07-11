@@ -66,17 +66,19 @@ pub fn get_recommended_drivers() -> Result<Vec<DriverStatus>, NiTriTeError> {
 }
 
 fn check_driver_installed(driver: &RecommendedDriver, installed_apps: &str) -> bool {
-    // Verifier via le registre si une cle est specifiee
+    // Verifier via le registre si une cle NON VIDE est specifiee
     if let Some(ref reg_key) = driver.check_registry {
-        if check_registry_key(reg_key) {
+        if !reg_key.trim().is_empty() && check_registry_key(reg_key) {
             return true;
         }
     }
 
-    // Verifier via le nom dans la liste des programmes installes
+    // Verifier via le nom dans la liste des programmes installes.
+    // Garde contre un check_name vide : `contains("")` renverrait toujours true
+    // et marquerait le driver « installé » à tort.
     if let Some(ref name) = driver.check_name {
-        let name_lower = name.to_lowercase();
-        if installed_apps.to_lowercase().contains(&name_lower) {
+        let name_lower = name.trim().to_lowercase();
+        if !name_lower.is_empty() && installed_apps.to_lowercase().contains(&name_lower) {
             return true;
         }
     }
@@ -171,5 +173,14 @@ mod tests {
     fn check_name_empty_installed_list_returns_false() {
         let driver = make_driver(Some("Some Driver"), None);
         assert!(!check_driver_installed(&driver, ""));
+    }
+
+    #[test]
+    fn empty_check_name_does_not_false_positive() {
+        // check_name vide ne doit PAS marquer le driver installé (contains("")=true)
+        let driver = make_driver(Some(""), None);
+        assert!(!check_driver_installed(&driver, "NVIDIA Graphics Driver\nIntel HD"));
+        let driver_ws = make_driver(Some("   "), None);
+        assert!(!check_driver_installed(&driver_ws, "anything"));
     }
 }
