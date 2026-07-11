@@ -17,6 +17,36 @@ pub struct ScriptResult {
     pub exit_code: i32,
 }
 
+/// Décode une ligne brute (sans le \n). `BufRead::lines()` échoue sur tout octet
+/// non-UTF-8 et, combiné à map_while(ok), TRONQUE la sortie dès la 1re ligne
+/// accentuée d'un `cmd` en codepage OEM (CP850 FR). On lit donc les octets et on
+/// décode via decode_output (UTF-8 d'abord, repli OEM) — aucun impact sur la
+/// sortie PowerShell déjà UTF-8.
+#[cfg(target_os = "windows")]
+fn decode_line(bytes: &[u8]) -> String {
+    crate::maintenance::commands::decode_output(bytes)
+}
+#[cfg(not(target_os = "windows"))]
+fn decode_line(bytes: &[u8]) -> String {
+    String::from_utf8_lossy(bytes).to_string()
+}
+
+/// Lit un flux ligne par ligne en tolérant l'OEM, appelle `on_line` par ligne.
+fn read_stream_lines<R: BufRead>(mut reader: R, mut on_line: impl FnMut(String)) {
+    let mut buf = Vec::new();
+    loop {
+        buf.clear();
+        match reader.read_until(b'\n', &mut buf) {
+            Ok(0) => break,
+            Ok(_) => {
+                while matches!(buf.last(), Some(b'\n') | Some(b'\r')) { buf.pop(); }
+                on_line(decode_line(&buf));
+            }
+            Err(_) => break,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct ScriptEntry {
     pub name: String,
@@ -134,22 +164,21 @@ fn execute_script_inner(
             let win = window_clone.clone();
             std::thread::spawn(move || {
                 let mut buf = String::new();
-                for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+                read_stream_lines(BufReader::new(stderr), |line| {
                     let _ = win.emit("script-output", &line);
                     buf.push_str(&line);
                     buf.push('\n');
-                }
+                });
                 buf
             })
         });
         let mut output_text = String::new();
         if let Some(stdout) = child.stdout.take() {
-            let reader = BufReader::new(stdout);
-            for line in reader.lines().map_while(Result::ok) {
+            read_stream_lines(BufReader::new(stdout), |line| {
                 output_text.push_str(&line);
                 output_text.push('\n');
                 let _ = window_clone.emit("script-output", &line);
-            }
+            });
         }
         if let Some(h) = stderr_handle {
             if let Ok(err_text) = h.join() { output_text.push_str(&err_text); }
