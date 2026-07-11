@@ -2,7 +2,7 @@ use serde::Serialize;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
-use super::{parse_json_arr, ps};
+use super::{parse_json_arr, ps, ps_ok};
 
 // ─── Températures ─────────────────────────────────────────────────────────────
 
@@ -376,35 +376,103 @@ pub struct TurboResult {
     pub errors: Vec<String>,
 }
 
+// Protocole de succès réel : chaque script prouve son résultat — try/catch
+// avec -ErrorAction Stop puis `exit 1`, ou test de $LASTEXITCODE pour les
+// exécutables natifs — et est lancé via ps_ok() qui vérifie le code de sortie.
+// Avant, le succès était jugé par ps().is_ok() (vrai dès que powershell.exe
+// démarre) et les -ErrorAction SilentlyContinue rendaient invisibles tous les
+// échecs, notamment sans droits admin : l'UI affichait « fait » à tort.
+
+const PS_HIGH_PERF: &str = "powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2>&1 | Out-Null; if ($LASTEXITCODE -ne 0) { Write-Output 'powercfg a échoué (plan absent ?)'; exit 1 }";
+const PS_BALANCED: &str = "powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e 2>&1 | Out-Null; if ($LASTEXITCODE -ne 0) { Write-Output 'powercfg a échoué (plan absent ?)'; exit 1 }";
+const PS_POWER_SAVER: &str = "powercfg /setactive a1841308-3541-4fab-bc81-f71556f20b4a 2>&1 | Out-Null; if ($LASTEXITCODE -ne 0) { Write-Output 'powercfg a échoué (plan absent ?)'; exit 1 }";
+const PS_HW_SCH: &str = r#"try {
+    Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers' -Name 'HwSchMode' -Value 2 -Type DWord -ErrorAction Stop
+} catch { Write-Output $_.Exception.Message; exit 1 }"#;
+
 #[tauri::command]
 pub fn apply_turbo_mode(mode: String) -> Result<TurboResult, String> {
     let mut done: Vec<String> = Vec::new();
     let mut errors: Vec<String> = Vec::new();
 
-    let run = |script: &str| ps(script);
+    fn run(script: &str, ok_msg: &str, err_label: &str, done: &mut Vec<String>, errors: &mut Vec<String>) {
+        match ps_ok(script) {
+            Ok(_) => done.push(ok_msg.to_string()),
+            Err(e) => errors.push(format!("{err_label} : {e}")),
+        }
+    }
 
     match mode.as_str() {
         "gaming" => {
-            if run("powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2>&1").is_ok() { done.push("Plan d'alimentation : Haute performance".into()); } else { errors.push("Plan d'alimentation non changé".into()); }
-            if run("try { Get-AppxPackage Microsoft.XboxGamingOverlay | Disable-AppxPackage -ErrorAction SilentlyContinue } catch { Set-Service -Name 'GameBarPresenceWriter' -StartupType Disabled -ErrorAction SilentlyContinue }; Set-Service -Name 'GameBarPresenceWriter' -StartupType Disabled -ErrorAction SilentlyContinue; 'ok'").is_ok() { done.push("Xbox Game Bar désactivé (réversible)".into()); }
-            if run("Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers' -Name 'HwSchMode' -Value 2 -Type DWord -ErrorAction SilentlyContinue; 'ok'").is_ok() { done.push("GPU Hardware Scheduling activé".into()); }
-            if run("Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\GameBar' -Name 'AllowAutoGameMode' -Value 1 -Type DWord -ErrorAction SilentlyContinue; Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\GameBar' -Name 'AutoGameModeEnabled' -Value 1 -Type DWord -ErrorAction SilentlyContinue; 'ok'").is_ok() { done.push("Game Mode Windows activé".into()); }
+            run(PS_HIGH_PERF, "Plan d'alimentation : Haute performance", "Plan d'alimentation", &mut done, &mut errors);
+            // Disable-AppxPackage n'existe pas (l'ancien script échouait toujours
+            // en silence) → désactivation Game Bar/DVR via registre HKCU, réversible.
+            run(r#"try {
+    foreach ($p in 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR', 'HKCU:\System\GameConfigStore') {
+        if (-not (Test-Path $p)) { New-Item -Path $p -Force -ErrorAction Stop | Out-Null }
+    }
+    Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR' -Name 'AppCaptureEnabled' -Value 0 -Type DWord -ErrorAction Stop
+    Set-ItemProperty -Path 'HKCU:\System\GameConfigStore' -Name 'GameDVR_Enabled' -Value 0 -Type DWord -ErrorAction Stop
+} catch { Write-Output $_.Exception.Message; exit 1 }"#,
+                "Xbox Game Bar / DVR désactivé (réversible)", "Xbox Game Bar", &mut done, &mut errors);
+            run(PS_HW_SCH, "GPU Hardware Scheduling activé", "GPU Hardware Scheduling", &mut done, &mut errors);
+            run(r#"try {
+    $p = 'HKCU:\Software\Microsoft\GameBar'
+    if (-not (Test-Path $p)) { New-Item -Path $p -Force -ErrorAction Stop | Out-Null }
+    Set-ItemProperty -Path $p -Name 'AllowAutoGameMode' -Value 1 -Type DWord -ErrorAction Stop
+    Set-ItemProperty -Path $p -Name 'AutoGameModeEnabled' -Value 1 -Type DWord -ErrorAction Stop
+} catch { Write-Output $_.Exception.Message; exit 1 }"#,
+                "Game Mode Windows activé", "Game Mode", &mut done, &mut errors);
         }
         "work" => {
-            if run("powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e 2>&1").is_ok() { done.push("Plan d'alimentation : Équilibré".into()); }
-            if run("Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects' -Name 'VisualFXSetting' -Value 2 -ErrorAction SilentlyContinue; 'ok'").is_ok() { done.push("Effets visuels optimisés".into()); }
-            if run("Clear-Clipboard -ErrorAction SilentlyContinue; 'ok'").is_ok() { done.push("Presse-papiers vidé".into()); }
+            run(PS_BALANCED, "Plan d'alimentation : Équilibré", "Plan d'alimentation", &mut done, &mut errors);
+            run(r#"try {
+    $p = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'
+    if (-not (Test-Path $p)) { New-Item -Path $p -Force -ErrorAction Stop | Out-Null }
+    Set-ItemProperty -Path $p -Name 'VisualFXSetting' -Value 2 -Type DWord -ErrorAction Stop
+} catch { Write-Output $_.Exception.Message; exit 1 }"#,
+                "Effets visuels optimisés", "Effets visuels", &mut done, &mut errors);
+            // Clear-Clipboard n'existe pas en PowerShell 5.1 → WinForms.
+            run(r#"try {
+    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+    [System.Windows.Forms.Clipboard]::Clear()
+} catch { Write-Output $_.Exception.Message; exit 1 }"#,
+                "Presse-papiers vidé", "Presse-papiers", &mut done, &mut errors);
         }
         "eco" => {
-            if run("powercfg /setactive a1841308-3541-4fab-bc81-f71556f20b4a 2>&1").is_ok() { done.push("Plan d'alimentation : Économie d'énergie".into()); }
-            if run("(Get-WmiObject -Namespace root/wmi -Class WmiMonitorBrightnessMethods).WmiSetBrightness(1,50) 2>&1; 'ok'").is_ok() { done.push("Luminosité réduite à 50%".into()); }
+            run(PS_POWER_SAVER, "Plan d'alimentation : Économie d'énergie", "Plan d'alimentation", &mut done, &mut errors);
+            run(r#"try {
+    $m = Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorBrightnessMethods -ErrorAction Stop | Select-Object -First 1
+    if (-not $m) { throw 'Aucun écran à luminosité pilotable (poste fixe ?)' }
+    Invoke-CimMethod -InputObject $m -MethodName WmiSetBrightness -Arguments @{ Timeout = [uint32]1; Brightness = [byte]50 } -ErrorAction Stop | Out-Null
+} catch { Write-Output $_.Exception.Message; exit 1 }"#,
+                "Luminosité réduite à 50%", "Luminosité", &mut done, &mut errors);
         }
         _ => {
-            if run("powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2>&1").is_ok() { done.push("Plan d'alimentation : Haute performance".into()); }
-            if run("Clear-DnsClientCache; 'ok'").is_ok() { done.push("Cache DNS vidé".into()); }
-            if run("$mem = [System.Runtime.InteropServices.Marshal]::AllocHGlobal(0); [System.Runtime.InteropServices.Marshal]::FreeHGlobal($mem); [System.GC]::Collect(); 'ok'").is_ok() { done.push("Mémoire libérée".into()); }
-            if run("$protected = @('svchost','System','Registry','lsass','csrss','smss','winlogon','wininit','lsm','dwm','fontdrvhost','msseces','msmpeng','avgnt','avp','bdagent','ekrn','mbam','backupclient','veeam','veamagent','mmagent','nessus','falconhost'); Get-Process | Where-Object { $_.CPU -lt 0.1 -and $_.WorkingSet -gt 1GB -and $_.SessionId -ne 0 -and $_.Name -notin $protected } | Stop-Process -Force -ErrorAction SilentlyContinue; 'ok'").is_ok() { done.push("Processus inutiles terminés".into()); }
-            if run("Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers' -Name 'HwSchMode' -Value 2 -Type DWord -ErrorAction SilentlyContinue; 'ok'").is_ok() { done.push("GPU Hardware Scheduling activé".into()); }
+            run(PS_HIGH_PERF, "Plan d'alimentation : Haute performance", "Plan d'alimentation", &mut done, &mut errors);
+            run("try { Clear-DnsClientCache -ErrorAction Stop } catch { Write-Output $_.Exception.Message; exit 1 }",
+                "Cache DNS vidé", "Cache DNS", &mut done, &mut errors);
+            // L'ancien script (AllocHGlobal(0) + GC.Collect dans le process
+            // PowerShell) ne libérait rien : EmptyWorkingSet réel + comptage.
+            match ps_ok(r#"try {
+    $sig = '[System.Runtime.InteropServices.DllImport("psapi.dll")] public static extern int EmptyWorkingSet(System.IntPtr h);'
+    Add-Type -MemberDefinition $sig -Name 'MemUtil' -Namespace 'Nitrite' -ErrorAction Stop
+    $n = 0
+    Get-Process | ForEach-Object { try { if ([Nitrite.MemUtil]::EmptyWorkingSet($_.Handle) -ne 0) { $n++ } } catch {} }
+    Write-Output $n
+} catch { Write-Output $_.Exception.Message; exit 1 }"#) {
+                Ok(n) => done.push(format!("Mémoire libérée ({} processus allégés)", n)),
+                Err(e) => errors.push(format!("Libération mémoire : {e}")),
+            }
+            match ps_ok(r#"$protected = @('svchost','System','Registry','lsass','csrss','smss','winlogon','wininit','lsm','dwm','fontdrvhost','msseces','msmpeng','avgnt','avp','bdagent','ekrn','mbam','backupclient','veeam','veamagent','mmagent','nessus','falconhost')
+$n = 0
+Get-Process | Where-Object { $_.CPU -lt 0.1 -and $_.WorkingSet -gt 1GB -and $_.SessionId -ne 0 -and $_.Name -notin $protected } |
+    ForEach-Object { try { Stop-Process -Id $_.Id -Force -ErrorAction Stop; $n++ } catch {} }
+Write-Output $n"#) {
+                Ok(n) => done.push(format!("Processus inutiles terminés ({})", n)),
+                Err(e) => errors.push(format!("Processus inutiles : {e}")),
+            }
+            run(PS_HW_SCH, "GPU Hardware Scheduling activé", "GPU Hardware Scheduling", &mut done, &mut errors);
         }
     }
 
@@ -428,17 +496,21 @@ pub fn enable_hidden_power_plans() -> Result<Vec<PowerPlanResult>, String> {
     ];
     let mut results = Vec::new();
     for (name, guid) in &hidden_plans {
+        // Succès jugé sur $LASTEXITCODE — l'ancien sniffing de « error »/« erreur »
+        // dans stdout dépendait de la langue de Windows.
         let script = format!(
-            "powercfg /duplicatescheme {} 2>&1; echo 'OK'",
+            "$out = powercfg /duplicatescheme {} 2>&1; if ($LASTEXITCODE -ne 0) {{ Write-Output $out; exit 1 }}",
             guid
         );
-        let out = ps(&script).unwrap_or_default();
-        let success = !out.to_lowercase().contains("error") && !out.to_lowercase().contains("erreur");
+        let (success, message) = match ps_ok(&script) {
+            Ok(_) => (true, "Plan ajouté / déjà disponible".to_string()),
+            Err(e) => (false, e),
+        };
         results.push(PowerPlanResult {
             name: name.to_string(),
             guid: guid.to_string(),
             success,
-            message: if success { "Plan ajouté / déjà disponible".into() } else { out.trim().to_string() },
+            message,
         });
     }
     Ok(results)
@@ -448,49 +520,65 @@ pub fn enable_hidden_power_plans() -> Result<Vec<PowerPlanResult>, String> {
 
 #[tauri::command]
 pub fn run_quick_optimization(opt_id: String) -> Result<String, String> {
+    // Même protocole que apply_turbo_mode : les actions qui exigent l'élévation
+    // (journaux, SysMain, télémétrie HKLM, TRIM) sortent `exit 1` si rien n'a
+    // réellement été appliqué — l'UI affiche alors le toast d'erreur au lieu
+    // d'un faux succès. Lancé via ps_ok() (code de sortie vérifié).
     let script = match opt_id.as_str() {
+        // Suppression best-effort : les fichiers verrouillés par des process
+        // vivants sont normaux, on ne les compte pas comme échec.
         "clean_temp" => r#"
-$removed = 0
 Get-ChildItem "$env:TEMP" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 Get-ChildItem "C:\Windows\Temp" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-"Fichiers temporaires supprimés"
+"Fichiers temporaires supprimés (fichiers verrouillés ignorés)"
 "#,
-        "flush_dns" => "ipconfig /flushdns; 'Cache DNS vidé'",
+        "flush_dns" => "ipconfig /flushdns 2>&1 | Out-Null; if ($LASTEXITCODE -ne 0) { Write-Output 'ipconfig /flushdns a échoué'; exit 1 }; 'Cache DNS vidé'",
         "clean_eventlog" => r#"
 $logs = @("Application","System","Security","Setup")
-foreach ($l in $logs) { try { Clear-EventLog -LogName $l -ErrorAction SilentlyContinue } catch {} }
-"Journaux d'événements vidés"
+$n = 0
+foreach ($l in $logs) { try { Clear-EventLog -LogName $l -ErrorAction Stop; $n++ } catch {} }
+if ($n -eq 0) { Write-Output "Aucun journal vidé — élévation administrateur requise"; exit 1 }
+"$n journaux d'événements vidés"
 "#,
         "disable_prefetch" => r#"
-Stop-Service -Name SysMain -ErrorAction SilentlyContinue
-Set-Service -Name SysMain -StartupType Disabled -ErrorAction SilentlyContinue
+try {
+    Stop-Service -Name SysMain -Force -ErrorAction Stop
+    Set-Service -Name SysMain -StartupType Disabled -ErrorAction Stop
+} catch { Write-Output $_.Exception.Message; exit 1 }
 "Superfetch/SysMain désactivé pour les SSD"
 "#,
         "disable_telemetry" => r#"
-$p = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
-if (-not (Test-Path $p)) { New-Item -Path $p -Force | Out-Null }
-Set-ItemProperty $p -Name AllowTelemetry -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+try {
+    $p = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
+    if (-not (Test-Path $p)) { New-Item -Path $p -Force -ErrorAction Stop | Out-Null }
+    Set-ItemProperty $p -Name AllowTelemetry -Value 1 -Type DWord -Force -ErrorAction Stop
+} catch { Write-Output $_.Exception.Message; exit 1 }
 "Télémétrie réduite au minimum"
 "#,
         "visual_perf" => r#"
-$p = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'
-Set-ItemProperty $p -Name VisualFXSetting -Value 2 -ErrorAction SilentlyContinue
+try {
+    $p = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'
+    if (-not (Test-Path $p)) { New-Item -Path $p -Force -ErrorAction Stop | Out-Null }
+    Set-ItemProperty $p -Name VisualFXSetting -Value 2 -Type DWord -ErrorAction Stop
+} catch { Write-Output $_.Exception.Message; exit 1 }
 "Effets visuels en mode performance"
 "#,
         "optimize_drives" => r#"
 $count = 0
 Get-Volume | Where-Object { $_.DriveLetter -and $_.DriveType -eq 'Fixed' } | ForEach-Object {
-    Optimize-Volume -DriveLetter $_.DriveLetter -ReTrim -ErrorAction SilentlyContinue
-    $count++
+    try { Optimize-Volume -DriveLetter $_.DriveLetter -ReTrim -ErrorAction Stop; $count++ } catch {}
 }
-"Optimisation TRIM lancée sur $count volume(s)"
+if ($count -eq 0) { Write-Output "Aucun volume optimisé — élévation administrateur requise ou volumes non compatibles TRIM"; exit 1 }
+"Optimisation TRIM effectuée sur $count volume(s)"
 "#,
         "clear_clipboard" => r#"
-Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
-[System.Windows.Forms.Clipboard]::Clear()
+try {
+    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+    [System.Windows.Forms.Clipboard]::Clear()
+} catch { Write-Output $_.Exception.Message; exit 1 }
 "Presse-papiers vidé"
 "#,
         _ => return Err(format!("Optimisation '{}' inconnue", opt_id)),
     };
-    ps(script)
+    ps_ok(script)
 }
