@@ -52,7 +52,8 @@ $paths = @(
     'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
     'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'
 )
-$app = Get-ItemProperty $paths -ErrorAction SilentlyContinue | Where-Object {{ $_.DisplayName -like '*{safe}*' }} | Select-Object -First 1
+$pat = '*' + [Management.Automation.WildcardPattern]::Escape('{safe}') + '*'
+$app = Get-ItemProperty $paths -ErrorAction SilentlyContinue | Where-Object {{ $_.DisplayName -like $pat }} | Select-Object -First 1
 if (-not $app) {{ throw 'Application non trouvée dans le registre' }}
 $us = $app.UninstallString
 if (-not $us) {{ throw 'Chaîne de désinstallation introuvable' }}

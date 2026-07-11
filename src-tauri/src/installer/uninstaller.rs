@@ -183,8 +183,9 @@ function Is-Installed($name) {{
         'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
         'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'
     )
+    $pat = '*' + [Management.Automation.WildcardPattern]::Escape($name) + '*'
     $found = Get-ItemProperty $paths -ErrorAction SilentlyContinue |
-        Where-Object {{ $_.DisplayName -and $_.DisplayName -like "*$($name)*" }}
+        Where-Object {{ $_.DisplayName -and $_.DisplayName -like $pat }}
     return ($null -ne $found)
 }}
 
