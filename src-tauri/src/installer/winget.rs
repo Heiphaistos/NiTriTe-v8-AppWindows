@@ -126,9 +126,10 @@ pub fn install_package(
     })
 }
 
-pub fn upgrade_all(window: &tauri::Window) -> Result<(), NiTriTeError> {
+/// Lance une commande winget et streame stdout ligne par ligne via `upgrade-log`.
+fn stream_winget_upgrade(args: &[&str], window: &tauri::Window) -> Result<(), NiTriTeError> {
     let mut child = Command::new("winget")
-        .args(["upgrade", "--all", "--silent", "--accept-source-agreements", "--accept-package-agreements"])
+        .args(args)
         .stdout(Stdio::piped())
         // stderr non lu ici : le piper sans le drainer bloquerait winget (deadlock)
         // dès que son buffer stderr se remplit. On le jette ; le verdict vient du
@@ -145,6 +146,33 @@ pub fn upgrade_all(window: &tauri::Window) -> Result<(), NiTriTeError> {
     }
 
     child.wait()?;
+    Ok(())
+}
+
+pub fn upgrade_all(excluded_ids: Vec<String>, window: &tauri::Window) -> Result<(), NiTriTeError> {
+    // winget upgrade ne supporte PAS d'option d'exclusion : `--all` mettrait à
+    // jour TOUS les paquets, y compris ceux que l'utilisateur a exclus. Quand une
+    // exclusion existe, on met donc à jour chaque paquet non-exclu individuellement.
+    if excluded_ids.is_empty() {
+        return stream_winget_upgrade(
+            &["upgrade", "--all", "--silent", "--accept-source-agreements", "--accept-package-agreements"],
+            window,
+        );
+    }
+
+    let pkgs = list_upgradable()?;
+    for p in pkgs {
+        if p.id.is_empty() || excluded_ids.iter().any(|e| e.eq_ignore_ascii_case(&p.id)) {
+            let _ = window.emit("upgrade-log", format!("Exclu : {} ({})", p.name, p.id));
+            continue;
+        }
+        let _ = window.emit("upgrade-log", format!("Mise à jour de {} ({})…", p.name, p.id));
+        stream_winget_upgrade(
+            &["upgrade", "--id", p.id.as_str(), "--exact", "--silent",
+              "--accept-source-agreements", "--accept-package-agreements", "--disable-interactivity"],
+            window,
+        )?;
+    }
     Ok(())
 }
 

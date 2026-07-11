@@ -127,8 +127,9 @@ async fn list_upgradable() -> Result<Vec<installer::winget::WingetPackage>, NiTr
 }
 
 #[tauri::command]
-async fn upgrade_all(window: tauri::Window) -> Result<(), NiTriTeError> {
-    tokio::task::spawn_blocking(move || installer::winget::upgrade_all(&window))
+async fn upgrade_all(excluded_ids: Option<Vec<String>>, window: tauri::Window) -> Result<(), NiTriTeError> {
+    let excluded = excluded_ids.unwrap_or_default();
+    tokio::task::spawn_blocking(move || installer::winget::upgrade_all(excluded, &window))
         .await
         .map_err(|e| NiTriTeError::System(e.to_string()))?
 }
