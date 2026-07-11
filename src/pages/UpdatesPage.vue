@@ -244,7 +244,7 @@ async function upgradeAllScoop() {
     scoopPkgs.value = [];
   });
   try {
-    await invokeRaw("upgrade_scoop_all");
+    await invokeRaw("upgrade_scoop_all", { excludedIds: excludedIds.value });
   } catch (e: unknown) {
     scoopMsg.value = `Erreur : ${String(e)}`;
     scoopStatus.value = "error";

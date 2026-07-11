@@ -523,12 +523,30 @@ $rows | ConvertTo-Json -Compress
 }
 
 #[tauri::command]
-async fn upgrade_scoop_all(window: tauri::Window) -> Result<(), NiTriTeError> {
+async fn upgrade_scoop_all(excluded_ids: Option<Vec<String>>, window: tauri::Window) -> Result<(), NiTriTeError> {
+    let excluded = excluded_ids.unwrap_or_default();
     tokio::task::spawn_blocking(move || {
-        // 1. Met à jour Scoop lui-même, 2. Met à jour tous les apps, 3. Nettoie les vieilles versions
-        let ps = "scoop update; scoop update * 2>&1; scoop cleanup * 2>&1; Write-Output 'Mise a jour Scoop terminee.'";
+        // Liste PS-safe des paquets exclus (apostrophes doublées → pas d'injection).
+        let holds: String = excluded
+            .iter()
+            .filter(|s| !s.trim().is_empty())
+            .map(|s| format!("'{}'", s.replace('\'', "''")))
+            .collect::<Vec<_>>()
+            .join(",");
+
+        // 1. Met à jour Scoop, 2. les apps, 3. nettoie. `scoop update *` n'a pas
+        // d'option d'exclusion : on utilise `scoop hold`/`unhold` (mécanisme natif)
+        // autour de la mise à jour pour épargner les paquets exclus — sinon ils
+        // étaient mis à jour malgré leur exclusion.
+        let ps = if holds.is_empty() {
+            "scoop update; scoop update * 2>&1; scoop cleanup * 2>&1; Write-Output 'Mise a jour Scoop terminee.'".to_string()
+        } else {
+            format!(
+                "$ex=@({holds}); foreach($p in $ex){{ scoop hold $p 2>&1 | Out-Null }}; scoop update; scoop update * 2>&1; foreach($p in $ex){{ scoop unhold $p 2>&1 | Out-Null }}; scoop cleanup * 2>&1; Write-Output 'Mise a jour Scoop terminee.'"
+            )
+        };
         let out = std::process::Command::new("powershell")
-            .args(["-NoProfile", "-NonInteractive", "-Command", ps])
+            .args(["-NoProfile", "-NonInteractive", "-Command", &ps])
             .creation_flags(0x08000000)
             .output()
             .map_err(|e| NiTriTeError::System(e.to_string()))?;
