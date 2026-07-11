@@ -16,7 +16,19 @@ pub struct RestorePoint {
 pub fn list_restore_points() -> Result<Vec<RestorePoint>, NiTriTeError> {
     let ps = r#"
 try {
-    $rps = Get-ComputerRestorePoint -ErrorAction Stop | Select-Object SequenceNumber, Description, CreationTime, @{Name='RestorePointType';Expression={$_.RestorePointType.ToString()}}
+    $rps = Get-ComputerRestorePoint -ErrorAction Stop | Select-Object SequenceNumber, Description, CreationTime, @{Name='RestorePointType';Expression={
+        # RestorePointType est un entier (0/1/10/12/13) ; .ToString() renverrait
+        # "0"/"12"… au lieu du nom → le frontend afficherait un numéro brut.
+        $t = [int]$_.RestorePointType
+        switch ($t) {
+            0  {'APPLICATION_INSTALL'}
+            1  {'APPLICATION_UNINSTALL'}
+            10 {'DEVICE_DRIVER_INSTALL'}
+            12 {'MODIFY_SETTINGS'}
+            13 {'CANCELLED_OPERATION'}
+            default {"TYPE_$t"}
+        }
+    }}
     $rps | ConvertTo-Json -Compress
 } catch {
     "[]"
