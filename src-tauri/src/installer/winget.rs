@@ -70,7 +70,19 @@ pub fn list_upgradable() -> Result<Vec<WingetPackage>, NiTriTeError> {
             continue;
         }
         let lower = t.to_lowercase();
-        if lower.contains("package") || lower.contains("paquet") || lower.starts_with("upgrades available") { break; }
+        // Fin de la table = phrase de pied de page winget. On matche la PHRASE
+        // (EN « N package(s) have version numbers that cannot be determined »,
+        // « X upgrades available » / FR « … ne peuvent pas être déterminés »,
+        // « … mises à niveau disponibles ») et NON le mot nu « package », qui
+        // apparaît légitimement dans des noms (« NuGet Package Explorer ») et
+        // aurait tronqué la liste prématurément.
+        if lower.contains("cannot be determined")
+            || lower.contains("détermin") || lower.contains("determin")
+            || lower.contains("upgrades available")
+            || (lower.contains("niveau") && lower.contains("disponible"))
+        {
+            break;
+        }
         let parts = split_winget_columns(t);
         if parts.len() >= 3 {
             packages.push(WingetPackage {
