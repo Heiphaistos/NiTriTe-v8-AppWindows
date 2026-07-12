@@ -566,9 +566,9 @@ const tabs: { id: Tab; label: string; icon: Component }[] = [
 
           <div class="about-rows">
             <div class="about-row"><span>Stack</span><span>Tauri v2 + Rust + Vue 3 + TypeScript</span></div>
-            <div class="about-row"><span>Auteur</span><span>Momo (heiphaistos44-crypto)</span></div>
+            <div class="about-row"><span>Auteur</span><span>Momo (Heiphaistos)</span></div>
             <div class="about-row"><span>Site web</span><a class="about-link" href="https://site-web-ni-tri-te-v-2.vercel.app/" target="_blank">site-web-ni-tri-te-v-2.vercel.app</a></div>
-            <div class="about-row"><span>GitHub</span><a class="about-link" href="https://github.com/heiphaistos44-crypto" target="_blank">github.com/heiphaistos44-crypto</a></div>
+            <div class="about-row"><span>GitHub</span><a class="about-link" href="https://github.com/Heiphaistos" target="_blank">github.com/Heiphaistos</a></div>
             <div class="about-row"><span>Contact</span><a class="about-link" href="mailto:contactnitrite@gmail.com">contactnitrite@gmail.com</a></div>
             <div class="about-row"><span>Données</span><span style="color:var(--success)">✓ 100% local — aucune télémétrie, aucune collecte de données</span></div>
             <div class="about-row"><span>Propriété</span><span>© 2025 Nitrite — Reproduction interdite sans autorisation</span></div>
