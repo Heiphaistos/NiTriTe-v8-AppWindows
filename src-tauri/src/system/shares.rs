@@ -69,7 +69,10 @@ try {
 # Sessions SMB actives
 try {
     $out.Sessions = @(Get-SmbSession -ErrorAction SilentlyContinue | Select-Object -First 20 | ForEach-Object {
-        @{clientName=[string]$_.ClientComputerName; clientIp=[string]$_.ClientUserName;
+        # Get-SmbSession n'expose pas d'IP séparée : ClientComputerName contient déjà
+        # l'IP/nom du client. clientIp pointait par erreur vers ClientUserName
+        # (copie du champ user) et affichait un nom d'utilisateur a la place d'une IP.
+        @{clientName=[string]$_.ClientComputerName; clientIp=[string]$_.ClientComputerName;
           user=[string]$_.ClientUserName; idleTime=[string]$_.SecondsIdle}
     })
 } catch { $out.Sessions = @() }
@@ -97,7 +100,9 @@ $out | ConvertTo-Json -Depth 3 -Compress
             .output();
 
         if let Ok(o) = output {
-            let text = String::from_utf8_lossy(&o.stdout);
+            // decode_output : Description de partage est un champ libre admin,
+            // souvent accentué FR ("Partage des documents").
+            let text = crate::maintenance::commands::decode_output(&o.stdout);
             let v: serde_json::Value = match serde_json::from_str(text.trim()) {
                 Ok(val) => val, Err(_) => return SharesInfo::default(),
             };

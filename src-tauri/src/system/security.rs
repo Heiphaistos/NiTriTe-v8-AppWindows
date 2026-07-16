@@ -49,28 +49,6 @@ fn run_ps(script: &str) -> String {
     }
 }
 
-#[cfg(target_os = "windows")]
-#[allow(dead_code)]
-fn reg_query(key: &str, name: &str) -> String {
-    let out = Command::new("reg")
-        .args(["query", key, "/v", name])
-        .creation_flags(0x08000000)
-        .output();
-    match out {
-        Ok(o) => {
-            let s = String::from_utf8_lossy(&o.stdout);
-            for line in s.lines() {
-                if line.contains(name) {
-                    let parts: Vec<&str> = line.splitn(3, "    ").collect();
-                    if let Some(val) = parts.last() { return val.trim().to_string(); }
-                }
-            }
-            String::new()
-        }
-        Err(_) => String::new(),
-    }
-}
-
 pub fn collect_security_status() -> SecurityStatus {
     #[cfg(target_os = "windows")]
     {
