@@ -492,7 +492,9 @@ fn run_ps(script: &str) -> Option<String> {
             .args(["-NoProfile", "-NonInteractive", "-Command", script])
             .creation_flags(0x08000000)
             .output().ok()?;
-        Some(String::from_utf8_lossy(&o.stdout).to_string())
+        // decode_output : labels de disque/volume souvent nommés par l'utilisateur
+        // en FR accentué ("Données", "Système") — sinon mojibake dans get_disks.
+        Some(crate::maintenance::commands::decode_output(&o.stdout))
     }
     #[cfg(not(target_os = "windows"))]
     None

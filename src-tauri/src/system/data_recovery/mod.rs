@@ -19,7 +19,10 @@ pub(super) fn run_ps(script: &str) -> Option<String> {
             .args(["-NoProfile", "-NonInteractive", "-Command", script])
             .creation_flags(0x08000000)
             .output().ok()?;
-        Some(String::from_utf8_lossy(&o.stdout).to_string())
+        // decode_output : noms de fichiers/dossiers récupérés (Documents,
+        // Téléchargements…) sont couramment accentués FR — sans $OutputEncoding
+        // préalable dans les scripts, from_utf8_lossy les mojibake.
+        Some(crate::maintenance::commands::decode_output(&o.stdout))
     }
     #[cfg(not(target_os = "windows"))]
     None
@@ -36,7 +39,7 @@ pub(super) fn run_ps_with_args(script: &str, extra_args: &[&str]) -> Option<Stri
             cmd.arg(arg);
         }
         let o = cmd.creation_flags(0x08000000).output().ok()?;
-        Some(String::from_utf8_lossy(&o.stdout).to_string())
+        Some(crate::maintenance::commands::decode_output(&o.stdout))
     }
     #[cfg(not(target_os = "windows"))]
     None
