@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -66,7 +67,7 @@ async function saveDesc(e: BcdEntry) {
 }
 
 async function enableSafeMode() {
-  if (!confirm("Activer le Safe Mode au prochain démarrage ? Le système redémarrera en mode minimal.")) return;
+  if (!(await confirm("Activer le Safe Mode au prochain démarrage ? Le système redémarrera en mode minimal.", { title: "Nitrite", kind: "warning" }))) return;
   togglingMode.value = true;
   try {
     await invoke("run_system_command", {
@@ -82,7 +83,7 @@ async function enableSafeMode() {
 }
 
 async function disableSafeMode() {
-  if (!confirm("Désactiver le Safe Mode ? Le système démarrera normalement au prochain redémarrage.")) return;
+  if (!(await confirm("Désactiver le Safe Mode ? Le système démarrera normalement au prochain redémarrage.", { title: "Nitrite", kind: "warning" }))) return;
   togglingMode.value = true;
   try {
     await invoke("run_system_command", {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke, isTauriContext } from "@/utils/invoke";
 import { useNotificationStore } from "@/stores/notifications";
 import NCard from "@/components/ui/NCard.vue";
@@ -114,7 +115,7 @@ async function loadWinEvents() {
 }
 
 async function clearFileLogs() {
-  if (!confirm("Archiver et vider le fichier de log ?")) return;
+  if (!(await confirm("Archiver et vider le fichier de log ?", { title: "Nitrite", kind: "warning" }))) return;
   try { await invoke("clear_logs"); await loadFileLogs(); } catch { /* ignore */ }
 }
 

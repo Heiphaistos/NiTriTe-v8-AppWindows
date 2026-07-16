@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from "vue";
 import { invoke, isTauriContext } from "@/utils/invoke";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -255,8 +256,9 @@ async function startScan(type: "quick" | "full" | "offline" | "custom") {
 
   let psCommand: string;
   if (type === "offline") {
-    const confirmed = window.confirm(
-      "Cette opération va redémarrer votre ordinateur pour effectuer un scan au démarrage Windows. Continuer ?"
+    const confirmed = await confirm(
+      "Cette opération va redémarrer votre ordinateur pour effectuer un scan au démarrage Windows. Continuer ?",
+      { title: "Nitrite", kind: "warning" }
     );
     if (!confirmed) { stopScanTimer(); scanning.value = false; return; }
     psCommand = "Start-MpWDOScan";

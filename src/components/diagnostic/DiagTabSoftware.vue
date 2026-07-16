@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { csvCell } from "@/composables/useExportData";
 import { invoke } from "@/utils/invoke";
 import { Search, Package, Terminal, Plus, Trash2, Download, Loader2 } from "lucide-vue-next";
@@ -53,7 +54,7 @@ async function addEnvVar() {
 }
 
 async function deleteEnvVar(e: EnvVar) {
-  if (!confirm(`Supprimer la variable "${e.name}" (${e.var_type}) ?`)) return;
+  if (!(await confirm(`Supprimer la variable "${e.name}" (${e.var_type}) ?`, { title: "Nitrite", kind: "warning" }))) return;
   try {
     const r = await invoke<string>("delete_environment_variable", { name: e.name, scope: e.var_type });
     showEnvMsg(r);

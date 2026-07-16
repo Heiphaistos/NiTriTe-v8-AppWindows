@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke, isTauriContext } from "@/utils/invoke";
 import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
@@ -193,7 +194,7 @@ function parseStats(raw: string): { cpu: string; mem: string } {
 
 // ── Prune images ─────────────────────────────────────────────────────────────
 async function pruneImages() {
-  if (!confirm("Supprimer toutes les images orphelines (dangling) ? Cette action est irreversible.")) return;
+  if (!(await confirm("Supprimer toutes les images orphelines (dangling) ? Cette action est irreversible.", { title: "Nitrite", kind: "warning" }))) return;
   pruneImgLoading.value = true;
   try {
     const result = await invoke<CommandResult>("run_system_command", {
@@ -210,7 +211,7 @@ async function pruneImages() {
 
 // ── Prune volumes ─────────────────────────────────────────────────────────────
 async function pruneVolumes() {
-  if (!confirm("Supprimer tous les volumes inutilises ? Cette action est irreversible.")) return;
+  if (!(await confirm("Supprimer tous les volumes inutilises ? Cette action est irreversible.", { title: "Nitrite", kind: "warning" }))) return;
   pruneVolLoading.value = true;
   try {
     await invoke<CommandResult>("run_system_command", { cmd: "docker", args: ["volume", "prune", "-f"] });

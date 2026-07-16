@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { csvCell } from "@/composables/useExportData";
 import { invoke, isTauriContext } from "@/utils/invoke";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { sdiAcquire, sdiRelease } from "@/utils/sdiGuard";
 import type { CommandResult } from "@/types/diagnostic";
 import NCard from "@/components/ui/NCard.vue";
@@ -255,8 +256,9 @@ function isRunning(d: DriverEntry): boolean {
 }
 
 async function rollbackDriver(d: DriverEntry) {
-  const confirmed = window.confirm(
-    `Rollback du driver "${d.displayName}" ?\n\nLe Gestionnaire de périphériques va s'ouvrir. Sélectionnez le driver > Propriétés > Pilote > Restaurer.`
+  const confirmed = await confirm(
+    `Rollback du driver "${d.displayName}" ?\n\nLe Gestionnaire de périphériques va s'ouvrir. Sélectionnez le driver > Propriétés > Pilote > Restaurer.`,
+    { title: "Nitrite", kind: "warning" }
   );
   if (!confirmed) return;
 
@@ -275,8 +277,9 @@ async function rollbackDriver(d: DriverEntry) {
 
 async function toggleDriver(d: DriverEntry) {
   const action = isRunning(d) ? "désactiver" : "activer";
-  const confirmed = window.confirm(
-    `Voulez-vous ${action} le driver "${d.displayName}" ?\n\n${isRunning(d) ? "ATTENTION : Désactiver un driver critique peut rendre le système instable." : ""}`
+  const confirmed = await confirm(
+    `Voulez-vous ${action} le driver "${d.displayName}" ?\n\n${isRunning(d) ? "ATTENTION : Désactiver un driver critique peut rendre le système instable." : ""}`,
+    { title: "Nitrite", kind: "warning" }
   );
   if (!confirmed) return;
 

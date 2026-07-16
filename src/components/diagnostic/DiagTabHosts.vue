@@ -157,6 +157,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@/utils/invoke";
 import { FileText, RefreshCw, Save, Plus, Trash2 } from 'lucide-vue-next'
 
@@ -236,7 +237,7 @@ const importingList = ref<string | null>(null);
 const importMsg = ref("");
 
 async function importBlocklist(bl: Blocklist) {
-  if (!confirm(`Importer "${bl.name}" (~${bl.count} entrées) ? Cela ajoutera des entrées au fichier hosts.`)) return;
+  if (!(await confirm(`Importer "${bl.name}" (~${bl.count} entrées) ? Cela ajoutera des entrées au fichier hosts.`, { title: "Nitrite", kind: "warning" }))) return;
   importingList.value = bl.name;
   importMsg.value = "Téléchargement en cours...";
   try {

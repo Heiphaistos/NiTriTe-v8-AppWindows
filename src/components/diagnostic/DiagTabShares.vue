@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@/utils/invoke";
 import NBadge from "@/components/ui/NBadge.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
@@ -25,7 +26,7 @@ async function openPrinterMgmt() {
 }
 
 async function disconnectAllSessions() {
-  if (!confirm("Déconnecter toutes les sessions SMB actives ?")) return;
+  if (!(await confirm("Déconnecter toutes les sessions SMB actives ?", { title: "Nitrite", kind: "warning" }))) return;
   actionLoading.value = true;
   try {
     await invoke("run_system_command", {

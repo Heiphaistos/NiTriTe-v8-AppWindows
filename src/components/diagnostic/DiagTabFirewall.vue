@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@/utils/invoke";
 import NBadge from "@/components/ui/NBadge.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
@@ -27,7 +28,7 @@ async function enableAllProfiles() {
 }
 
 async function disableAllProfiles() {
-  if (!confirm("Désactiver le pare-feu sur tous les profils ? Cela réduit la sécurité du système.")) return;
+  if (!(await confirm("Désactiver le pare-feu sur tous les profils ? Cela réduit la sécurité du système.", { title: "Nitrite", kind: "warning" }))) return;
   fwActionLoading.value = true;
   try {
     await invoke("run_system_command", {

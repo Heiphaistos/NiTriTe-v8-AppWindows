@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, type Component } from "vue";
 import { invoke, isTauriContext } from "@/utils/invoke";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { useNotificationStore } from "@/stores/notifications";
 import { useRouter } from "vue-router";
 import { useDiagnosticStore } from "@/stores/diagnosticStore";
@@ -62,7 +63,7 @@ const killingPid = ref<number | null>(null);
 const killError = ref<string | null>(null);
 
 async function killProcess(pid: number, name: string) {
-  if (!confirm(`Terminer le processus "${name}" (PID ${pid}) ?`)) return;
+  if (!(await confirm(`Terminer le processus "${name}" (PID ${pid}) ?`, { title: "Nitrite", kind: "warning" }))) return;
   killingPid.value = pid;
   killError.value = null;
   try {

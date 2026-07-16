@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, type Component } from "vue";
 import { invoke, isTauriContext } from "@/utils/invoke";
+import { message } from "@tauri-apps/plugin-dialog";
 import type { ToolEntry } from "@/types/diagnostic";
 import NButton from "@/components/ui/NButton.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
@@ -284,7 +285,7 @@ async function launchTool(tool: ToolInfo) {
     if (tool.is_url && tool.command.startsWith("http")) {
       window.open(tool.command, "_blank");
     } else {
-      alert(`Erreur lors du lancement de "${tool.name}":\n${err}`);
+      await message(`Erreur lors du lancement de "${tool.name}":\n${err}`, { title: "Nitrite", kind: "error" });
     }
   }
   setTimeout(() => { launchingId.value = null; }, 500);

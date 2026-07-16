@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { invoke, invokeRaw } from "@/utils/invoke";
-import { save } from "@tauri-apps/plugin-dialog";
+import { save, confirm } from "@tauri-apps/plugin-dialog";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NBadge from "@/components/ui/NBadge.vue";
@@ -131,7 +131,7 @@ async function exportDistro(d: WslDistro) {
 }
 
 async function convertToWsl2(d: WslDistro) {
-  if (!confirm(`Convertir "${d.name}" de WSL 1 vers WSL 2 ? Cette opération peut prendre plusieurs minutes.`)) return;
+  if (!(await confirm(`Convertir "${d.name}" de WSL 1 vers WSL 2 ? Cette opération peut prendre plusieurs minutes.`, { title: "Nitrite", kind: "warning" }))) return;
   convertingDistro.value = d.name;
   try {
     const r = await invoke<{ success: boolean; stderr: string }>("run_system_command", { cmd: "wsl", args: ["--set-version", d.name, "2"] });
@@ -145,7 +145,7 @@ async function convertToWsl2(d: WslDistro) {
 }
 
 async function unregisterDistro(d: WslDistro) {
-  if (!confirm(`Supprimer la distribution "${d.name}" ? Toutes les données seront perdues définitivement.`)) return;
+  if (!(await confirm(`Supprimer la distribution "${d.name}" ? Toutes les données seront perdues définitivement.`, { title: "Nitrite", kind: "warning" }))) return;
   unregisteringDistro.value = d.name;
   try {
     const r = await invoke<{ success: boolean; stderr: string }>("run_system_command", { cmd: "wsl", args: ["--unregister", d.name] });

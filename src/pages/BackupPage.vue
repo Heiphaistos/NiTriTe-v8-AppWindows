@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -185,10 +186,11 @@ async function createBackup() {
     .filter((id) => SENSITIVE_ITEMS.has(id))
     .map((id) => backupItems.value.find((b) => b.id === id)?.label ?? id);
   if (sensibles.length > 0) {
-    const ok = confirm(
+    const ok = await confirm(
       `⚠ Données sensibles exportées EN CLAIR dans un fichier non chiffré :\n\n` +
       `${sensibles.map((l) => `• ${l}`).join("\n")}\n\n` +
-      `Conservez le fichier de sauvegarde en lieu sûr. Continuer ?`
+      `Conservez le fichier de sauvegarde en lieu sûr. Continuer ?`,
+      { title: "Nitrite", kind: "warning" }
     );
     if (!ok) return;
   }

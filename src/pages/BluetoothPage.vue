@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@/utils/invoke";
 import { cachedInvoke } from "@/composables/useCachedInvoke";
 import NCard from "@/components/ui/NCard.vue";
@@ -77,7 +78,7 @@ async function load() {
 }
 
 async function toggleBt(enable: boolean) {
-  if (!enable && !confirm("Désactiver le Bluetooth ? Cela déconnectera tous les appareils associés.")) return;
+  if (!enable && !(await confirm("Désactiver le Bluetooth ? Cela déconnectera tous les appareils associés.", { title: "Nitrite", kind: "warning" }))) return;
   toggling.value = true;
   try {
     await invoke("toggle_bluetooth", { enable });
@@ -94,7 +95,7 @@ async function forgetDevice(d: BluetoothDevice) {
     notify.error("Impossible d'oublier", "Identifiant d'appareil manquant");
     return;
   }
-  if (!confirm(`Oublier l'appareil "${d.name || d.address}" ? Cette action supprimera le jumelage.`)) return;
+  if (!(await confirm(`Oublier l'appareil "${d.name || d.address}" ? Cette action supprimera le jumelage.`, { title: "Nitrite", kind: "warning" }))) return;
   forgetting.value = d.device_id;
   try {
     const safeId = d.device_id.replace(/'/g, "''");

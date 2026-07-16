@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { Search, RefreshCw, Cpu, Server, Play, Clock, X, SquarePlay, Square, RotateCcw, Trash2 } from "lucide-vue-next";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@/utils/invoke";
 import NBadge from "@/components/ui/NBadge.vue";
 import NProgress from "@/components/ui/NProgress.vue";
@@ -68,7 +69,7 @@ function showMsg(msg: string, err = false) {
 }
 
 async function killProc(pid: number, name: string) {
-  if (!confirm(`Terminer le processus "${name}" (PID: ${pid}) ?`)) return;
+  if (!(await confirm(`Terminer le processus "${name}" (PID: ${pid}) ?`, { title: "Nitrite", kind: "warning" }))) return;
   busyPid.value = pid;
   try {
     const r = await invoke<string>("kill_process", { pid });
@@ -106,7 +107,7 @@ async function toggleStartup(item: StartupProgram, enable: boolean) {
 }
 
 async function removeStartup(item: StartupProgram) {
-  if (!confirm(`Supprimer "${item.name}" du démarrage ?`)) return;
+  if (!(await confirm(`Supprimer "${item.name}" du démarrage ?`, { title: "Nitrite", kind: "warning" }))) return;
   try {
     const r = await invoke<string>("remove_startup_program", { name: item.name, location: item.location });
     showMsg(r);
@@ -117,7 +118,7 @@ async function removeStartup(item: StartupProgram) {
 }
 
 async function deleteTask(t: ScheduledTask) {
-  if (!confirm(`Supprimer la tâche "${t.name}" ?`)) return;
+  if (!(await confirm(`Supprimer la tâche "${t.name}" ?`, { title: "Nitrite", kind: "warning" }))) return;
   busyTask.value = t.name;
   try {
     const r = await invoke<string>("delete_scheduled_task", { taskName: t.name, taskPath: t.path || "" });

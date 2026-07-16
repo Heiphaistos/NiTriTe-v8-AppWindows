@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@/utils/invoke";
 import NBadge from "@/components/ui/NBadge.vue";
 import NSpinner from "@/components/ui/NSpinner.vue";
@@ -104,7 +105,7 @@ async function saveEdit() {
 }
 
 async function deleteValue(name: string) {
-  if (!confirm(`Supprimer la valeur "${name}" ?`)) return;
+  if (!(await confirm(`Supprimer la valeur "${name}" ?`, { title: "Nitrite", kind: "warning" }))) return;
   try {
     await invoke("registry_delete_value", { path: browsePath.value, name });
     await browseTo(browsePath.value);

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@/utils/invoke";
 import { cachedInvoke, refreshCached } from "@/composables/useCachedInvoke";
 import NCard from "@/components/ui/NCard.vue";
@@ -101,8 +102,9 @@ async function create() {
 }
 
 async function restorePoint(p: RestorePoint) {
-  const ok = confirm(
-    `Restaurer le système à ce point ?\n\n"${p.description}" (#${p.sequence_number})\n\nL'ordinateur va redémarrer.`
+  const ok = await confirm(
+    `Restaurer le système à ce point ?\n\n"${p.description}" (#${p.sequence_number})\n\nL'ordinateur va redémarrer.`,
+    { title: "Nitrite", kind: "warning" }
   );
   if (!ok) return;
   restoringId.value = p.sequence_number;
@@ -123,8 +125,9 @@ async function restorePoint(p: RestorePoint) {
 }
 
 async function deletePoint(p: RestorePoint) {
-  const ok = confirm(
-    `Supprimer ce point de restauration ?\n\n"${p.description}" (#${p.sequence_number})\n\nCette action est irréversible.`
+  const ok = await confirm(
+    `Supprimer ce point de restauration ?\n\n"${p.description}" (#${p.sequence_number})\n\nCette action est irréversible.`,
+    { title: "Nitrite", kind: "warning" }
   );
   if (!ok) return;
   deletingId.value = p.sequence_number;

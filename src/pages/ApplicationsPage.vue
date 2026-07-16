@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, type Component } from "vue";
 import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import type { CommandResult } from "@/types/diagnostic";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { cachedInvoke, refreshCached } from "@/composables/useCachedInvoke";
@@ -23,7 +24,7 @@ interface AppInfo {
   id: string;
   name: string;
   description: string;
-  winget_id: string;
+  winget_id: string | null;
   category: string;
   icon?: string;
   version?: string;
@@ -232,6 +233,20 @@ async function loadApps() {
 
 async function installApp(app: AppInfo) {
   if (installingIds.value.has(app.id)) return;
+  // Sans winget_id, install_app retombe sur l'id interne de l'app comme "id winget"
+  // — inexistant dans le dépôt winget, échec garanti. ~48% du catalogue n'a qu'une
+  // URL de téléchargement direct (Office retail, portables, éditeurs sans winget) :
+  // pas la peine de tenter, on ouvre directement la page de téléchargement.
+  if (!app.winget_id) {
+    const url = app.url || app.homepage;
+    if (url) {
+      notifications.info(`Installation automatique indisponible`, `${app.name} : ouverture de la page de téléchargement.`);
+      await openHomepage(url);
+    } else {
+      notifications.error(`Installation impossible`, `Aucune source d'installation disponible pour ${app.name}.`);
+    }
+    return;
+  }
   installingIds.value = new Set([...installingIds.value, app.id]);
   installLogs.value[app.id] = [];
   try {
@@ -256,7 +271,7 @@ async function installApp(app: AppInfo) {
 }
 
 async function uninstallApp(app: AppInfo) {
-  const confirmed = window.confirm(`Désinstaller ${app.name} ?\n\nCette action supprimera l'application de votre système.`);
+  const confirmed = await confirm(`Désinstaller ${app.name} ?\n\nCette action supprimera l'application de votre système.`, { title: "Nitrite", kind: "warning" });
   if (!confirmed) return;
 
   uninstallingIds.value = new Set([...uninstallingIds.value, app.id]);

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke, invokeRaw } from "@/utils/invoke";
 import NButton from "@/components/ui/NButton.vue";
 import NBadge from "@/components/ui/NBadge.vue";
@@ -81,7 +82,7 @@ async function scan() {
 }
 
 async function deleteDll(path: string) {
-  if (!confirm(`Supprimer ${path} ?\n\nAttention : la suppression d'une DLL système ou tierce peut déstabiliser le système.`)) return;
+  if (!(await confirm(`Supprimer ${path} ?\n\nAttention : la suppression d'une DLL système ou tierce peut déstabiliser le système.`, { title: "Nitrite", kind: "warning" }))) return;
   deleting.value = new Set(deleting.value).add(path);
   try {
     await invoke("delete_dll", { path });
@@ -104,7 +105,7 @@ function toggleSelect(path: string) {
 
 async function deleteSelected() {
   if (!selected.value.size) return;
-  if (!confirm(`Supprimer ${selected.value.size} DLL(s) ?\n\nCette action est irréversible.`)) return;
+  if (!(await confirm(`Supprimer ${selected.value.size} DLL(s) ?\n\nCette action est irréversible.`, { title: "Nitrite", kind: "warning" }))) return;
   for (const path of selected.value) {
     await deleteDll(path);
   }

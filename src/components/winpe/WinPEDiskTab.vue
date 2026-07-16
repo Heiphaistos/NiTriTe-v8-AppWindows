@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { confirm, message } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@/utils/invoke";
 import NButton from "@/components/ui/NButton.vue";
 import { HardDrive, Terminal, Activity, Trash2, CheckCircle, XCircle } from "lucide-vue-next";
@@ -17,6 +18,7 @@ const formatFs = ref("ntfs");
 const formatLabel = ref("");
 const cloneSrc = ref("");
 const cloneDst = ref("");
+const cleanDiskIndex = ref("");
 
 async function run(cmd: string, label?: string) {
   isLoading.value = true;
@@ -80,11 +82,11 @@ async function cloneDisk() {
 }
 
 async function cleanDisk() {
-  const idx = prompt("Entrez l'index du disque à nettoyer (ex: 0):");
+  const idx = cleanDiskIndex.value;
   if (!idx) return;
-  if (!isValidDiskIndex(idx)) { alert("Index invalide — entrez un nombre entre 0 et 99."); return; }
+  if (!isValidDiskIndex(idx)) { await message("Index invalide — entrez un nombre entre 0 et 99.", { title: "Nitrite", kind: "error" }); return; }
   const diskIndex = parseInt(idx, 10);
-  if (!confirm(`⚠️ IRRÉVERSIBLE : effacer toutes les partitions du disque ${diskIndex} ?`)) return;
+  if (!(await confirm(`⚠️ IRRÉVERSIBLE : effacer toutes les partitions du disque ${diskIndex} ?`, { title: "Nitrite", kind: "warning" }))) return;
   isLoading.value = true;
   try {
     const r = await invoke<RepairResult>("disk_wipe", { diskIndex, method: "quick" });
@@ -161,8 +163,14 @@ async function cleanDisk() {
     <div class="section-card danger-card">
       <h3 class="section-title"><Trash2 :size="15" /> Clean Disk (Effacer partitions)</h3>
       <p class="hint" style="color:var(--danger)">⚠️ Supprime toutes les partitions du disque sélectionné — IRRÉVERSIBLE.</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Index du disque</label>
+          <input v-model="cleanDiskIndex" class="form-input" placeholder="Ex: 0" />
+        </div>
+      </div>
       <div class="tool-actions">
-        <NButton variant="danger" size="sm" :disabled="isLoading" @click="cleanDisk">Clean disk…</NButton>
+        <NButton variant="danger" size="sm" :disabled="!cleanDiskIndex || isLoading" @click="cleanDisk">Clean disk {{ cleanDiskIndex }}</NButton>
       </div>
     </div>
 

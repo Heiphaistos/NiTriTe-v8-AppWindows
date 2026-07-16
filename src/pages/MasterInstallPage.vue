@@ -30,7 +30,7 @@ const showDryRun = ref(false);
 const dryRunApps = computed(() => apps.value.filter(a => a.checked && !a.installed));
 
 // ── Résumé installation ────────────────────────────────────────
-interface InstallResult { name: string; success: boolean; message: string }
+interface InstallResult { name: string; success: boolean; message: string; manualUrl?: string }
 const showSummary = ref(false);
 const installResults = ref<InstallResult[]>([]);
 
@@ -54,6 +54,15 @@ const currentApp = ref("");
 const installProgress = ref(0);
 const installTotal = ref(0);
 const installIndex = ref(0);
+const installStartTime = ref<number | null>(null);
+const installEtaLabel = ref("");
+
+function formatEta(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "";
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return m > 0 ? `~${m} min ${s}s restantes` : `~${s}s restantes`;
+}
 const collapsedCategories = ref<Set<string>>(new Set());
 
 interface AppItem {
@@ -241,11 +250,33 @@ async function installSelection() {
   installTotal.value = selected.length;
   installIndex.value = 0;
   installResults.value = [];
+  installStartTime.value = Date.now();
+  installEtaLabel.value = "";
 
   for (const app of selected) {
     installIndex.value++;
     currentApp.value = app.name;
     installProgress.value = Math.round((installIndex.value / installTotal.value) * 100);
+    if (installIndex.value > 1 && installStartTime.value) {
+      const elapsedSec = (Date.now() - installStartTime.value) / 1000;
+      const avgPerApp = elapsedSec / (installIndex.value - 1);
+      const remaining = installTotal.value - installIndex.value + 1;
+      installEtaLabel.value = formatEta(avgPerApp * remaining);
+    }
+
+    // Sans winget_id, install_app retombe sur l'id interne de l'app comme "id winget"
+    // (ex: "google-chrome") — ça n'existe pas dans le dépôt winget, donc échec garanti
+    // à chaque fois. On ne tente même pas : ~48% du catalogue n'a qu'une URL de
+    // téléchargement direct (Office retail, portables, éditeurs sans dépôt winget).
+    if (!app.winget_id) {
+      installResults.value.push({
+        name: app.name,
+        success: false,
+        message: "Pas d'installation automatique disponible pour cette application",
+        manualUrl: app.url ?? undefined,
+      });
+      continue;
+    }
 
     try {
       const result = await invoke<{ success: boolean; app_id: string; message: string }>("install_app", {
@@ -272,6 +303,8 @@ async function installSelection() {
   installing.value = false;
   currentApp.value = "";
   installProgress.value = 0;
+  installEtaLabel.value = "";
+  installStartTime.value = null;
   showSummary.value = true;
 }
 
@@ -360,17 +393,6 @@ onMounted(async () => {
       </div>
     </NCard>
 
-    <!-- Progress -->
-    <NCard v-if="installing">
-      <div class="install-progress">
-        <div class="install-status">
-          <Package :size="16" class="spin-icon" />
-          <span>Installation de <strong>{{ currentApp }}</strong> ({{ installIndex }}/{{ installTotal }})</span>
-        </div>
-        <NProgress :value="installProgress" size="lg" showLabel />
-      </div>
-    </NCard>
-
     <!-- Search -->
     <NSearchBar v-model="search" placeholder="Rechercher une application..." />
 
@@ -383,6 +405,7 @@ onMounted(async () => {
             Installation de <strong>{{ currentApp }}</strong>
           </span>
           <NBadge variant="info">{{ installIndex }}/{{ installTotal }}</NBadge>
+          <NBadge v-if="installEtaLabel" variant="neutral">{{ installEtaLabel }}</NBadge>
         </div>
         <NProgress :value="installProgress" :max="100" size="lg" :show-label="true" :glow="true" />
       </div>
@@ -473,6 +496,7 @@ onMounted(async () => {
           <span class="summary-name">{{ r.name }}</span>
           <span v-if="!r.success" class="summary-msg">{{ r.message }}</span>
         </div>
+        <a v-if="r.manualUrl" :href="r.manualUrl" target="_blank" class="summary-manual-link">Télécharger</a>
       </div>
     </div>
     <template #footer>
@@ -633,6 +657,7 @@ onMounted(async () => {
 .summary-info { display: flex; flex-direction: column; gap: 2px; }
 .summary-name { font-size: 12px; font-weight: 500; color: var(--text-primary); }
 .summary-msg { font-size: 11px; color: var(--danger); font-family: "JetBrains Mono", monospace; }
+.summary-manual-link { margin-left: auto; align-self: center; font-size: 11px; color: var(--primary); text-decoration: underline; white-space: nowrap; flex-shrink: 0; }
 
 .profiles-grid {
   display: grid;
