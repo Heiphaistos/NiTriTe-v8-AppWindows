@@ -65,3 +65,6 @@ NUL
 # --- SDI resources (heavy driver packs) ---
 src-tauri/resources/sdi/drivers_RUS/
 src-tauri/resources/sdi/indexes/
+
+# Loop autonome (état local, hors repo)
+.loop/

@@ -124,14 +124,3 @@ pub async fn query(
     let result: serde_json::Value = resp.json().await?;
     Ok(result["response"].as_str().unwrap_or("").to_string())
 }
-
-pub async fn pull_model(url: &str, model: &str) -> Result<(), NiTriTeError> {
-    let client = reqwest::Client::new();
-    client.post(format!("{}/api/pull", url))
-        .json(&serde_json::json!({ "name": model }))
-        .timeout(std::time::Duration::from_secs(3600))
-        .send()
-        .await
-        .map_err(|e| NiTriTeError::OllamaUnavailable(e.to_string()))?;
-    Ok(())
-}

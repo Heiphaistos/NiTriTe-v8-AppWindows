@@ -509,10 +509,22 @@ async fn run_battery_report() -> Result<String, NiTriTeError> {
     let output_str = output_path.to_string_lossy().to_string();
     let out = output_str.clone();
     tokio::task::spawn_blocking(move || {
-        let _ = std::process::Command::new("powercfg")
+        let status = std::process::Command::new("powercfg")
             .args(["/batteryreport", "/output", &out])
             .creation_flags(0x08000000)
-            .status();
+            .status()
+            .map_err(|e| NiTriTeError::System(format!("powercfg introuvable: {}", e)))?;
+        if !status.success() {
+            return Err(NiTriTeError::System(format!(
+                "powercfg a échoué (code {:?}) — rapport batterie non generé",
+                status.code()
+            )));
+        }
+        if !std::path::Path::new(&out).exists() {
+            return Err(NiTriTeError::System(
+                "powercfg a rendu code 0 mais le rapport est introuvable".into(),
+            ));
+        }
         Ok::<(), NiTriTeError>(())
     })
     .await
