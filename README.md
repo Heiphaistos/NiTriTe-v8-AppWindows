@@ -2,7 +2,7 @@
   <h1>🔧 NITriTe 2.0</h1>
   <p><strong>Outil de diagnostic, réparation et optimisation Windows ultra-complet avec interface Tauri v2 moderne.</strong></p>
 
-  ![Version](https://img.shields.io/badge/version-6.2.0-blue)
+  ![Version](https://img.shields.io/badge/version-8.55.0-blue)
   ![Stack](https://img.shields.io/badge/stack-Tauri%20v2%20%2B%20Rust%20%2B%20Vue%203-purple)
   ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-informational)
   ![Language](https://img.shields.io/badge/language-Rust%20%2B%20TypeScript-orange)
@@ -13,9 +13,9 @@
 
 ## 📋 Description
 
-NITriTe 2.0 est un outil Windows tout-en-un conçu pour les techniciens et utilisateurs avancés. Il regroupe 47 onglets répartis en 6 catégories pour couvrir l'intégralité du diagnostic, de la réparation et de l'optimisation d'un poste Windows — le tout via une interface native moderne construite avec Tauri v2.
+NITriTe 2.0 est un outil Windows tout-en-un conçu pour les techniciens et utilisateurs avancés. Il regroupe 48 pages et plus de 35 onglets de diagnostic pour couvrir l'intégralité du diagnostic, de la réparation et de l'optimisation d'un poste Windows — le tout via une interface native moderne construite avec Tauri v2.
 
-La version 6.2.0 intègre un mode WinPE (ISO bootable), un désinstalleur silencieux multi-format, et un système complet de récupération de données via VSS.
+La version 8.55.0 intègre un mode WinPE (ISO bootable), un désinstalleur silencieux multi-format, un système complet de récupération de données via VSS, un assistant IA local (Ollama / llama.cpp portable) et un moteur de scripts intégré.
 
 ---
 
@@ -87,7 +87,7 @@ La version 6.2.0 intègre un mode WinPE (ISO bootable), un désinstalleur silenc
 Télécharger et exécuter le setup NSIS :
 
 ```
-Nitrite_6.2.0_x64-setup.exe
+Nitrite_8.55.0_x64-setup.exe
 ```
 
 ### Build depuis les sources
@@ -101,7 +101,7 @@ build.bat
 ```
 
 L'exécutable généré : `src-tauri\target\release\nitrite.exe`
-L'installeur NSIS : `src-tauri\target\release\bundle\nsis\Nitrite_6.2.0_x64-setup.exe`
+L'installeur NSIS : `src-tauri\target\release\bundle\nsis\Nitrite_8.55.0_x64-setup.exe`
 
 ### Développement
 
@@ -114,27 +114,29 @@ npm run tauri dev
 ## 📂 Architecture
 
 ```
-NITriTe-2.0-AppWindows/
+NiTriTe-v8-AppWindows/
 ├── src/
-│   ├── components/diagnostic/     # 47 onglets composants Vue
+│   ├── components/diagnostic/     # onglets composants Vue (DiagTab*)
 │   ├── pages/
 │   │   ├── DiagnosticPage.vue     # Orchestrateur principal
 │   │   ├── ClonePage.vue
 │   │   ├── DataRecoveryPage.vue
 │   │   ├── UninstallerPage.vue
-│   │   └── WinPEModePage.vue      # 6 onglets WinPE
+│   │   ├── AiAgentsPage.vue       # Assistant IA (Ollama / llama.cpp)
+│   │   └── WinPEModePage.vue      # Mode WinPE
 │   └── assets/diagnostic.css     # CSS partagé
 ├── src-tauri/
 │   ├── src/
 │   │   ├── system/
 │   │   │   ├── clone.rs           # wbadmin + robocopy
-│   │   │   ├── data_recovery.rs   # VSS + Corbeille
+│   │   │   ├── data_recovery/     # VSS + Corbeille + dossiers utilisateur
 │   │   │   ├── connections.rs
 │   │   │   ├── processes.rs
 │   │   │   ├── services.rs
 │   │   │   ├── security.rs
 │   │   │   ├── tasks.rs
-│   │   │   └── winpe.rs           # 15 commandes PE
+│   │   │   └── winpe.rs           # commandes PE
+│   │   ├── ai/                    # Ollama / llama.cpp portable
 │   │   └── installer/
 │   │       └── uninstaller.rs     # Désinstall silencieux
 │   └── target/release/bundle/nsis/    # Installeur NSIS final
