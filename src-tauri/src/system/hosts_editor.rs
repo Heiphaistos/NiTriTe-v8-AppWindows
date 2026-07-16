@@ -57,7 +57,13 @@ pub fn get_hosts_entries() -> Vec<HostsEntry> {
                 (rest, "")
             };
 
-            if !ip.is_empty() && !hostname.is_empty() {
+            // Le bloc d'en-tete standard Windows ("# This file contains the
+            // mappings...", "# entry should be kept...") est du texte libre en
+            // commentaire, pas des entrees desactivees — sans cette validation,
+            // chaque ligne de commentaire etait parsee comme si son 1er mot etait
+            // une IP ("Copyright"/"(c)", "This"/"is", "entry"/"should"...),
+            // polluant la liste de fausses entrees a chaque fichier hosts par defaut.
+            if !ip.is_empty() && !hostname.is_empty() && ip.parse::<std::net::IpAddr>().is_ok() {
                 entries.push(HostsEntry {
                     ip: ip.to_string(),
                     hostname: hostname.split_whitespace().next().unwrap_or("").to_string(),
@@ -115,10 +121,18 @@ pub fn add_hosts_entry(ip: String, hostname: String, comment: String) -> Result<
     #[cfg(target_os = "windows")]
     {
         let o = Command::new("powershell").args(["-NoProfile","-NonInteractive","-Command",&ps]).creation_flags(0x08000000).output().map_err(|e| e.to_string())?;
-        if o.status.success() {
-            return Ok(format!("Entrée ajoutée : {} -> {}", ip_c, host_c));
+        if !o.status.success() {
+            return Err(String::from_utf8_lossy(&o.stderr).to_string());
         }
-        Err(String::from_utf8_lossy(&o.stderr).to_string())
+        // Add-Content peut rendre un exit code 0 meme quand l'ecriture echoue
+        // reellement (droits insuffisants sur un fichier systeme, process enfant
+        // powershell.exe non elevé) — sans cette relecture, l'utilisateur voit
+        // "Entrée ajoutée" alors que le fichier hosts reel n'a jamais change.
+        let content = std::fs::read_to_string(HOSTS_PATH).unwrap_or_default();
+        if !content.lines().any(|l| l.trim() == format!("{}\t{}", ip_c, host_c).trim() || (l.contains(&ip_c) && l.contains(&host_c))) {
+            return Err("L'écriture a échoué silencieusement (droits administrateur requis sur le fichier hosts)".to_string());
+        }
+        Ok(format!("Entrée ajoutée : {} -> {}", ip_c, host_c))
     }
     #[cfg(not(target_os = "windows"))]
     Err("Non disponible".to_string())
@@ -129,6 +143,8 @@ pub fn delete_hosts_entry(line_number: u32) -> Result<String, String> {
     if line_number == 0 {
         return Err("Numéro de ligne invalide".to_string());
     }
+    let before = std::fs::read_to_string(HOSTS_PATH).unwrap_or_default();
+    let before_count = before.lines().count();
     // -SkipIndex n'existe qu'en PowerShell 6+ ; boucle indexée compatible Windows PowerShell 5.1
     let ps = format!(r#"
 $lines = @(Get-Content '{}')
@@ -140,8 +156,17 @@ $new | Set-Content '{}' -Encoding UTF8
     #[cfg(target_os = "windows")]
     {
         let o = Command::new("powershell").args(["-NoProfile","-NonInteractive","-Command",&ps]).creation_flags(0x08000000).output().map_err(|e| e.to_string())?;
-        if o.status.success() { return Ok("Entrée supprimée".to_string()); }
-        Err(String::from_utf8_lossy(&o.stderr).to_string())
+        if !o.status.success() {
+            return Err(String::from_utf8_lossy(&o.stderr).to_string());
+        }
+        // Meme piege que add_hosts_entry : exit code 0 ne garantit pas que
+        // l'ecriture a reellement eu lieu — on verifie que le fichier a
+        // vraiment une ligne de moins.
+        let after_count = std::fs::read_to_string(HOSTS_PATH).unwrap_or_default().lines().count();
+        if after_count >= before_count {
+            return Err("La suppression a échoué silencieusement (droits administrateur requis sur le fichier hosts)".to_string());
+        }
+        Ok("Entrée supprimée".to_string())
     }
     #[cfg(not(target_os = "windows"))]
     Err("Non disponible".to_string())
@@ -169,8 +194,18 @@ if ($idx -ge 0 -and $idx -lt $lines.Count) {{
     #[cfg(target_os = "windows")]
     {
         let o = Command::new("powershell").args(["-NoProfile","-NonInteractive","-Command",&ps]).creation_flags(0x08000000).output().map_err(|e| e.to_string())?;
-        if o.status.success() { return Ok("Modifié".to_string()); }
-        Err(String::from_utf8_lossy(&o.stderr).to_string())
+        if !o.status.success() {
+            return Err(String::from_utf8_lossy(&o.stderr).to_string());
+        }
+        // Meme piege : verifier que la ligne ciblee a reellement le prefixe '#'
+        // attendu apres coup, pas juste que powershell.exe est sorti en 0.
+        let lines: Vec<String> = std::fs::read_to_string(HOSTS_PATH).unwrap_or_default().lines().map(|l| l.to_string()).collect();
+        let idx = (line_number - 1) as usize;
+        let actually_enabled = lines.get(idx).map(|l| !l.trim_start().starts_with('#')).unwrap_or(false);
+        if actually_enabled != enable {
+            return Err("La modification a échoué silencieusement (droits administrateur requis sur le fichier hosts)".to_string());
+        }
+        Ok("Modifié".to_string())
     }
     #[cfg(not(target_os = "windows"))]
     Err("Non disponible".to_string())
