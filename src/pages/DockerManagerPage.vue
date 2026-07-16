@@ -229,9 +229,13 @@ const tabs = computed(() => [
   { id: "volumes", label: "Volumes" },
 ]);
 
-onMounted(() => {
-  load();
-  loadVolumes();
+onMounted(async () => {
+  await load();
+  // loadVolumes() spawne "docker volume ls" directement — inutile et source d'un
+  // warning technique brut ("Erreur lancement docker: program not found") si
+  // Docker n'est pas installé, alors que l'état "Docker non détecté" ci-dessus
+  // l'explique déjà proprement.
+  if (info.value?.available) await loadVolumes();
 });
 </script>
 
