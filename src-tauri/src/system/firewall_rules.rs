@@ -88,7 +88,9 @@ $out | ConvertTo-Json -Depth 4 -Compress
             .output();
 
         if let Ok(o) = output {
-            let text = String::from_utf8_lossy(&o.stdout);
+            // decode_output : DisplayName des règles intégrées est localisé FR
+            // accentué (ex: "requête ICMP Echo") sans $OutputEncoding préalable.
+            let text = crate::maintenance::commands::decode_output(&o.stdout);
             let v: serde_json::Value = match serde_json::from_str(text.trim()) {
                 Ok(val) => val, Err(_) => return FirewallInfo::default(),
             };
