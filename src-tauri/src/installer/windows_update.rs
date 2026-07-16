@@ -40,7 +40,9 @@ try {
             .output()
             .map_err(|e| NiTriTeError::System(e.to_string()))?;
 
-        let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        // Meme piege que install_windows_updates ci-dessous : PowerShell redirige
+        // stdout en codepage OEM, un titre de MAJ accentue (KB FR) casserait le JSON.
+        let text = crate::maintenance::commands::decode_output(&output.stdout).trim().to_string();
         if text.is_empty() || text == "[]" {
             return Ok(vec![]);
         }
