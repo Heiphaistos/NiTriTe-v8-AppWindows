@@ -127,7 +127,9 @@ $out | ConvertTo-Json -Depth 4 -Compress
             .output();
 
         if let Ok(o) = output {
-            let text = String::from_utf8_lossy(&o.stdout);
+            // decode_output : valeurs Run/IFEO/Winlogon peuvent contenir des
+            // chemins utilisateur accentués (ex: C:\Users\Jérôme\...).
+            let text = crate::maintenance::commands::decode_output(&o.stdout);
             let v: serde_json::Value = match serde_json::from_str(text.trim()) {
                 Ok(val) => val, Err(_) => return RegistryPersistence::default(),
             };
@@ -210,7 +212,7 @@ try {{
     cmd.creation_flags(0x08000000);
 
     if let Ok(out) = cmd.output() {
-        let stdout = String::from_utf8_lossy(&out.stdout);
+        let stdout = crate::maintenance::commands::decode_output(&out.stdout);
         if let Ok(v) = serde_json::from_str::<serde_json::Value>(&stdout) {
             let subkeys = v["Subkeys"].as_array()
                 .map(|a| a.iter().filter_map(|s| s.as_str().map(|x| x.to_string())).collect())
@@ -247,7 +249,7 @@ pub fn registry_set_value(path: String, name: String, data: String) -> Result<St
     cmd.creation_flags(0x08000000);
     let out = cmd.output().map_err(|e| e.to_string())?;
     if out.status.success() { Ok("Valeur mise à jour".to_string()) }
-    else { Err(String::from_utf8_lossy(&out.stderr).trim().to_string()) }
+    else { Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string()) }
 }
 
 #[tauri::command]
@@ -263,5 +265,5 @@ pub fn registry_delete_value(path: String, name: String) -> Result<String, Strin
     cmd.creation_flags(0x08000000);
     let out = cmd.output().map_err(|e| e.to_string())?;
     if out.status.success() { Ok("Valeur supprimée".to_string()) }
-    else { Err(String::from_utf8_lossy(&out.stderr).trim().to_string()) }
+    else { Err(crate::maintenance::commands::decode_output(&out.stderr).trim().to_string()) }
 }

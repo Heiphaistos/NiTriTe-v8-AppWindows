@@ -40,7 +40,7 @@ try {
         .output()
         .map_err(|e| NiTriTeError::System(e.to_string()))?;
 
-    let raw = String::from_utf8_lossy(&output.stdout);
+    let raw = crate::maintenance::commands::decode_output(&output.stdout);
     let trimmed = raw.trim();
 
     if trimmed.is_empty() || trimmed == "[]" {
@@ -106,7 +106,7 @@ try {{
         .map_err(|e| NiTriTeError::System(e.to_string()))?;
 
     if !output.status.success() {
-        let err = String::from_utf8_lossy(&output.stderr);
+        let err = crate::maintenance::commands::decode_output(&output.stderr);
         return Err(NiTriTeError::System(format!(
             "Échec création point de restauration : {}",
             err.trim()
@@ -164,7 +164,7 @@ if ($shadow) {{
         if output.status.success() {
             Ok(())
         } else {
-            let err = String::from_utf8_lossy(&output.stderr);
+            let err = crate::maintenance::commands::decode_output(&output.stderr);
             Err(NiTriTeError::System(format!(
                 "Suppression échouée : {}",
                 err.trim()
@@ -200,14 +200,14 @@ try {
         .map_err(|e| NiTriTeError::System(e.to_string()))?;
 
     if !output.status.success() {
-        let err = String::from_utf8_lossy(&output.stderr);
+        let err = crate::maintenance::commands::decode_output(&output.stderr);
         return Err(NiTriTeError::System(format!(
             "Rollback échoué : {}",
             err.trim()
         )));
     }
 
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stdout = crate::maintenance::commands::decode_output(&output.stdout).trim().to_string();
     let kb_id = stdout.strip_prefix("OK:").unwrap_or(&stdout).to_string();
     Ok(kb_id)
 }
