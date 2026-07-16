@@ -566,7 +566,10 @@ fn run_ps_opt(script: &str) -> Option<String> {
             .creation_flags(0x08000000)
             .output()
             .ok()?;
-        Some(String::from_utf8_lossy(&o.stdout).to_string())
+        // decode_output plutot que from_utf8_lossy : les appelants actuels forcent
+        // $OutputEncoding=UTF8 dans leur script, mais un futur appelant qui l'oublie
+        // ne doit pas retomber dans le mojibake OEM FR.
+        Some(crate::maintenance::commands::decode_output(&o.stdout))
     }
     #[cfg(not(target_os = "windows"))]
     None
