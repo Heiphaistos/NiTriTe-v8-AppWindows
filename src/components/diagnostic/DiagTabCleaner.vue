@@ -217,15 +217,27 @@ async function cleanSelected() {
   const names = Array.from(selectedTargets.value)
   cleanTotal.value = names.length
   cleanProgress.value = 0
+  let failCount = 0
   for (const name of names) {
-    await cleanOne(name)
+    try {
+      await cleanOne(name)
+      if (results.value[name]?.success === false) failCount++
+    } catch {
+      failCount++
+    }
     cleanProgress.value++
   }
   selectedTargets.value.clear()
   cleanProgress.value = 0; cleanTotal.value = 0
   // Un seul rechargement à la fin pour avoir les tailles réelles
   await loadTargets()
-  notify.success('Nettoyage terminé', `${names.length} élément(s) traités`)
+  if (failCount === 0) {
+    notify.success('Nettoyage terminé', `${names.length} élément(s) traités`)
+  } else if (failCount < names.length) {
+    notify.error('Nettoyage partiel', `${names.length - failCount}/${names.length} élément(s) traités — ${failCount} échec(s)`)
+  } else {
+    notify.error('Échec du nettoyage', `Aucun des ${names.length} élément(s) n'a pu être traité`)
+  }
 }
 
 async function findLarge() {

@@ -144,15 +144,27 @@ async function clean() {
   if (!names.length) return;
   cleaning.value = true; cleanProgress.value = 0; totalFreed.value = 0;
   const cmd = quarantineMode.value ? "quarantine_target" : "clean_target";
+  let failCount = 0;
   for (let i = 0; i < names.length; i++) {
     try {
       const r = await invoke<CleanResult>(cmd, { targetName: names[i] });
       if (r.success) totalFreed.value += r.freed_mb;
-    } catch {}
+      else failCount++;
+    } catch {
+      failCount++;
+    }
     cleanProgress.value = Math.round(((i + 1) / names.length) * 100);
   }
-  const msg = quarantineMode.value ? `${formatMb(totalFreed.value)} mis en quarantaine` : `${formatMb(totalFreed.value)} libérés`;
-  notify.success(quarantineMode.value ? "Quarantaine" : "Nettoyage terminé", msg);
+  const action = quarantineMode.value ? "mis en quarantaine" : "libérés";
+  const msg = `${formatMb(totalFreed.value)} ${action}`;
+  const label = quarantineMode.value ? "Quarantaine" : "Nettoyage";
+  if (failCount === 0) {
+    notify.success(`${label} terminé${quarantineMode.value ? "e" : ""}`, msg);
+  } else if (failCount < names.length) {
+    notify.error(`${label} partiel${quarantineMode.value ? "le" : ""}`, `${msg} — ${failCount} cible(s) en échec`);
+  } else {
+    notify.error(`Échec du ${label.toLowerCase()}`, `Aucune cible n'a pu être traitée (${names.length} échec(s))`);
+  }
   cleaning.value = false;
   if (quarantineMode.value) await loadQuarantine();
   load();
