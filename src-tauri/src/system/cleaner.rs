@@ -36,7 +36,9 @@ fn ps_run(ps: &str) -> Option<serde_json::Value> {
     #[cfg(target_os = "windows")]
     {
         let o = Command::new("powershell").args(["-NoProfile","-NonInteractive","-Command",ps]).creation_flags(0x08000000).output().ok()?;
-        let t = String::from_utf8_lossy(&o.stdout);
+        // decode_output : les libellés de catégorie ('Système', 'Cache système')
+        // sont accentués et écrits en OEM par PowerShell sans $OutputEncoding.
+        let t = crate::maintenance::commands::decode_output(&o.stdout);
         serde_json::from_str(t.trim()).ok()
     }
     #[cfg(not(target_os = "windows"))]
@@ -148,7 +150,7 @@ if($path -and (Test-Path $path)){{
                         .output()
                         .ok()
                         .and_then(|o| serde_json::from_str::<serde_json::Value>(
-                            String::from_utf8_lossy(&o.stdout).trim()
+                            crate::maintenance::commands::decode_output(&o.stdout).trim()
                         ).ok())
                 }
                 #[cfg(not(target_os = "windows"))]
@@ -181,16 +183,21 @@ if($path -and (Test-Path $path)){{
 
 #[tauri::command]
 pub fn clean_target(target_name: String) -> CleanResult {
+    // ok= reflétait un $true codé en dur : Remove-Item -EA SilentlyContinue avalait
+    // toute erreur (fichier verrouillé, permissions) sans jamais faire échouer le
+    // rapport. Désormais chaque suppression est comptée en succès/échec réel
+    // ($errs) et ok = (aucune erreur), freed/count ne comptent que ce qui a
+    // réellement été supprimé.
     let ps = match target_name.as_str() {
-        "%TEMP%"               => "$b=0;$c=0;@(Get-ChildItem $env:TEMP -Recurse -File -EA SilentlyContinue)|ForEach-Object{$b+=$_.Length;$c++;Remove-Item $_.FullName -Force -EA SilentlyContinue};@{freed=[math]::Round($b/1MB,2);count=$c;ok=$true}|ConvertTo-Json -Compress".to_string(),
-        "Windows\\Temp"        => "$b=0;$c=0;@(Get-ChildItem 'C:\\Windows\\Temp' -Recurse -File -EA SilentlyContinue)|ForEach-Object{$b+=$_.Length;$c++;Remove-Item $_.FullName -Force -EA SilentlyContinue};@{freed=[math]::Round($b/1MB,2);count=$c;ok=$true}|ConvertTo-Json -Compress".to_string(),
-        "Prefetch"             => "$b=0;$c=0;@(Get-ChildItem 'C:\\Windows\\Prefetch\\*.pf' -EA SilentlyContinue)|ForEach-Object{$b+=$_.Length;$c++;Remove-Item $_.FullName -Force -EA SilentlyContinue};@{freed=[math]::Round($b/1MB,2);count=$c;ok=$true}|ConvertTo-Json -Compress".to_string(),
-        "Dumps mémoire"        => "$b=0;$c=0;@(Get-ChildItem 'C:\\Windows\\Minidump\\*.dmp' -EA SilentlyContinue)+@(Get-Item 'C:\\Windows\\MEMORY.DMP' -EA SilentlyContinue)|ForEach-Object{$b+=$_.Length;$c++;Remove-Item $_.FullName -Force -EA SilentlyContinue};@{freed=[math]::Round($b/1MB,2);count=$c;ok=$true}|ConvertTo-Json -Compress".to_string(),
-        "Corbeille"            => "Clear-RecycleBin -Force -EA SilentlyContinue;@{freed=0;count=0;ok=$true}|ConvertTo-Json -Compress".to_string(),
-        "Chrome Cache"         => "$p=\"$env:LOCALAPPDATA\\Google\\Chrome\\User Data\\Default\\Cache\";$b=0;$c=0;if(Test-Path $p){@(Get-ChildItem $p -Recurse -File -EA SilentlyContinue)|ForEach-Object{$b+=$_.Length;$c++;Remove-Item $_.FullName -Force -EA SilentlyContinue}};@{freed=[math]::Round($b/1MB,2);count=$c;ok=$true}|ConvertTo-Json -Compress".to_string(),
-        "Edge Cache"           => "$p=\"$env:LOCALAPPDATA\\Microsoft\\Edge\\User Data\\Default\\Cache\";$b=0;$c=0;if(Test-Path $p){@(Get-ChildItem $p -Recurse -File -EA SilentlyContinue)|ForEach-Object{$b+=$_.Length;$c++;Remove-Item $_.FullName -Force -EA SilentlyContinue}};@{freed=[math]::Round($b/1MB,2);count=$c;ok=$true}|ConvertTo-Json -Compress".to_string(),
-        "Windows Update Cache" => "net stop wuauserv /y 2>&1|Out-Null;net stop bits /y 2>&1|Out-Null;Start-Sleep -Seconds 2;$b=0;$c=0;@(Get-ChildItem 'C:\\Windows\\SoftwareDistribution\\Download' -Recurse -File -EA SilentlyContinue)|ForEach-Object{$b+=$_.Length;$c++;Remove-Item $_.FullName -Force -EA SilentlyContinue};net start bits 2>&1|Out-Null;net start wuauserv 2>&1|Out-Null;@{freed=[math]::Round($b/1MB,2);count=$c;ok=$true}|ConvertTo-Json -Compress".to_string(),
-        "Thumbnails DB"        => "$b=0;$c=0;try{Stop-Process -Name explorer -Force -EA SilentlyContinue;Start-Sleep -Milliseconds 500;$p=\"$env:LOCALAPPDATA\\Microsoft\\Windows\\Explorer\";@(Get-ChildItem $p -Filter 'thumbcache_*.db' -EA SilentlyContinue)|ForEach-Object{$b+=$_.Length;$c++;Remove-Item $_.FullName -Force -EA SilentlyContinue};@(Get-ChildItem $p -Filter 'iconcache_*.db' -EA SilentlyContinue)|ForEach-Object{$b+=$_.Length;$c++;Remove-Item $_.FullName -Force -EA SilentlyContinue}}finally{if(-not(Get-Process explorer -EA SilentlyContinue)){Start-Process explorer}};@{freed=[math]::Round($b/1MB,2);count=$c;ok=$true}|ConvertTo-Json -Compress".to_string(),
+        "%TEMP%"               => "$b=0;$c=0;$errs=0;@(Get-ChildItem $env:TEMP -Recurse -File -EA SilentlyContinue)|ForEach-Object{try{Remove-Item $_.FullName -Force -EA Stop;$b+=$_.Length;$c++}catch{$errs++}};@{freed=[math]::Round($b/1MB,2);count=$c;ok=($errs -eq 0)}|ConvertTo-Json -Compress".to_string(),
+        "Windows\\Temp"        => "$b=0;$c=0;$errs=0;@(Get-ChildItem 'C:\\Windows\\Temp' -Recurse -File -EA SilentlyContinue)|ForEach-Object{try{Remove-Item $_.FullName -Force -EA Stop;$b+=$_.Length;$c++}catch{$errs++}};@{freed=[math]::Round($b/1MB,2);count=$c;ok=($errs -eq 0)}|ConvertTo-Json -Compress".to_string(),
+        "Prefetch"             => "$b=0;$c=0;$errs=0;@(Get-ChildItem 'C:\\Windows\\Prefetch\\*.pf' -EA SilentlyContinue)|ForEach-Object{try{Remove-Item $_.FullName -Force -EA Stop;$b+=$_.Length;$c++}catch{$errs++}};@{freed=[math]::Round($b/1MB,2);count=$c;ok=($errs -eq 0)}|ConvertTo-Json -Compress".to_string(),
+        "Dumps mémoire"        => "$b=0;$c=0;$errs=0;@(Get-ChildItem 'C:\\Windows\\Minidump\\*.dmp' -EA SilentlyContinue)+@(Get-Item 'C:\\Windows\\MEMORY.DMP' -EA SilentlyContinue)|ForEach-Object{try{Remove-Item $_.FullName -Force -EA Stop;$b+=$_.Length;$c++}catch{$errs++}};@{freed=[math]::Round($b/1MB,2);count=$c;ok=($errs -eq 0)}|ConvertTo-Json -Compress".to_string(),
+        "Corbeille"            => "try{Clear-RecycleBin -Force -EA Stop;@{freed=0;count=0;ok=$true}}catch{@{freed=0;count=0;ok=$false}}|ConvertTo-Json -Compress".to_string(),
+        "Chrome Cache"         => "$p=\"$env:LOCALAPPDATA\\Google\\Chrome\\User Data\\Default\\Cache\";$b=0;$c=0;$errs=0;if(Test-Path $p){@(Get-ChildItem $p -Recurse -File -EA SilentlyContinue)|ForEach-Object{try{Remove-Item $_.FullName -Force -EA Stop;$b+=$_.Length;$c++}catch{$errs++}}};@{freed=[math]::Round($b/1MB,2);count=$c;ok=($errs -eq 0)}|ConvertTo-Json -Compress".to_string(),
+        "Edge Cache"           => "$p=\"$env:LOCALAPPDATA\\Microsoft\\Edge\\User Data\\Default\\Cache\";$b=0;$c=0;$errs=0;if(Test-Path $p){@(Get-ChildItem $p -Recurse -File -EA SilentlyContinue)|ForEach-Object{try{Remove-Item $_.FullName -Force -EA Stop;$b+=$_.Length;$c++}catch{$errs++}}};@{freed=[math]::Round($b/1MB,2);count=$c;ok=($errs -eq 0)}|ConvertTo-Json -Compress".to_string(),
+        "Windows Update Cache" => "net stop wuauserv /y 2>&1|Out-Null;net stop bits /y 2>&1|Out-Null;Start-Sleep -Seconds 2;$b=0;$c=0;$errs=0;@(Get-ChildItem 'C:\\Windows\\SoftwareDistribution\\Download' -Recurse -File -EA SilentlyContinue)|ForEach-Object{try{Remove-Item $_.FullName -Force -EA Stop;$b+=$_.Length;$c++}catch{$errs++}};net start bits 2>&1|Out-Null;net start wuauserv 2>&1|Out-Null;@{freed=[math]::Round($b/1MB,2);count=$c;ok=($errs -eq 0)}|ConvertTo-Json -Compress".to_string(),
+        "Thumbnails DB"        => "$b=0;$c=0;$errs=0;try{Stop-Process -Name explorer -Force -EA SilentlyContinue;Start-Sleep -Milliseconds 500;$p=\"$env:LOCALAPPDATA\\Microsoft\\Windows\\Explorer\";@(Get-ChildItem $p -Filter 'thumbcache_*.db' -EA SilentlyContinue)|ForEach-Object{try{Remove-Item $_.FullName -Force -EA Stop;$b+=$_.Length;$c++}catch{$errs++}};@(Get-ChildItem $p -Filter 'iconcache_*.db' -EA SilentlyContinue)|ForEach-Object{try{Remove-Item $_.FullName -Force -EA Stop;$b+=$_.Length;$c++}catch{$errs++}}}finally{if(-not(Get-Process explorer -EA SilentlyContinue)){Start-Process explorer}};@{freed=[math]::Round($b/1MB,2);count=$c;ok=($errs -eq 0)}|ConvertTo-Json -Compress".to_string(),
         _ => return CleanResult { target: target_name, success: false, message: "Cible inconnue".to_string(), ..Default::default() },
     };
     #[cfg(target_os = "windows")]
@@ -326,7 +333,9 @@ fn get_large_files_sync(folder: String, min_size_mb: f64) -> Vec<serde_json::Val
     {
         let o = Command::new("powershell").args(["-NoProfile","-NonInteractive","-Command",&ps]).creation_flags(0x08000000).output();
         if let Ok(o) = o {
-            let t = String::from_utf8_lossy(&o.stdout); let t = t.trim();
+            // decode_output : noms de fichiers réels souvent accentués (FR).
+            let t = crate::maintenance::commands::decode_output(&o.stdout);
+            let t = t.trim();
             let arr_t = if t.starts_with('{') { format!("[{}]",t) } else { t.to_string() };
             if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&arr_t) { return arr; }
         }
