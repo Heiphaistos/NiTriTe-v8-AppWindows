@@ -137,6 +137,11 @@ loadDisks();
     <div class="section-card">
       <div class="section-title"><HardDrive :size="14" /> Disque source</div>
       <div v-if="loadingDisks" class="loading-row"><NSpinner :size="16" /> Chargement des disques...</div>
+      <div v-else-if="disks.length === 0" class="empty-row">
+        <AlertCircle :size="16" />
+        <span>Aucun disque physique détecté. Get-PhysicalDisk nécessite souvent les droits Administrateur —
+          relancez Nitrite en tant qu'administrateur puis cliquez sur « Rafraîchir ».</span>
+      </div>
       <div v-else class="disks-grid">
         <div
           v-for="disk in disks"
@@ -286,6 +291,8 @@ loadDisks();
   margin-bottom: 12px;
 }
 .loading-row { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px; }
+.empty-row { display: flex; align-items: flex-start; gap: 8px; color: var(--text-muted); font-size: 12px; line-height: 1.5; padding: 10px 12px; background: rgba(234,179,8,0.06); border: 1px solid rgba(234,179,8,0.2); border-radius: 8px; }
+.empty-row svg { flex-shrink: 0; margin-top: 1px; color: var(--warning); }
 
 .disks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .disk-card {
