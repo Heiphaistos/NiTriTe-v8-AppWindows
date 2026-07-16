@@ -98,7 +98,10 @@ try {
             .creation_flags(0x08000000)
             .output();
         if let Ok(o) = o {
-            let t = String::from_utf8_lossy(&o.stdout);
+            // decode_output : le champ state ("En cours d'exécution") survit à la
+            // capture wsl.exe (WSL_UTF8 dans le script) mais pas forcément à
+            // l'écriture finale ConvertTo-Json de PowerShell lui-même vers Rust.
+            let t = crate::maintenance::commands::decode_output(&o.stdout);
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(t.trim()) {
                 let distros = v["distros"].as_array().map(|arr| {
                     arr.iter().map(|d| WslDistro {
@@ -141,6 +144,11 @@ pub fn wsl_run_command(distro: String, command: String) -> Result<String, String
         args.push(cmd);
         let o = Command::new("wsl")
             .args(&args)
+            // WSL_UTF8=1 : sans cette variable officielle, wsl.exe emet en
+            // UTF-16LE quand sa sortie est redirigee (pas une console) — sans
+            // elle, from_utf8_lossy produirait du texte illisible, pas juste
+            // du mojibake sur les accents.
+            .env("WSL_UTF8", "1")
             .creation_flags(0x08000000)
             .output()
             .map_err(|e| e.to_string())?;
@@ -162,6 +170,7 @@ pub fn wsl_set_default_version(version: u32) -> Result<String, String> {
     {
         let o = Command::new("wsl")
             .args(["--set-default-version", &v.to_string()])
+            .env("WSL_UTF8", "1")
             .creation_flags(0x08000000)
             .output()
             .map_err(|e| e.to_string())?;

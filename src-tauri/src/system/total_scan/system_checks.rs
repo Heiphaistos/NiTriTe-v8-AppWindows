@@ -37,7 +37,9 @@ pub fn check_windows_activation() -> String {
             r#"try { $s = Get-WmiObject -Query "SELECT LicenseStatus FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL AND Name LIKE '*Windows*'" -ErrorAction Stop | Select-Object -First 1; switch($s.LicenseStatus){1{"Activé"}2{"Grâce OOB"}5{"Notification"}default{"Non activé"}} } catch { "Inconnu" }"#])
         .creation_flags(0x08000000).output();
     match out {
-        Ok(o) => String::from_utf8_lossy(&o.stdout).trim().to_string(),
+        // decode_output : le switch renvoie des libellés accentués hardcodés
+        // ("Activé", "Grâce OOB") sans préambule $OutputEncoding.
+        Ok(o) => crate::maintenance::commands::decode_output(&o.stdout).trim().to_string(),
         Err(_) => "Inconnu".to_string(),
     }
 }
@@ -140,7 +142,8 @@ pub fn get_recent_errors() -> Vec<EventEntry> {
         .args(["-NoProfile", "-NonInteractive", "-Command",
             r#"Get-WinEvent -FilterHashtable @{LogName='System','Application';Level=1,2;StartTime=(Get-Date).AddHours(-48)} -MaxEvents 20 -ErrorAction SilentlyContinue | Select-Object TimeCreated,ProviderName,Message,LevelDisplayName | ConvertTo-Json -Depth 1 -Compress"#])
         .creation_flags(0x08000000).output();
-    let text = match out { Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(), Err(_) => return vec![] };
+    // decode_output : Message d'event log est pleinement localisé FR.
+    let text = match out { Ok(o) => crate::maintenance::commands::decode_output(&o.stdout), Err(_) => return vec![] };
     let val: Vec<serde_json::Value> = serde_json::from_str(text.trim())
         .unwrap_or_else(|_| serde_json::from_str(&format!("[{}]", text.trim())).unwrap_or_default());
     val.iter().map(|v| EventEntry {
@@ -223,7 +226,9 @@ pub fn run_dism_check() -> (String, String) {
     let output = Command::new("DISM").args(["/Online", "/Cleanup-Image", "/CheckHealth"]).creation_flags(0x08000000).output();
     match output {
         Ok(o) => {
-            let text = String::from_utf8_lossy(&o.stdout).to_string();
+            // decode_output : la sortie DISM est pleinement localisée FR
+            // ("détectée", "n'a été détectée"...).
+            let text = crate::maintenance::commands::decode_output(&o.stdout);
             let status = if text.contains("No component store corruption") || text.to_lowercase().contains("aucune corruption") {
                 "Sain — Aucune corruption détectée".to_string()
             } else if !o.status.success() {
@@ -244,12 +249,15 @@ pub fn run_sfc_verify() -> (String, String) {
     let output = Command::new("sfc").args(["/verifyonly"]).creation_flags(0x08000000).output();
     match output {
         Ok(o) => {
+            // sfc emet parfois en UTF-16 (detecte via octets nuls), sinon en OEM
+            // (decode_output) plutot que from_utf8_lossy brut — la sortie FR
+            // ("Aucune violation d'integrite...") est localisee.
             let raw = String::from_utf8_lossy(&o.stdout).to_string();
             let text = if raw.contains('\0') {
                 let bytes = o.stdout.clone();
                 let utf16: Vec<u16> = bytes.chunks(2).map(|c| u16::from_le_bytes([c[0], c.get(1).copied().unwrap_or(0)])).collect();
                 String::from_utf16_lossy(&utf16)
-            } else { raw };
+            } else { crate::maintenance::commands::decode_output(&o.stdout) };
             let status = if text.to_lowercase().contains("no integrity violations") {
                 "Intègre — Aucune violation détectée".to_string()
             } else if text.to_lowercase().contains("found corrupt") {

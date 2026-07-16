@@ -143,7 +143,9 @@ $out | ConvertTo-Json -Depth 4 -Compress
         .creation_flags(0x08000000)
         .output();
     if let Ok(o) = output {
-        let text = String::from_utf8_lossy(&o.stdout);
+        // decode_output : PowerPlan (nom du plan actif, ex "Équilibré") et CpuTemp
+        // ("°C") sont accentués/non-ASCII, sans préambule $OutputEncoding.
+        let text = crate::maintenance::commands::decode_output(&o.stdout);
         let v: serde_json::Value = serde_json::from_str(text.trim()).unwrap_or_default();
         let all_gpus = v["Gpus"].as_array().map(|arr| {
             arr.iter().map(|g| GpuScanItem {
