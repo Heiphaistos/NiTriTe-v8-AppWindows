@@ -53,7 +53,9 @@ try {
             .creation_flags(0x08000000)
             .output()
             .map_err(|e| format!("PowerShell: {}", e))?;
-        let stdout = String::from_utf8_lossy(&out.stdout);
+        // decode_output : FileSystemLabel est nommé par l'utilisateur, souvent
+        // accentué FR ("Données", "Système") — sans $OutputEncoding préalable.
+        let stdout = crate::maintenance::commands::decode_output(&out.stdout);
         let text = stdout.trim();
         if text.is_empty() || text == "[]" { return Ok(vec![]); }
         let json_text = if text.starts_with('{') { format!("[{}]", text) } else { text.to_string() };
@@ -269,7 +271,9 @@ $out | ConvertTo-Json -Compress
             .creation_flags(0x08000000)
             .output()
             .map_err(|e| e.to_string())?;
-        let raw = String::from_utf8_lossy(&raw_out.stdout).trim().to_string();
+        // decode_output : Get-TimeZone().DisplayName est localisé FR accentué
+        // ("Heure normale d'Europe centrale").
+        let raw = crate::maintenance::commands::decode_output(&raw_out.stdout).trim().to_string();
         serde_json::from_str::<serde_json::Value>(&raw).unwrap_or_default()
     };
     #[cfg(not(target_os = "windows"))]
@@ -389,7 +393,9 @@ if ($results.Count -gt 0) { $results | ConvertTo-Json -Compress } else { '[]' }
                     if let Some(mut stdout) = child.stdout.take() {
                         let _ = stdout.read_to_end(&mut buf);
                     }
-                    let text = String::from_utf8_lossy(&buf);
+                    // decode_output : labels codés en dur dans le script PS
+                    // ('Téléchargements', 'Vidéos') sont accentués sans $OutputEncoding.
+                    let text = crate::maintenance::commands::decode_output(&buf);
                     let trimmed = text.trim();
                     if trimmed.is_empty() || trimmed == "[]" { return vec![]; }
                     let json_text = if trimmed.starts_with('{') { format!("[{}]", trimmed) } else { trimmed.to_string() };
@@ -482,7 +488,9 @@ $result | ConvertTo-Json -Compress
             .creation_flags(0x08000000)
             .output();
         if let Ok(o) = out {
-            let raw = String::from_utf8_lossy(&o.stdout);
+            // decode_output : labels codés en dur ("Dossier démarrage utilisateur")
+            // + noms de programmes réels, potentiellement accentués.
+            let raw = crate::maintenance::commands::decode_output(&o.stdout);
             let trimmed = raw.trim();
             if !trimmed.is_empty() && trimmed != "[]" {
                 let arr: Vec<serde_json::Value> = serde_json::from_str(trimmed)
@@ -588,7 +596,8 @@ try {
                     if let Some(mut stdout) = child.stdout.take() {
                         let _ = stdout.read_to_end(&mut buf);
                     }
-                    let text = String::from_utf8_lossy(&buf);
+                    // decode_output : FriendlyName du disque peut être accentué.
+                    let text = crate::maintenance::commands::decode_output(&buf);
                     let trimmed = text.trim();
                     if trimmed.is_empty() || trimmed == "[]" { return vec![]; }
                     let json_text = if trimmed.starts_with('{') { format!("[{}]", trimmed) } else { trimmed.to_string() };

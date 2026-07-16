@@ -242,8 +242,10 @@ pub fn install_via_winget(winget_id: &str) -> Result<String, String> {
     cmd.creation_flags(0x08000000);
     match cmd.output() {
         Ok(out) => {
-            let stdout = String::from_utf8_lossy(&out.stdout).to_string();
-            let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+            // decode_output : winget émet des messages d'erreur localisés FR
+            // accentués ("package introuvable"...), sans $OutputEncoding préalable.
+            let stdout = crate::maintenance::commands::decode_output(&out.stdout);
+            let stderr = crate::maintenance::commands::decode_output(&out.stderr);
             if out.status.success() {
                 Ok(format!("✓ {} installé avec succès", winget_id))
             } else {
