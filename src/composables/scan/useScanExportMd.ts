@@ -274,7 +274,7 @@ export async function exportScanMd(
     L.push(``);
   }
 
-  L.push(`---`, `*Rapport complet généré par **NiTriTe v6.0.0***`);
+  L.push(`---`, `*Rapport complet généré par **NiTriTe v${__APP_VERSION__}***`);
 
   try {
     const { save } = await import("@tauri-apps/plugin-dialog");

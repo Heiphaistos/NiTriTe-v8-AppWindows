@@ -294,7 +294,7 @@ ${sidebar}
 <h1>🔍 Rapport Scan Complet — NiTriTe</h1>
 <p class="subtitle">Généré le ${now}</p>
 ${p1}${p2}${p3}
-<footer>Rapport complet généré par <strong>NiTriTe v6.0.0</strong> — ${now}</footer>
+<footer>Rapport complet généré par <strong>NiTriTe v${__APP_VERSION__}</strong> — ${now}</footer>
 </main>
 </body></html>`;
 

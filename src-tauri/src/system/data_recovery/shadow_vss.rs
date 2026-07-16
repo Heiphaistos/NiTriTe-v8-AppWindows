@@ -344,10 +344,14 @@ try {{
 
 /// Scan MFT pour fichiers récemment supprimés via fsutil
 pub fn scan_deleted_files(drive: String) -> Vec<RecoveredFile> {
-    let safe_drive = drive.trim_end_matches(':').replace('\'', "''");
+    // fsutil exige le volume avec ':' (ex: "C:") — le frontend envoie une lettre nue
+    // ("C"), et un ancien trim_end_matches(':') supprimait aussi le ':' si présent,
+    // donc fsutil recevait toujours "C" seul, échouait silencieusement, et le scan
+    // retournait systématiquement une liste vide.
+    let letter = drive.trim_end_matches(':').replace('\'', "''");
     let ps = format!(r#"
 try {{
-    $drive = '{}'
+    $drive = '{}:'
     $result = fsutil usn readjournal $drive maxcount=500 2>$null
     if (-not $result) {{ Write-Output '[]'; exit }}
 
@@ -365,7 +369,7 @@ try {{
     }}
     $deleted | Select-Object -First 200 | ConvertTo-Json -Compress
 }} catch {{ Write-Output '[]' }}
-"#, safe_drive);
+"#, letter);
 
     let drive_letter = drive.trim_end_matches(':');
     run_ps(&ps)

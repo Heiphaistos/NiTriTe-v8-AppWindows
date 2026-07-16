@@ -74,6 +74,8 @@
   font-size: 13px;
   gap: 12px;
   min-height: 38px;
+  min-width: 0;
+  flex-wrap: wrap;
   transition: background var(--transition-fast);
 }
 .info-row:hover {
@@ -92,6 +94,8 @@
   font-weight: 500;
   color: var(--text-primary);
   text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .info-full { grid-column: 1 / -1; }
 

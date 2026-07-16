@@ -716,8 +716,10 @@ onMounted(() => {
 .loading-state { display:flex; align-items:center; gap:10px; padding:40px; justify-content:center; color:var(--text-muted); }
 .error-state { padding:20px; color:var(--error); }
 .info-grid { display:flex; flex-direction:column; gap:0; }
-.info-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.info-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; gap:8px 16px; flex-wrap:wrap; }
 .info-row:last-child { border-bottom:none; }
+.info-row > span:first-child { flex-shrink:0; }
+.info-row > code, .info-row > span:last-child, .info-row > div:last-child { min-width:0; overflow-wrap:anywhere; text-align:right; }
 .copy-btn { background:none; border:none; cursor:pointer; color:var(--text-muted); padding:2px; display:flex; align-items:center; }
 .copy-btn:hover { color:var(--accent); }
 .interfaces-list { display:flex; flex-direction:column; gap:10px; }

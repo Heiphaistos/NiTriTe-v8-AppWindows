@@ -22,6 +22,7 @@ const aiStore  = useAiStore();
 // ── État onglets ─────────────────────────────────────────────
 type Tab = "interface" | "performance" | "notifications" | "ai" | "export" | "about";
 const activeTab = ref<Tab>("interface");
+const appVersion = __APP_VERSION__;
 
 // ── Paramètres locaux ─────────────────────────────────────────
 // ollamaUrl / ollamaModel / temperature → proxy vers le store AI (v-model compatible)
@@ -556,7 +557,7 @@ const tabs: { id: Tab; label: string; icon: Component }[] = [
           <h2 class="tab-title"><Info :size="16" /> À propos</h2>
 
           <div class="about-card">
-            <div class="about-badge">v6.0.0 — BETA</div>
+            <div class="about-badge">v{{ appVersion }} — BETA</div>
             <p class="about-name">Nitrite 2.0</p>
             <p class="about-sub">Outil de diagnostic et maintenance Windows</p>
             <div class="about-beta-notice">
@@ -567,11 +568,11 @@ const tabs: { id: Tab; label: string; icon: Component }[] = [
           <div class="about-rows">
             <div class="about-row"><span>Stack</span><span>Tauri v2 + Rust + Vue 3 + TypeScript</span></div>
             <div class="about-row"><span>Auteur</span><span>Momo (Heiphaistos)</span></div>
-            <div class="about-row"><span>Site web</span><a class="about-link" href="https://site-web-ni-tri-te-v-2.vercel.app/" target="_blank">site-web-ni-tri-te-v-2.vercel.app</a></div>
-            <div class="about-row"><span>GitHub</span><a class="about-link" href="https://github.com/Heiphaistos" target="_blank">github.com/Heiphaistos</a></div>
+            <div class="about-row"><span>Site web</span><a class="about-link" href="https://nitrite.heiphaistos.org" target="_blank">nitrite.heiphaistos.org</a></div>
+            <div class="about-row"><span>GitHub</span><a class="about-link" href="https://github.com/Heiphaistos/NiTriTe-v8-AppWindows" target="_blank">github.com/Heiphaistos/NiTriTe-v8-AppWindows</a></div>
             <div class="about-row"><span>Contact</span><a class="about-link" href="mailto:contactnitrite@gmail.com">contactnitrite@gmail.com</a></div>
             <div class="about-row"><span>Données</span><span style="color:var(--success)">✓ 100% local — aucune télémétrie, aucune collecte de données</span></div>
-            <div class="about-row"><span>Propriété</span><span>© 2025 Nitrite — Reproduction interdite sans autorisation</span></div>
+            <div class="about-row"><span>Propriété</span><span>© {{ new Date().getFullYear() }} Nitrite — Reproduction interdite sans autorisation</span></div>
           </div>
 
           <div class="about-actions">
