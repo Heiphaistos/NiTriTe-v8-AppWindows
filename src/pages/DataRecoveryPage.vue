@@ -572,7 +572,9 @@ onMounted(async () => {
             <div
               v-for="f in sortedShadowFiles" :key="f.path"
               class="file-row"
+              style="cursor:pointer"
               :class="{ 'is-dir': f.is_dir, 'is-selected': selectedFiles.has(f.path) }"
+              @click="f.is_dir ? navigateInto(f) : toggleFile(f.path)"
             >
               <span class="file-check">
                 <template v-if="!f.is_dir">
@@ -580,21 +582,17 @@ onMounted(async () => {
                   <Square v-else :size="13" class="chk" @click.stop="toggleFile(f.path)" />
                 </template>
               </span>
-              <span
-                class="file-name"
-                :style="f.is_dir ? 'cursor:pointer;color:var(--accent-primary)' : ''"
-                @click="f.is_dir ? navigateInto(f) : undefined"
-              >
+              <span class="file-name" :style="f.is_dir ? 'color:var(--accent-primary)' : ''">
                 <Folder v-if="f.is_dir" :size="12" style="color:var(--accent-primary)" />
                 <FileText v-else :size="12" />
                 {{ f.name }}
               </span>
               <span class="file-size">{{ f.is_dir ? '—' : formatSize(f.size_bytes) }}</span>
               <span class="file-date">{{ formatDate(f.deleted_date) }}</span>
-              <NButton v-if="!f.is_dir" variant="ghost" size="sm" @click="restoreFromShadow(f)">
+              <NButton v-if="!f.is_dir" variant="ghost" size="sm" @click.stop="restoreFromShadow(f)">
                 <RotateCcw :size="11" /> Restaurer
               </NButton>
-              <NButton v-else variant="ghost" size="sm" @click="navigateInto(f)">
+              <NButton v-else variant="ghost" size="sm" @click.stop="navigateInto(f)">
                 → Ouvrir
               </NButton>
             </div>

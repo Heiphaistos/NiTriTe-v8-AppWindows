@@ -228,17 +228,15 @@ onMounted(loadDisks);
         <div
           v-for="e in entries" :key="e.path"
           class="entry-row"
+          style="cursor:pointer"
           :class="{ 'is-dir': e.is_dir, 'is-selected': selectedItems.has(e.path) }"
+          @click="e.is_dir ? navigateInto(e) : toggleItem(e.path)"
         >
           <span class="entry-check">
             <CheckSquare v-if="selectedItems.has(e.path)" :size="13" class="chk on" @click.stop="toggleItem(e.path)" />
             <Square v-else :size="13" class="chk" @click.stop="toggleItem(e.path)" />
           </span>
-          <span
-            class="entry-name"
-            :style="e.is_dir ? 'cursor:pointer' : ''"
-            @click="e.is_dir ? navigateInto(e) : toggleItem(e.path)"
-          >
+          <span class="entry-name">
             <Folder v-if="e.is_dir" :size="13" class="ic-dir" />
             <FileText v-else :size="13" class="ic-file" />
             {{ e.name }}
