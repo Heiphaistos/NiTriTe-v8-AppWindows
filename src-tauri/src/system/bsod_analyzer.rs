@@ -95,7 +95,9 @@ $report | ConvertTo-Json -Depth 4 -Compress
     {
         let o = Command::new("powershell").args(["-NoProfile","-NonInteractive","-Command",ps]).creation_flags(0x08000000).output();
         if let Ok(o) = o {
-            let t = String::from_utf8_lossy(&o.stdout);
+            // decode_output : $_.Message (texte d'event log Windows) est pleinement
+            // localisé sur Windows FR — from_utf8_lossy brut mojibake la description.
+            let t = crate::maintenance::commands::decode_output(&o.stdout);
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(t.trim()) {
                 let entries = v["entries"].as_array().map(|arr| arr.iter().map(|e| BsodEntry {
                     timestamp: e["ts"].as_str().unwrap_or("").to_string(),

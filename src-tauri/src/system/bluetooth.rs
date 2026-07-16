@@ -161,10 +161,37 @@ try {
 
 #[tauri::command]
 pub fn toggle_bluetooth(enable: bool) -> Result<String, String> {
+    // L'ancienne version mettait -EA SilentlyContinue sur Enable-PnpDevice /
+    // Stop-Service : toute erreur (pas d'adaptateur désactivé à activer,
+    // permissions, service verrouillé) était avalée et powershell.exe sortait
+    // quand même en code 0 → succès rapporté à tort. On vérifie maintenant
+    // l'état réel après action au lieu de faire confiance au code de sortie.
     let action = if enable {
-        "Start-Service bthserv -EA SilentlyContinue; Enable-PnpDevice -InstanceId (Get-PnpDevice | Where-Object {$_.Class -eq 'Bluetooth' -and $_.Status -ne 'OK'} | Select-Object -First 1 -ExpandProperty InstanceId) -Confirm:$false -EA SilentlyContinue"
+        r#"
+try {
+    Start-Service bthserv -EA SilentlyContinue
+    $dev = Get-PnpDevice -EA SilentlyContinue |
+        Where-Object { $_.Class -eq 'Bluetooth' -and $_.Status -ne 'OK' } |
+        Select-Object -First 1 -ExpandProperty InstanceId
+    if ($dev) { Enable-PnpDevice -InstanceId $dev -Confirm:$false -EA Stop }
+    Start-Sleep -Milliseconds 500
+    $ok = @(Get-PnpDevice -EA SilentlyContinue | Where-Object { $_.Class -eq 'Bluetooth' -and $_.Status -eq 'OK' }).Count -gt 0
+    if ($ok) { Write-Output 'OK' } else { Write-Output 'ERR:Aucun adaptateur Bluetooth actif apres activation'; exit 1 }
+} catch {
+    Write-Output "ERR:$($_.Exception.Message)"
+    exit 1
+}
+"#
     } else {
-        "Stop-Service bthserv -Force -EA SilentlyContinue"
+        r#"
+try {
+    Stop-Service bthserv -Force -EA Stop
+    Write-Output 'OK'
+} catch {
+    Write-Output "ERR:$($_.Exception.Message)"
+    exit 1
+}
+"#
     };
     #[cfg(target_os = "windows")]
     {
@@ -173,11 +200,19 @@ pub fn toggle_bluetooth(enable: bool) -> Result<String, String> {
             .creation_flags(0x08000000)
             .output()
             .map_err(|e| e.to_string())?;
-        let msg = if enable { "Bluetooth activé" } else { "Bluetooth désactivé" };
-        if o.status.success() {
+        let out = crate::maintenance::commands::decode_output(&o.stdout);
+        let out = out.trim();
+        if o.status.success() && out == "OK" {
+            let msg = if enable { "Bluetooth activé" } else { "Bluetooth désactivé" };
             return Ok(msg.to_string());
         }
-        Err(String::from_utf8_lossy(&o.stderr).to_string())
+        let detail = out.strip_prefix("ERR:").unwrap_or(out);
+        let detail = if detail.is_empty() {
+            crate::maintenance::commands::decode_output(&o.stderr)
+        } else {
+            detail.to_string()
+        };
+        Err(detail)
     }
     #[cfg(not(target_os = "windows"))]
     Err("Non disponible".to_string())
