@@ -1,7 +1,7 @@
 {
   "name": "nitrite",
   "private": true,
-  "version": "8.63.0",
+  "version": "8.64.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

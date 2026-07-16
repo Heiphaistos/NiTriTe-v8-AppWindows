@@ -60,9 +60,15 @@ pub(super) fn ps_ok(script: &str) -> Result<String, String> {
 
 /// Comme `ps()` mais passe des arguments supplémentaires accessibles via `$args[0]`, `$args[1]`, …
 /// Les valeurs sont transmises comme arguments de processus séparés — aucune interpolation PS possible.
+/// Le script est enveloppé dans `& { ... }` : passé nu à `-Command`, il tourne dans la
+/// portée top-level de powershell.exe où `$args` ne recoit JAMAIS les arguments de ligne
+/// de commande suivants (silencieusement $null, jamais d'erreur) — seule une invocation
+/// de scriptblock reelle (`& { }`) les reçoit. Confirmé en testant les deux formes cote a
+/// cote sur une machine reelle : nu -> $args[0] est $null ; enveloppé -> $args[0] correct.
 pub(super) fn ps_with_args(script: &str, extra_args: &[&str]) -> Result<String, String> {
+    let wrapped = format!("& {{ {} }}", script);
     let mut cmd = std::process::Command::new("powershell");
-    cmd.args(["-NoProfile", "-NonInteractive", "-Command", script]);
+    cmd.args(["-NoProfile", "-NonInteractive", "-Command", &wrapped]);
     for arg in extra_args {
         cmd.arg(arg);
     }
