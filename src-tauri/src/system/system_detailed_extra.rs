@@ -121,7 +121,7 @@ try {
                     Ok(Some(_)) => {
                         let mut buf = Vec::new();
                         if let Some(mut out) = child.stdout.take() { let _ = out.read_to_end(&mut buf); }
-                        let text = String::from_utf8_lossy(&buf);
+                        let text = crate::maintenance::commands::decode_output(&buf);
                         let t = text.trim();
                         if t.is_empty() || t == "[]" { return Ok(vec![]); }
                         let jt = if t.starts_with('{') { format!("[{}]", t) } else { t.to_string() };
@@ -286,7 +286,7 @@ pub async fn get_installed_software() -> Result<Vec<InstalledSoftware>, String> 
         {
             let out = std::process::Command::new("powershell")
                 .args(["-NoProfile", "-NonInteractive", "-Command",
-                    "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;\
+                    "$OutputEncoding=[System.Text.Encoding]::UTF8;[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;\
                      Get-ItemProperty 'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',\
                      'HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' 2>$null |\
                      Where-Object { $_.DisplayName } |\
@@ -294,7 +294,7 @@ pub async fn get_installed_software() -> Result<Vec<InstalledSoftware>, String> 
                      Sort-Object DisplayName | ConvertTo-Json -Compress"
                 ])
                 .creation_flags(0x08000000).output().map_err(|e| e.to_string())?;
-            let stdout = String::from_utf8_lossy(&out.stdout);
+            let stdout = crate::maintenance::commands::decode_output(&out.stdout);
             if stdout.trim().is_empty() { return Ok(vec![]); }
             let items: Vec<serde_json::Value> = serde_json::from_str(stdout.trim())
                 .unwrap_or_else(|_| serde_json::from_str(&format!("[{}]", stdout.trim())).unwrap_or_default());

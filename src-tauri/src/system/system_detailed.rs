@@ -475,7 +475,9 @@ public class GdiDpi {
             let out = std::process::Command::new("powershell")
                 .args(["-NoProfile", "-NonInteractive", "-Command", ps])
                 .creation_flags(0x08000000).output().map_err(|e| e.to_string())?;
-            let text = String::from_utf8_lossy(&out.stdout);
+            // decode_output : MonitorManufacturer générique renvoie souvent un
+            // libellé accentué FR ("Moniteur PnP générique").
+            let text = crate::maintenance::commands::decode_output(&out.stdout);
             let trimmed = text.trim();
             if trimmed.is_empty() || trimmed == "[]" || trimmed == "null" { return Ok(vec![]); }
             let items: Vec<serde_json::Value> = serde_json::from_str(trimmed)
@@ -510,7 +512,10 @@ pub async fn get_power_plans() -> Result<Vec<PowerPlan>, String> {
             let out = std::process::Command::new("powercfg")
                 .args(["/LIST"]).creation_flags(0x08000000).output().map_err(|e| e.to_string())?;
             let mut plans = Vec::new();
-            for line in String::from_utf8_lossy(&out.stdout).lines() {
+            // decode_output : noms de plans Windows par défaut sont accentués FR
+            // ("Équilibré", "Économie d'énergie") — powercfg écrit en OEM.
+            let stdout = crate::maintenance::commands::decode_output(&out.stdout);
+            for line in stdout.lines() {
                 if !line.contains("GUID") || !line.contains('(') { continue; }
                 let guid_s = line.find("GUID:").map(|i| i + 6).unwrap_or(0);
                 let guid_e = line[guid_s..].find(' ').map(|i| guid_s + i).unwrap_or(line.len());

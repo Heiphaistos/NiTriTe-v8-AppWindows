@@ -52,7 +52,9 @@ try {
             .creation_flags(0x08000000)
             .output();
         if let Ok(o) = out {
-            let raw = String::from_utf8_lossy(&o.stdout);
+            // decode_output : Description des tâches planifiées intégrées est
+            // souvent en FR accentué sur Windows FR.
+            let raw = crate::maintenance::commands::decode_output(&o.stdout);
             let trimmed = raw.trim();
             if !trimmed.is_empty() && trimmed != "[]" {
                 let arr: Vec<serde_json::Value> = serde_json::from_str(trimmed)
