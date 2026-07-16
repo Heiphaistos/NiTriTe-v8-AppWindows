@@ -95,21 +95,38 @@ async fn get_tools() -> Result<Vec<installer::manager::ToolEntry>, NiTriTeError>
     Ok(installer::manager::get_tools())
 }
 
+/// Reconstruit l'AppEntry complet (winget_id + choco_id + url) depuis le
+/// catalogue via app_id, avec repli synthetique si absent — pour que la
+/// chaine de fallback (winget -> chocolatey -> scoop -> telechargement
+/// direct) ait toutes les methodes disponibles, pas seulement winget.
+fn resolve_app_entry(app_id: &Option<String>, winget_id: &Option<String>) -> installer::manager::AppEntry {
+    let entry = app_id.as_ref().and_then(|aid| {
+        installer::manager::get_default_apps().into_iter().find(|a| &a.id == aid)
+    });
+    entry.unwrap_or_else(|| installer::manager::AppEntry {
+        id: app_id.clone().unwrap_or_default(),
+        name: app_id.clone().unwrap_or_default(),
+        description: String::new(),
+        category: String::new(),
+        winget_id: winget_id.clone().filter(|w| !w.is_empty()),
+        choco_id: None,
+        url: None,
+        icon: String::new(),
+    })
+}
+
 #[tauri::command]
 async fn install_app(app_id: Option<String>, winget_id: Option<String>, window: tauri::Window) -> Result<installer::winget::InstallResult, NiTriTeError> {
-    // Resoudre l'ID winget : soit fourni directement, soit lookup depuis programs.json via app_id
-    let resolved_id = if let Some(wid) = winget_id.filter(|w| !w.is_empty()) {
-        wid
-    } else if let Some(aid) = app_id {
-        let apps = installer::manager::get_default_apps();
-        apps.iter()
-            .find(|a| a.id == aid)
-            .and_then(|a| a.winget_id.clone())
-            .unwrap_or(aid)
-    } else {
-        return Err(NiTriTeError::System("Aucun identifiant d'application fourni".into()));
-    };
-    tokio::task::spawn_blocking(move || installer::winget::install_package(&resolved_id, &window))
+    let entry = resolve_app_entry(&app_id, &winget_id);
+    tokio::task::spawn_blocking(move || installer::smart_install::install_app_smart(&entry, &window))
+        .await
+        .map_err(|e| NiTriTeError::System(e.to_string()))?
+}
+
+#[tauri::command]
+async fn uninstall_app(app_id: Option<String>, winget_id: Option<String>) -> Result<installer::winget::InstallResult, NiTriTeError> {
+    let entry = resolve_app_entry(&app_id, &winget_id);
+    tokio::task::spawn_blocking(move || installer::smart_install::uninstall_app_smart(&entry))
         .await
         .map_err(|e| NiTriTeError::System(e.to_string()))?
 }

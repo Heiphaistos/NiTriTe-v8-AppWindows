@@ -1,6 +1,6 @@
 [package]
 name = "nitrite"
-version = "8.61.0"
+version = "8.62.0"
 description = "Nitrite v26.31 - Maintenance Informatique Professionnelle"
 authors = ["NiTriTe"]
 edition = "2021"
@@ -34,7 +34,7 @@ winreg = "0.52"
 
 # Async — features minimaux, évite +200KB de code inutilisé
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "process", "io-util", "fs"] }
-reqwest = { version = "0.12", features = ["json", "stream"] }
+reqwest = { version = "0.12", features = ["json", "stream", "blocking"] }
 
 # Serialisation
 serde = { version = "1", features = ["derive"] }

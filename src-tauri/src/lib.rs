@@ -127,6 +127,7 @@ pub fn run() {
             get_apps,
             get_tools,
             install_app,
+            uninstall_app,
             check_winget,
             list_upgradable,
             upgrade_all,

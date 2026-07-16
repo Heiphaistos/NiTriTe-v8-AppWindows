@@ -23,7 +23,6 @@ export const navigationSections: NavSection[] = [
   {
     title: "Logiciels",
     items: [
-      { id: "applications", label: "Applications", icon: "layout-grid", route: "/applications" },
       { id: "tools", label: "Outils Systeme", icon: "wrench", route: "/tools" },
       { id: "master-install", label: "Master Install", icon: "download", route: "/master-install" },
       { id: "portables", label: "Apps Portables", icon: "package", route: "/portables" },

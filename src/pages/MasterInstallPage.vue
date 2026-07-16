@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, type Component } from "vue";
-import { invoke } from "@/utils/invoke";
+import { invoke, invokeRaw } from "@/utils/invoke";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { cachedInvoke } from "@/composables/useCachedInvoke";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
@@ -18,6 +19,7 @@ import {
   Cpu, Monitor, Printer, Archive,
   Bot, Users, Cloud, Star, Lock, Play,
   ChevronDown, ChevronRight, Layers, FileCode, Eye,
+  RotateCcw, Trash2,
 } from "lucide-vue-next";
 
 const notifications = useNotificationStore();
@@ -264,26 +266,17 @@ async function installSelection() {
       installEtaLabel.value = formatEta(avgPerApp * remaining);
     }
 
-    // Sans winget_id, install_app retombe sur l'id interne de l'app comme "id winget"
-    // (ex: "google-chrome") — ça n'existe pas dans le dépôt winget, donc échec garanti
-    // à chaque fois. On ne tente même pas : ~48% du catalogue n'a qu'une URL de
-    // téléchargement direct (Office retail, portables, éditeurs sans dépôt winget).
-    if (!app.winget_id) {
-      installResults.value.push({
-        name: app.name,
-        success: false,
-        message: "Pas d'installation automatique disponible pour cette application",
-        manualUrl: app.url ?? undefined,
-      });
-      continue;
-    }
-
     try {
-      const result = await invoke<{ success: boolean; app_id: string; message: string }>("install_app", {
+      // install_app tente en cascade winget -> chocolatey -> scoop ->
+      // telechargement direct (backend), pas seulement winget — couvre les
+      // apps du catalogue sans winget_id (~48%, Office retail, portables...).
+      // invokeRaw (pas de timeout 30s) : le bootstrap Chocolatey/Scoop seul
+      // peut prendre plus d'une minute la premiere fois.
+      const result = await invokeRaw<{ success: boolean; app_id: string; message: string }>("install_app", {
         appId: app.id,
         wingetId: app.winget_id ?? undefined,
       });
-      installResults.value.push({ name: app.name, success: result.success, message: result.message });
+      installResults.value.push({ name: app.name, success: result.success, message: result.message, manualUrl: !result.success ? (app.url ?? undefined) : undefined });
       if (!result.success) {
         notifications.warning(`${app.name}: ${result.message}`);
       } else {
@@ -306,6 +299,53 @@ async function installSelection() {
   installEtaLabel.value = "";
   installStartTime.value = null;
   showSummary.value = true;
+}
+
+// ── Vérifier MAJ / Désinstaller (par app) ───────────────────────
+const checkingUpdateIds = ref<Set<string>>(new Set());
+const uninstallingIds = ref<Set<string>>(new Set());
+
+async function checkAppUpdate(app: AppItem) {
+  if (!app.winget_id) { notifications.warning(`Vérification indisponible pour ${app.name} (pas d'ID WinGet)`); return; }
+  checkingUpdateIds.value = new Set([...checkingUpdateIds.value, app.id]);
+  try {
+    const result = await invoke<{ stdout?: string }>("run_system_command", {
+      cmd: "winget",
+      args: ["upgrade", "--id", app.winget_id],
+    });
+    const out = result?.stdout ?? "";
+    const low = out.toLowerCase();
+    if (out.includes("No applicable upgrade") || low.includes("aucune mise")) {
+      notifications.success(`${app.name} est à jour`);
+    } else if (out.trim()) {
+      notifications.info(`MAJ disponible pour ${app.name}`, out.split("\n").slice(0, 3).join(" "));
+    } else {
+      notifications.info(`Vérification terminée pour ${app.name}`);
+    }
+  } catch (e: unknown) {
+    notifications.error(`Impossible de vérifier MAJ pour ${app.name}`, String(e));
+  }
+  checkingUpdateIds.value = new Set([...checkingUpdateIds.value].filter((id) => id !== app.id));
+}
+
+async function uninstallApp(app: AppItem) {
+  const confirmed = await confirm(`Désinstaller ${app.name} ?\n\nCette action supprimera l'application de votre système.`, { title: "Nitrite", kind: "warning" });
+  if (!confirmed) return;
+  uninstallingIds.value = new Set([...uninstallingIds.value, app.id]);
+  try {
+    // Même cascade que l'install (winget -> chocolatey -> scoop), vérifiée
+    // pour de vrai côté backend (le registre ne doit plus contenir l'app).
+    const result = await invokeRaw<{ success: boolean; message: string }>("uninstall_app", {
+      appId: app.id,
+      wingetId: app.winget_id ?? undefined,
+    });
+    if (!result.success) throw new Error(result.message);
+    app.installed = false;
+    notifications.success(`${app.name} désinstallé`);
+  } catch (e: unknown) {
+    notifications.error(`Erreur désinstallation ${app.name}`, String(e));
+  }
+  uninstallingIds.value = new Set([...uninstallingIds.value].filter((id) => id !== app.id));
 }
 
 onMounted(async () => {
@@ -455,7 +495,27 @@ onMounted(async () => {
                     <span class="app-name">{{ app.name }}</span>
                     <span class="app-desc">{{ app.description }}</span>
                   </div>
-                  <NBadge v-if="app.installed" variant="success">Installé</NBadge>
+                  <template v-if="app.installed">
+                    <NBadge variant="success">Installé</NBadge>
+                    <button
+                      class="app-action-btn"
+                      title="Vérifier MAJ"
+                      :disabled="checkingUpdateIds.has(app.id)"
+                      @click.stop="checkAppUpdate(app)"
+                    >
+                      <NSpinner v-if="checkingUpdateIds.has(app.id)" :size="12" />
+                      <RotateCcw v-else :size="12" />
+                    </button>
+                    <button
+                      class="app-action-btn app-action-btn--danger"
+                      title="Désinstaller"
+                      :disabled="uninstallingIds.has(app.id)"
+                      @click.stop="uninstallApp(app)"
+                    >
+                      <NSpinner v-if="uninstallingIds.has(app.id)" :size="12" />
+                      <Trash2 v-else :size="12" />
+                    </button>
+                  </template>
                   <NBadge v-else-if="app.winget_id" variant="info" class="winget-badge">WinGet</NBadge>
                   <NBadge v-else-if="app.url" variant="warning" class="winget-badge">URL</NBadge>
                 </div>
@@ -596,7 +656,8 @@ onMounted(async () => {
 
 .app-item:hover { background: var(--bg-tertiary); }
 .app-item--checked { background: var(--accent-muted); }
-.app-item--installed { opacity: 0.55; cursor: default; }
+.app-item--installed { cursor: default; }
+.app-item--installed .app-name, .app-item--installed .app-desc { opacity: 0.6; }
 
 .app-checkbox { flex-shrink: 0; display: flex; }
 .check-on { color: var(--accent-primary); }
@@ -622,6 +683,24 @@ onMounted(async () => {
 }
 
 .winget-badge { flex-shrink: 0; font-size: 10px; }
+
+.app-action-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.app-action-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.app-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.app-action-btn--danger:hover { color: var(--danger); border-color: var(--danger); }
 
 .empty-state {
   text-align: center;

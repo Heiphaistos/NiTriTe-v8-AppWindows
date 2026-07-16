@@ -23,9 +23,7 @@ const router = createRouter({
     },
     {
       path: "/applications",
-      name: "applications",
-      component: () => import("@/pages/ApplicationsPage.vue"),
-      meta: { title: "Applications" },
+      redirect: "/master-install",
     },
     {
       path: "/tools",

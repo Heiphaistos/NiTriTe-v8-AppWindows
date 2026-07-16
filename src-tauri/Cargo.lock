@@ -2314,7 +2314,7 @@ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
 name = "nitrite"
-version = "8.61.0"
+version = "8.62.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3272,6 +3272,7 @@ dependencies = [
  "cookie",
  "cookie_store",
  "encoding_rs",
+ "futures-channel",
  "futures-core",
  "futures-util",
  "h2",

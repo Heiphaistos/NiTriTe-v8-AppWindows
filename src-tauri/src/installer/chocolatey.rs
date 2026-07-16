@@ -1,9 +1,12 @@
 use serde::Serialize;
-use std::process::Command;
+use std::io::{BufRead, BufReader};
+use std::process::{Command, Stdio};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+use tauri::Emitter;
 
 use crate::error::NiTriTeError;
+use crate::installer::winget::InstallResult;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ChocoPackage {
@@ -20,8 +23,19 @@ pub struct ChocoUpgradeResult {
     pub message: String,
 }
 
+/// Chemin fixe et connu de choco.exe (toujours le meme, poste par
+/// l'installeur officiel). Necessaire car un bootstrap effectue PENDANT la
+/// session Nitrite en cours ne met a jour le PATH que dans le registre — le
+/// PATH du process Nitrite deja demarre reste celui capture au lancement,
+/// donc `Command::new(choco_exe())` resterait "introuvable" tant que Nitrite
+/// n'est pas relance, meme juste apres un bootstrap reussi.
+pub fn choco_exe() -> String {
+    const KNOWN: &str = r"C:\ProgramData\chocolatey\bin\choco.exe";
+    if std::path::Path::new(KNOWN).exists() { KNOWN.to_string() } else { "choco".to_string() }
+}
+
 pub fn check_chocolatey() -> bool {
-    Command::new("choco")
+    Command::new(choco_exe())
         .arg("--version")
         .creation_flags(0x08000000)
         .output()
@@ -30,7 +44,7 @@ pub fn check_chocolatey() -> bool {
 }
 
 pub fn list_chocolatey_upgrades() -> Result<Vec<ChocoPackage>, NiTriTeError> {
-    let output = Command::new("choco")
+    let output = Command::new(choco_exe())
         .args(["outdated", "-r", "--no-color"])
         .creation_flags(0x08000000)
         .output()
@@ -69,7 +83,7 @@ pub fn upgrade_chocolatey_all(excluded: Vec<String>) -> Result<ChocoUpgradeResul
     if !cleaned.is_empty() {
         args.push(format!("--except=\"{}\"", cleaned.join(",")));
     }
-    let output = Command::new("choco")
+    let output = Command::new(choco_exe())
         .args(&args)
         .creation_flags(0x08000000)
         .output()
@@ -109,5 +123,115 @@ pub fn upgrade_chocolatey_all(excluded: Vec<String>) -> Result<ChocoUpgradeResul
         success,
         upgraded_count: upgraded,
         message,
+    })
+}
+
+/// Installe Chocolatey lui-meme via le script officiel (idempotent : ne fait
+/// rien si deja present). Necessite les droits admin (deja garantis par le
+/// contexte d'installation d'apps).
+pub fn bootstrap_chocolatey() -> Result<(), NiTriTeError> {
+    if check_chocolatey() {
+        return Ok(());
+    }
+    let ps = "Set-ExecutionPolicy Bypass -Scope Process -Force; \
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; \
+        iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))";
+    let output = Command::new("powershell")
+        .args(["-NoProfile", "-NonInteractive", "-Command", ps])
+        .creation_flags(0x08000000)
+        .output()
+        .map_err(|e| NiTriTeError::System(format!("Erreur bootstrap Chocolatey: {}", e)))?;
+    if !output.status.success() || !check_chocolatey() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(NiTriTeError::System(format!("Installation de Chocolatey echouee: {}", stderr.lines().next().unwrap_or("inconnue"))));
+    }
+    Ok(())
+}
+
+/// Recherche un id Chocolatey par nom quand programs.json n'en fournit pas.
+/// `choco search` interroge le depot communautaire (des milliers de paquets,
+/// bien plus large que winget pour les outils niche/portables).
+fn normalize_pkg_name(s: &str) -> String {
+    s.chars().filter(|c| c.is_alphanumeric()).collect::<String>().to_lowercase()
+}
+
+/// Cherche un id exact d'abord (rapide, precis quand le nom correspond deja a
+/// l'id chocolatey), puis une recherche floue avec correspondance normalisee
+/// (espaces/casse ignores) : les ids chocolatey n'ont jamais d'espace
+/// ("googlechrome" pour "Google Chrome"), donc `--exact` seul rate presque
+/// tout. Ne retourne un match flou QUE si le nom normalise correspond
+/// exactement a un id — jamais le "premier resultat" au hasard, qui
+/// installerait le mauvais logiciel (`choco search chrome` retourne aussi
+/// "1password-chrome", "adblockpluschrome"...).
+pub fn search_choco_id(name: &str) -> Option<String> {
+    let run_search = |query: &str, exact: bool| -> Option<Vec<(String, String)>> {
+        let mut args = vec!["search", query, "--limit-output", "--no-progress"];
+        if exact { args.push("--exact"); }
+        let output = Command::new(choco_exe()).args(&args).creation_flags(0x08000000).output().ok()?;
+        if !output.status.success() { return None; }
+        let text = String::from_utf8_lossy(&output.stdout).to_string();
+        Some(text.lines().filter_map(|l| {
+            let mut parts = l.splitn(2, '|');
+            let id = parts.next()?.trim().to_string();
+            let ver = parts.next().unwrap_or("").trim().to_string();
+            if id.is_empty() { None } else { Some((id, ver)) }
+        }).collect())
+    };
+
+    let normalized_query = normalize_pkg_name(name);
+
+    if let Some(results) = run_search(name, true) {
+        if let Some((id, _)) = results.into_iter().next() {
+            return Some(id);
+        }
+    }
+    // Convention Chocolatey : l'id du paquet est le nom sans espaces/casse
+    // ("googlechrome" pour "Google Chrome") — chercher directement avec le nom
+    // normalise est bien plus fiable que le plein-texte flou ci-dessous.
+    if !normalized_query.is_empty() {
+        if let Some(results) = run_search(&normalized_query, true) {
+            if let Some((id, _)) = results.into_iter().next() {
+                return Some(id);
+            }
+        }
+    }
+
+    let results = run_search(name, false)?;
+    results.into_iter().find(|(id, _)| normalize_pkg_name(id) == normalized_query).map(|(id, _)| id)
+}
+
+/// Installe un paquet via Chocolatey, en streamant la sortie comme winget.
+pub fn install_via_chocolatey(package_id: &str, window: &tauri::Window) -> Result<InstallResult, NiTriTeError> {
+    let mut child = Command::new(choco_exe())
+        .args(["install", package_id, "-y", "--no-progress", "--no-color"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .creation_flags(0x08000000)
+        .spawn()?;
+
+    if let Some(stdout) = child.stdout.take() {
+        let reader = BufReader::new(stdout);
+        for line in reader.lines().map_while(Result::ok) {
+            let ll = line.to_lowercase();
+            let level = if ll.contains("error") || ll.contains("erreur") || ll.contains("failed") {
+                "error"
+            } else if ll.contains("successfully installed") || ll.contains("already installed") {
+                "success"
+            } else {
+                "info"
+            };
+            let _ = window.emit("install-log", serde_json::json!({
+                "app_id": package_id,
+                "line": line,
+                "level": level,
+            }));
+        }
+    }
+
+    let status = child.wait()?;
+    Ok(InstallResult {
+        success: status.success(),
+        app_id: package_id.to_string(),
+        message: if status.success() { "Installation reussie (Chocolatey)".into() } else { format!("Code: {}", status.code().unwrap_or(-1)) },
     })
 }
