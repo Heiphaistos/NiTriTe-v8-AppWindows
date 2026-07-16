@@ -51,11 +51,16 @@ try {
     # une sortie UTF-8 correctement décodée (variable officielle de wsl.exe).
     $env:WSL_UTF8 = "1"
 
+    # wsl.exe peut exister (stub Windows) sans que WSL soit reellement installe :
+    # `--list --verbose` echoue alors et 2>&1 renvoie des objets ErrorRecord, pas
+    # des chaines — appeler .Trim() dessus plante avec une exception technique
+    # brute ("ne contient pas de methode nommee Trim"). "$_" force la conversion
+    # en texte (fonctionne pour String ET ErrorRecord) avant tout .Trim().
     $raw = & wsl --list --verbose 2>&1
-    $lines = $raw | Where-Object { $_ -and $_.Trim() -ne '' } | Select-Object -Skip 1
+    $lines = $raw | Where-Object { $_ -and "$_".Trim() -ne '' } | Select-Object -Skip 1
 
     $distros = @($lines | ForEach-Object {
-        $line = $_.TrimEnd()
+        $line = "$_".TrimEnd()
         # STATE peut contenir des espaces selon la locale (FR « En cours
         # d'exécution ») : capture non-gourmande jusqu'au numéro de version final.
         if ($line -match '^\*?\s+(\S+)\s+(.+?)\s+(\d+)\s*$') {

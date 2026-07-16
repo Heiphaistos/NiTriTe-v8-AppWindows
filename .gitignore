@@ -68,3 +68,7 @@ src-tauri/resources/sdi/indexes/
 
 # Loop autonome (état local, hors repo)
 .loop/
+
+# Disque de test VM (jamais a commiter, gros fichier binaire)
+.vm-test-disk*.vhdx
+.vm-test-disk*.avhdx
