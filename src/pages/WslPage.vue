@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { invoke, invokeRaw } from "@/utils/invoke";
+import { save } from "@tauri-apps/plugin-dialog";
 import NCard from "@/components/ui/NCard.vue";
 import NButton from "@/components/ui/NButton.vue";
 import NBadge from "@/components/ui/NBadge.vue";
@@ -103,16 +104,17 @@ async function stopDistro(d: WslDistro) {
 }
 
 async function exportDistro(d: WslDistro) {
-  // Demande un chemin via dialog natif Tauri ou fallback prompt
+  // pick_save_path n'a jamais existé côté Rust (invoke() échouait toujours,
+  // le bouton Exporter tombait systématiquement sur le message manuel) —
+  // dialog natif Tauri comme partout ailleurs dans le code (ProfilesPage.vue).
   let exportPath: string | null = null;
   try {
-    exportPath = await invoke<string>("pick_save_path", {
-      defaultName: `${d.name}.tar`,
+    exportPath = await save({
+      defaultPath: `${d.name}.tar`,
       filters: [{ name: "TAR Archive", extensions: ["tar"] }],
     });
-  } catch {
-    // pick_save_path indisponible — demande le chemin via notification
-    notify.error("Sélection impossible", `Entrez le chemin dans le terminal : wsl --export ${d.name} C:\\backup\\${d.name}.tar`);
+  } catch (e: unknown) {
+    notify.error("Sélection impossible", `Entrez le chemin dans le terminal : wsl --export ${d.name} C:\\backup\\${d.name}.tar (${String(e)})`);
     return;
   }
   if (!exportPath) return;
