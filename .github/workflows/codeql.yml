@@ -1,0 +1,43 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Re-scan hebdomadaire (lundi 6h UTC) même sans commit
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+# Permissions minimales — seul security-events:write est requis pour publier les alertes
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # build-mode none : analyse statique du source, aucun build requis (frontend Vue/TS)
+          build-mode: none
+          queries: security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
+
+# NB — Le backend Rust (src-tauri) n'est PAS analysé ici : CodeQL Rust exige un build
+# complet, or ce projet ne compile que sur Windows (crates windows-only + Tauri/WebView2)
+# et un build Tauri sur CI est lourd et fragile. À ajouter sur un runner Windows dédié si
+# une analyse Rust devient nécessaire. Le durcissement Rust est couvert par cargo check +
+# les audits manuels documentés.
