@@ -12,11 +12,16 @@ const escHtml = (s: unknown): string =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-// Échappe une valeur pour une cellule de table Markdown : un | non échappé
-// (fréquent dans les noms de logiciels/pilotes) casserait la structure de la
-// table, et un saut de ligne romprait la rangée.
+// Échappe une valeur pour une cellule de table Markdown : le backslash doit
+// être échappé en premier (chemins Windows), un | non échappé (fréquent dans les
+// noms de logiciels/pilotes) casserait la structure de la table, un saut de
+// ligne romprait la rangée, et un backtick fausserait le rendu inline-code.
 const mdCell = (s: unknown): string =>
-  String(s ?? "").replace(/\r?\n/g, " ").replace(/\|/g, "\\|");
+  String(s ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/\r?\n/g, " ")
+    .replace(/\|/g, "\\|")
+    .replace(/`/g, "'");
 import type { Ref } from "vue";
 import { invoke, invokeRaw } from "@/utils/invoke";
 import { exportScanHtml } from "@/composables/useScanExport";
