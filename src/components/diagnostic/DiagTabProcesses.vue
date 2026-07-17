@@ -51,7 +51,7 @@ const props = defineProps<{
 }>();
 
 const procSearch = ref("");
-const PROC_SORT_OPTS = [['cpu','CPU'],['mem','RAM'],['name','Nom']] as const
+const PROC_SORT_OPTS = [['cpu','CPU'],['mem','RAM'],['name','Nom']] as const;
 const procSort = ref<"cpu"|"mem"|"name">("cpu");
 const svcSearch = ref("");
 const svcFilter = ref("all");

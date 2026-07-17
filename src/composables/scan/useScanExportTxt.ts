@@ -1,4 +1,4 @@
-import { invoke, invokeRaw, useNotificationStore, kbStr, fullRegPath, type Solution } from "./scanExportHelpers";
+import { invoke, invokeRaw, useNotificationStore, fullRegPath, type Solution } from "./scanExportHelpers";
 import type { ScanResult, BatteryDetailed } from "@/types/diagnostic";
 
 export async function exportScanTxt(

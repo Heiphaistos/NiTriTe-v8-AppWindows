@@ -65,7 +65,7 @@ interface FirewallInfo {
 const data = ref<FirewallInfo | null>(null);
 const loading = ref(true);
 const error = ref("");
-const FW_FILTER_OPTS = [['all','Tout'],['in','Entrant'],['out','Sortant'],['block','Bloqué']] as const
+const FW_FILTER_OPTS = [['all','Tout'],['in','Entrant'],['out','Sortant'],['block','Bloqué']] as const;
 const filter = ref<"all" | "in" | "out" | "block">("all");
 const { exportCSV } = useExportData();
 

@@ -20,7 +20,7 @@ describe("useClipboard", () => {
   });
 
   it("copy retourne true et passe le texte au clipboard", async () => {
-    const { copy, copied } = useClipboard();
+    const { copy } = useClipboard();
     const result = await copy("test text");
     expect(result).toBe(true);
     expect(writeText).toHaveBeenCalledWith("test text");

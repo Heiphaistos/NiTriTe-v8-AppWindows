@@ -22,8 +22,8 @@ const emit = defineEmits<{ refresh: [] }>();
 
 const softwareSearch = ref("");
 const envSearch = ref("");
-const SW_SORT_OPTS = [['name','Nom'],['date','Date'],['size','Taille'],['publisher','Éditeur']] as const
-const VAR_SCOPE_OPTS = ['Utilisateur','Système'] as const
+const SW_SORT_OPTS = [['name','Nom'],['date','Date'],['size','Taille'],['publisher','Éditeur']] as const;
+const VAR_SCOPE_OPTS = ['Utilisateur','Système'] as const;
 const sortBy = ref<"name"|"date"|"size"|"publisher">("name");
 
 // Ajout de variable
