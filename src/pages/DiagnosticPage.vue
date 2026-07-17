@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "DiagnosticPage" });
 import { ref, watch, onMounted, defineAsyncComponent } from "vue";
 import { invoke } from "@/utils/invoke";
 import { useRoute } from "vue-router";

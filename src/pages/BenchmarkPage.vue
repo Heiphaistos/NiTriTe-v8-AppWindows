@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "BenchmarkPage" });
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { invokeRaw as invoke } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";

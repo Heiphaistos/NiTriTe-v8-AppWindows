@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "MasterInstallPage" });
 import { ref, computed, onMounted, type Component } from "vue";
 import { invoke, invokeRaw } from "@/utils/invoke";
 import { confirm } from "@tauri-apps/plugin-dialog";

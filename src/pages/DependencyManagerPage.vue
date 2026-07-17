@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "DependencyManagerPage" });
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { invoke, invokeRaw } from "@/utils/invoke";
 import { listen } from "@tauri-apps/api/event";

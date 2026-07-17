@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "DiskVisualizerPage" });
 import { ref, shallowRef, computed } from "vue";
 import { invoke, invokeRaw } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";

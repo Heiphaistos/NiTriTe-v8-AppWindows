@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "CleanerPage" });
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { invoke } from "@/utils/invoke";
 import type { CommandResult } from "@/types/diagnostic";

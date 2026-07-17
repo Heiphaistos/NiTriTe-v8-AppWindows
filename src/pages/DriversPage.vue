@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "DriversPage" });
 import { ref, computed, onMounted } from "vue";
 import { csvCell } from "@/composables/useExportData";
 import { invoke, isTauriContext } from "@/utils/invoke";

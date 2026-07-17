@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "BigFilesFinderPage" });
 import { ref, computed } from "vue";
 import { csvCell } from "@/composables/useExportData";
 import { invoke, invokeRaw } from "@/utils/invoke";

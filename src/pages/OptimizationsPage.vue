@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "OptimizationsPage" });
 import { ref, computed, onMounted, type Component } from "vue";
 import { invoke, isTauriContext } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";

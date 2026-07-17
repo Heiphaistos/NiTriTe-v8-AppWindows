@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "ClonePage" });
 import { ref, computed, onMounted, watch, onUnmounted } from "vue";
 import { invoke, invokeRaw } from "@/utils/invoke";
 import NButton from "@/components/ui/NButton.vue";

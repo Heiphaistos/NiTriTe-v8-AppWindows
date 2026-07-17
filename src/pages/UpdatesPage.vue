@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "UpdatesPage" });
 import { ref, onMounted, onUnmounted } from "vue";
 import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";
 import { sdiAcquire, sdiRelease } from "@/utils/sdiGuard";

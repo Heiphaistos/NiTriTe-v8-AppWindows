@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "PortScannerPage" });
 import { ref, computed, onUnmounted } from "vue";
 import { csvCell } from "@/composables/useExportData";
 import { invoke } from "@/utils/invoke";

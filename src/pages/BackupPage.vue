@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "BackupPage" });
 import { ref, onMounted, computed } from "vue";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke, invokeRaw, isTauriContext } from "@/utils/invoke";

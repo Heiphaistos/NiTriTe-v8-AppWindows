@@ -85,6 +85,7 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: "WinPEModePage" });
 import { ref, onMounted } from "vue";
 import { invoke } from "@/utils/invoke";
 import {

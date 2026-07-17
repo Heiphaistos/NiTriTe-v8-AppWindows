@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "TurboModePage" });
 import { ref, onMounted, computed, type Component } from "vue";
 import { invoke } from "@/utils/invoke";
 import NCard from "@/components/ui/NCard.vue";

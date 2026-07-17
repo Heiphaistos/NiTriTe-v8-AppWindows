@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "DataRecoveryPage" });
 import { ref, computed, onMounted } from "vue";
 import { invoke, isTauriContext } from "@/utils/invoke";
 import NButton from "@/components/ui/NButton.vue";

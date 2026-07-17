@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "UninstallerPage" });
 import { ref, computed, onMounted, defineAsyncComponent } from "vue";
 import { csvCell } from "@/composables/useExportData";
 import { invoke } from "@/utils/invoke";

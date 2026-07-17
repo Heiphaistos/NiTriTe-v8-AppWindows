@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "RestorePointsPage" });
 import { ref, computed, onMounted } from "vue";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@/utils/invoke";

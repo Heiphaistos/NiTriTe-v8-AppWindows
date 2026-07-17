@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "ScanVirusPage" });
 import { ref, computed, onUnmounted } from "vue";
 import { invoke, isTauriContext } from "@/utils/invoke";
 import { confirm } from "@tauri-apps/plugin-dialog";

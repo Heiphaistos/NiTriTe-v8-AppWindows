@@ -31,6 +31,19 @@ onUnmounted(() => { stopAlerts(); window.removeEventListener("keydown", handleKe
 
 const route       = useRoute();
 const router      = useRouter();
+
+// Pages exécutant des opérations longues (scan, mises à jour, install, nettoyage…) :
+// mises en cache par <keep-alive> pour que l'opération et son état survivent à la
+// navigation (sinon le composant est détruit et l'UI se réinitialise). Les pages
+// purement « live » (Monitoring, Températures, Dashboard…) ne sont PAS listées et
+// se rafraîchissent normalement à chaque entrée.
+const persistentPages = [
+  "DiagnosticPage", "OptimizationsPage", "MasterInstallPage", "UpdatesPage",
+  "DriversPage", "BackupPage", "UninstallerPage", "ClonePage", "DataRecoveryPage",
+  "ScanVirusPage", "BenchmarkPage", "CleanerPage", "TurboModePage",
+  "DependencyManagerPage", "DuplicateFinderPage", "BigFilesFinderPage",
+  "DiskVisualizerPage", "WinPEModePage", "RestorePointsPage", "PortScannerPage",
+];
 const appContent  = ref<HTMLElement | null>(null);
 const appStore    = useAppStore();
 const layoutStore = useLayoutStore();
@@ -309,7 +322,9 @@ onMounted(async () => {
         >
           <router-view v-slot="{ Component }">
             <transition name="page">
-              <component :is="Component" :key="route.path" />
+              <keep-alive :include="persistentPages">
+                <component :is="Component" :key="route.path" />
+              </keep-alive>
             </transition>
           </router-view>
 
