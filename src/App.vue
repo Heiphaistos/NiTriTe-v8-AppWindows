@@ -356,10 +356,16 @@ onMounted(async () => {
 }
 .splash-mascot-orbit {
   transform-style: preserve-3d;
-  animation: mascot-float 3.2s ease-in-out infinite;
+  /* !important : le mascotte est une boucle decorative discrete (flottement
+     lent, faible amplitude) — sans ça la regle globale "reduire les
+     animations" (animations.css, elle-meme en !important) l'ecrasait a
+     0.01ms des le premier essai reel, la figeant en plein milieu de l'ecran
+     de demarrage comme un simple logo colle. Le reste de l'app continue de
+     respecter la preference d'accessibilite normalement. */
+  animation: mascot-float 3.2s ease-in-out infinite !important;
 }
 .splash-mascot-stage.is-ready .splash-mascot-orbit {
-  animation: mascot-greet 600ms ease-out 1;
+  animation: mascot-greet 600ms ease-out 1 !important;
 }
 .splash-mascot {
   width: 160px; height: 160px; object-fit: contain;
@@ -368,9 +374,9 @@ onMounted(async () => {
 .splash-mascot-shadow {
   width: 90px; height: 16px; border-radius: 50%;
   background: radial-gradient(ellipse, rgba(249,115,22,0.45) 0%, transparent 70%);
-  animation: mascot-shadow 3.2s ease-in-out infinite;
+  animation: mascot-shadow 3.2s ease-in-out infinite !important;
 }
-.splash-mascot-stage.is-ready .splash-mascot-shadow { animation: none; opacity: 0.35; }
+.splash-mascot-stage.is-ready .splash-mascot-shadow { animation: none !important; opacity: 0.35; }
 
 @keyframes mascot-float {
   0%, 100% { transform: translateY(0) rotateY(-10deg) rotateZ(-2deg); }
