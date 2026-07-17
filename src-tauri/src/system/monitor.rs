@@ -294,7 +294,7 @@ try {
             .creation_flags(0x08000000)
             .output()
             .map_err(|e| e.to_string())?;
-        let text = String::from_utf8_lossy(&out.stdout);
+        let text = crate::maintenance::commands::decode_output(&out.stdout);
         let trimmed = text.trim();
         if trimmed.is_empty() || trimmed == "[]" { return Ok(vec![]); }
         let arr: Vec<serde_json::Value> = serde_json::from_str(trimmed)
