@@ -16,11 +16,9 @@ pub struct AppStats {
 }
 
 fn stats_path() -> PathBuf {
-    let base = dirs::data_local_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("NiTriTe");
-    let _ = fs::create_dir_all(&base);
-    base.join("stats.json")
+    // Portable d'abord — meme raison que favorites.rs : %LOCALAPPDATA%\NiTriTe
+    // etait une trace laissee sur le PC client, hors du dossier de Nitrite.
+    crate::utils::paths::config_dir().join("stats.json")
 }
 
 fn load_stats() -> AppStats {

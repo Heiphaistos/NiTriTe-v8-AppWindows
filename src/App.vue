@@ -217,12 +217,19 @@ onMounted(async () => {
       <!-- ── Fond statique ── -->
       <div class="splash-overlay" />
 
+      <!-- ── Mascotte flottante (pseudo-3D) — attend la fin du chargement ── -->
+      <div class="splash-mascot-stage" :class="{ 'is-ready': appReady }">
+        <div class="splash-mascot-orbit">
+          <img :src="logoUrl" class="splash-mascot" alt="Nitrite" />
+        </div>
+        <div class="splash-mascot-shadow" />
+      </div>
+
       <!-- ── Panel de chargement (bas de l'écran) ── -->
       <div class="splash-content">
 
         <!-- Logo + titre -->
         <div class="splash-brand">
-          <img :src="logoUrl" class="splash-logo" alt="NiTriTe" />
           <div class="splash-brand-text">
             <div class="splash-title">NiTriTe</div>
             <div class="splash-version">v{{ appVersion }}</div>
@@ -340,6 +347,46 @@ onMounted(async () => {
   pointer-events: none;
 }
 
+/* ── Mascotte flottante — pseudo-3D (perspective + rotation + ombre synchronisée),
+   tourne en boucle tant que appReady est faux ; petit salut final a l'arrivee ── */
+.splash-mascot-stage {
+  position: absolute; left: 50%; top: 32%; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+  perspective: 800px;
+}
+.splash-mascot-orbit {
+  transform-style: preserve-3d;
+  animation: mascot-float 3.2s ease-in-out infinite;
+}
+.splash-mascot-stage.is-ready .splash-mascot-orbit {
+  animation: mascot-greet 600ms ease-out 1;
+}
+.splash-mascot {
+  width: 160px; height: 160px; object-fit: contain;
+  filter: drop-shadow(0 18px 20px rgba(0,0,0,0.45));
+}
+.splash-mascot-shadow {
+  width: 90px; height: 16px; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(249,115,22,0.45) 0%, transparent 70%);
+  animation: mascot-shadow 3.2s ease-in-out infinite;
+}
+.splash-mascot-stage.is-ready .splash-mascot-shadow { animation: none; opacity: 0.35; }
+
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0) rotateY(-10deg) rotateZ(-2deg); }
+  50%      { transform: translateY(-18px) rotateY(10deg) rotateZ(2deg); }
+}
+@keyframes mascot-shadow {
+  0%, 100% { transform: scale(1);    opacity: 0.45; }
+  50%      { transform: scale(0.75); opacity: 0.25; }
+}
+@keyframes mascot-greet {
+  0%   { transform: translateY(-18px) rotateY(10deg) scale(1); }
+  40%  { transform: translateY(-28px) rotateY(-14deg) scale(1.08); }
+  70%  { transform: translateY(0)     rotateY(8deg)   scale(1); }
+  100% { transform: translateY(0)     rotateY(0deg)   scale(1); }
+}
+
 /* ── Panel chargement (bas de l'écran) ── */
 .splash-content {
   position: absolute; bottom: 0; left: 0; right: 0;
@@ -353,12 +400,6 @@ onMounted(async () => {
 .splash-brand {
   display: flex; align-items: center; gap: 14px; margin-bottom: 4px;
 }
-.splash-logo {
-  width: 52px; height: 52px; border-radius: 12px; object-fit: cover;
-  box-shadow: 0 0 24px rgba(249,115,22,0.5);
-  animation: bounce 450ms ease forwards;
-}
-@keyframes bounce { 0% { transform:scale(0.7);opacity:0 } 70% { transform:scale(1.06) } 100% { transform:scale(1);opacity:1 } }
 
 .splash-brand-text { display: flex; flex-direction: column; gap: 2px; }
 .splash-title {

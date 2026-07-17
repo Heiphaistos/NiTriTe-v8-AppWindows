@@ -18,11 +18,10 @@ pub struct FavoritesData {
 }
 
 fn data_path() -> PathBuf {
-    let base = dirs::data_local_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("NiTriTe");
-    let _ = fs::create_dir_all(&base);
-    base.join("favorites.json")
+    // Portable d'abord (dossier config a cote de l'exe) — sans ca, favoris et
+    // historique d'installation atterrissaient dans %LOCALAPPDATA%\NiTriTe,
+    // une trace sur le PC client que la version portable est censee eviter.
+    crate::utils::paths::config_dir().join("favorites.json")
 }
 
 fn load_data() -> FavoritesData {
