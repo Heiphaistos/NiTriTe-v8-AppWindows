@@ -32,6 +32,7 @@ pub fn collect_processes() -> Vec<ProcessInfo> {
     let mut list: Vec<ProcessInfo> = sys.processes().values().map(|p| {
         let status = match p.status() {
             ProcessStatus::Run      => "Running",
+            ProcessStatus::Suspended => "Suspended",
             ProcessStatus::Sleep    => "Sleeping",
             ProcessStatus::Idle     => "Idle",
             ProcessStatus::Stop     => "Stopped",

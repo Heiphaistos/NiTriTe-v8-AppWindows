@@ -10,7 +10,7 @@ export async function exportScanMd(
   if (!scanResult) return;
   const sr = scanResult;
   const now = new Date().toLocaleString();
-  const e = (s: unknown) => String(s ?? "").replace(/\r?\n/g, " ").replace(/\|/g, "\\|").replace(/`/g, "'");
+  const e = (s: unknown) => String(s ?? "").replace(/\\/g, "\\\\").replace(/\r?\n/g, " ").replace(/\|/g, "\\|").replace(/`/g, "'");
   const row = (...cells: string[]) => `| ${cells.map(e).join(" | ")} |`;
   const head = (...cols: string[]) => [row(...cols), `|${cols.map(()=>"---").join("|")}|`];
 

@@ -133,8 +133,8 @@ pub fn start_monitoring(
                 sys.refresh_processes(sysinfo::ProcessesToUpdate::All, false);
             }
             tick = (tick + 1) % 5;
-            networks.refresh();
-            disks.refresh();
+            networks.refresh(true);
+            disks.refresh(true);
 
             let cpu_percent = sys.global_cpu_usage();
             let cpu_per_core: Vec<f32> = sys.cpus().iter().map(|c| c.cpu_usage()).collect();
