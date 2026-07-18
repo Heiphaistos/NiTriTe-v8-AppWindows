@@ -64,7 +64,7 @@ async function runChkdsk() {
 async function runSfc() {
   loading.value.sfc = true;
   try {
-    const res = await invokeRaw<RepairResult>("run_sfc_offline", { windows_dir: sfcDir.value });
+    const res = await invokeRaw<RepairResult>("run_sfc_offline", { windowsDir: sfcDir.value });
     emit("result", res);
   } catch (e) { emit("result", { success: false, output: String(e), command: "sfc" }); }
   finally { loading.value.sfc = false; }
@@ -73,7 +73,7 @@ async function runSfc() {
 async function runDism() {
   loading.value.dism = true;
   try {
-    const res = await invokeRaw<RepairResult>("run_dism_offline_repair", { windows_dir: sfcDir.value });
+    const res = await invokeRaw<RepairResult>("run_dism_offline_repair", { windowsDir: sfcDir.value });
     emit("result", res);
   } catch (e) { emit("result", { success: false, output: String(e), command: "dism" }); }
   finally { loading.value.dism = false; }
@@ -82,7 +82,7 @@ async function runDism() {
 async function loadOfflineUsers() {
   loading.value.listUsers = true;
   try {
-    offlineUsers.value = await invoke<OfflineUser[]>("list_offline_users", { windows_dir: sfcDir.value });
+    offlineUsers.value = await invoke<OfflineUser[]>("list_offline_users", { windowsDir: sfcDir.value });
   } catch { /* silent */ }
   finally { loading.value.listUsers = false; }
 }
@@ -90,7 +90,7 @@ async function loadOfflineUsers() {
 async function runResetPassword() {
   loading.value.resetPwd = true;
   try {
-    const res = await invoke<RepairResult>("reset_user_password", { windows_dir: sfcDir.value, username: selectedUser.value, new_password: newPassword.value });
+    const res = await invoke<RepairResult>("reset_user_password", { windowsDir: sfcDir.value, username: selectedUser.value, newPassword: newPassword.value });
     emit("result", res);
   } catch (e) { emit("result", { success: false, output: String(e), command: "reset password" }); }
   finally { loading.value.resetPwd = false; }
@@ -99,7 +99,7 @@ async function runResetPassword() {
 async function runClearPassword() {
   loading.value.clearPwd = true;
   try {
-    const res = await invoke<RepairResult>("clear_offline_password", { windows_dir: sfcDir.value, username: selectedUser.value });
+    const res = await invoke<RepairResult>("clear_offline_password", { windowsDir: sfcDir.value, username: selectedUser.value });
     emit("result", res);
   } catch (e) { emit("result", { success: false, output: String(e), command: "clear password" }); }
   finally { loading.value.clearPwd = false; }
@@ -108,7 +108,7 @@ async function runClearPassword() {
 async function runEnableAccount() {
   loading.value.enableAccount = true;
   try {
-    const res = await invoke<RepairResult>("enable_offline_account", { windows_dir: sfcDir.value, username: selectedUser.value });
+    const res = await invoke<RepairResult>("enable_offline_account", { windowsDir: sfcDir.value, username: selectedUser.value });
     emit("result", res);
   } catch (e) { emit("result", { success: false, output: String(e), command: "enable account" }); }
   finally { loading.value.enableAccount = false; }
@@ -125,7 +125,7 @@ async function checkBitlocker() {
 async function runUnlockBitlocker() {
   loading.value.bitlockerUnlock = true;
   try {
-    const res = await invoke<RepairResult>("unlock_bitlocker", { drive: bitlockerDrive.value, recovery_key: bitlockerKey.value });
+    const res = await invoke<RepairResult>("unlock_bitlocker", { drive: bitlockerDrive.value, recoveryKey: bitlockerKey.value });
     emit("result", res);
   } catch (e) { emit("result", { success: false, output: String(e), command: "unlock bitlocker" }); }
   finally { loading.value.bitlockerUnlock = false; }
@@ -136,7 +136,7 @@ async function runWipe() {
   showWipeConfirm.value = false;
   loading.value.wipe = true;
   try {
-    const res = await invoke<RepairResult>("disk_wipe", { disk_index: wipeDiskIndex.value, method: wipeMethod.value });
+    const res = await invoke<RepairResult>("disk_wipe", { diskIndex: wipeDiskIndex.value, method: wipeMethod.value });
     emit("result", res);
   } catch (e) { emit("result", { success: false, output: String(e), command: "wipe disk" }); }
   finally { loading.value.wipe = false; }
